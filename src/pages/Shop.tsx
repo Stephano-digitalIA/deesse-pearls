@@ -21,6 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { shopProductTranslations } from '@/data/shopProductTranslations';
 
 type Category = 'all' | 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'other';
 
@@ -34,7 +35,9 @@ const categoryRouteMap: Record<string, Category> = {
 
 const Shop: React.FC = () => {
   const { category: categoryParam } = useParams<{ category?: string }>();
-  const { t, formatPrice } = useLocale();
+  const { t, formatPrice, language } = useLocale();
+  
+  const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
   const initialCategory: Category = categoryParam 
     ? categoryRouteMap[categoryParam] || 'all' 
@@ -259,7 +262,7 @@ const Shop: React.FC = () => {
       {hasActiveFilters && (
         <Button variant="outline" onClick={clearFilters} className="w-full">
           <X className="w-4 h-4 mr-2" />
-          {t('remove')} les filtres
+          {ts('shop.clearFilters')}
         </Button>
       )}
     </div>
@@ -342,7 +345,7 @@ const Shop: React.FC = () => {
               </div>
 
               <p className="text-muted-foreground hidden lg:block">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'produit' : 'produits'}
+                {filteredProducts.length} {filteredProducts.length === 1 ? ts('shop.product') : ts('shop.products')}
               </p>
 
               <select
@@ -377,9 +380,9 @@ const Shop: React.FC = () => {
               </motion.div>
             ) : (
               <div className="text-center py-16">
-                <p className="text-muted-foreground text-lg mb-4">Aucun produit ne correspond à vos filtres.</p>
+                <p className="text-muted-foreground text-lg mb-4">{ts('shop.noProductsMatch')}</p>
                 <Button variant="outline" onClick={clearFilters}>
-                  Réinitialiser les filtres
+                  {ts('shop.resetFilters')}
                 </Button>
               </div>
             )}
