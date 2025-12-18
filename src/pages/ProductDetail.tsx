@@ -81,9 +81,9 @@ const ProductDetail: React.FC = () => {
 
   // Mock reviews
   const reviews = [
-    { id: 1, author: 'Marie L.', rating: 5, date: '2024-01-15', comment: 'Absolument magnifique ! La qualité est exceptionnelle et la perle brille de mille reflets. Je recommande vivement.' },
-    { id: 2, author: 'Sophie M.', rating: 5, date: '2024-01-10', comment: 'Un cadeau parfait pour ma mère. Elle était ravie. L\'emballage était soigné et la livraison rapide.' },
-    { id: 3, author: 'Catherine D.', rating: 4, date: '2024-01-05', comment: 'Très belle pièce, conforme à la description. Seul petit bémol : le délai de livraison un peu long.' },
+    { id: 1, author: 'Marie L.', rating: 5, date: '2024-01-15', comment: ts('product.review1') },
+    { id: 2, author: 'Sophie M.', rating: 5, date: '2024-01-10', comment: ts('product.review2') },
+    { id: 3, author: 'Catherine D.', rating: 4, date: '2024-01-05', comment: ts('product.review3') },
   ];
 
   return (
@@ -112,7 +112,7 @@ const ProductDetail: React.FC = () => {
             <div className="relative aspect-square rounded-lg overflow-hidden bg-secondary">
               <img
                 src={product.images[selectedImage]}
-                alt={product.name}
+                alt={productName}
                 className="w-full h-full object-cover"
               />
               {product.badge && (
@@ -147,7 +147,7 @@ const ProductDetail: React.FC = () => {
                       selectedImage === index ? 'border-gold' : 'border-transparent'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt={`${productName} ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
