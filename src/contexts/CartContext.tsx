@@ -27,7 +27,6 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const FREE_SHIPPING_THRESHOLD = 500;
 const SHIPPING_COST = 15;
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -71,7 +70,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shippingCost = SHIPPING_COST;
   const total = subtotal + shippingCost;
 
   return (
@@ -103,4 +102,4 @@ export const useCart = () => {
   return context;
 };
 
-export { FREE_SHIPPING_THRESHOLD };
+

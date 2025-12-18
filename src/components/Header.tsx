@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingBag, Menu, X, ChevronDown, Globe } from 'lucide-react';
+import { Search, ShoppingBag, Menu, X, ChevronDown, Globe, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale, languages, currencies, languageNames, Language, Currency } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import {
 const Header: React.FC = () => {
   const { language, currency, setLanguage, setCurrency, t } = useLocale();
   const { totalItems, setIsCartOpen } = useCart();
+  const { favorites } = useFavorites();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
 
@@ -151,6 +153,14 @@ const Header: React.FC = () => {
             <button className="p-2 hover:text-gold transition-colors">
               <Search className="w-5 h-5" />
             </button>
+            <Link to="/favorites" className="p-2 hover:text-gold transition-colors relative">
+              <Heart className="w-5 h-5" />
+              {favorites.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-deep-black text-xs font-bold rounded-full flex items-center justify-center">
+                  {favorites.length}
+                </span>
+              )}
+            </Link>
             <button
               onClick={() => setIsCartOpen(true)}
               className="p-2 hover:text-gold transition-colors relative"

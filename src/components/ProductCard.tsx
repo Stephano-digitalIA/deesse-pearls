@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, ShoppingBag } from 'lucide-react';
+import { Star, ShoppingBag, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Product } from '@/data/products';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import { Button } from '@/components/ui/button';
 
 interface ProductCardProps {
@@ -14,6 +15,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { t, formatPrice } = useLocale();
   const { addItem } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -24,6 +26,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       price: product.price,
       image: product.images[0],
     });
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(product.id);
   };
 
   return (
@@ -49,6 +57,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {product.badge === 'new' ? t('newArrivals') : t('bestSellers')}
             </span>
           )}
+          <button
+            onClick={handleToggleFavorite}
+            className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 ${
+              isFavorite(product.id) 
+                ? 'bg-gold text-deep-black' 
+                : 'bg-background/80 text-foreground hover:bg-gold hover:text-deep-black'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${isFavorite(product.id) ? 'fill-current' : ''}`} />
+          </button>
           <div className="absolute inset-0 bg-deep-black/0 group-hover:bg-deep-black/20 transition-colors duration-300" />
           <Button
             onClick={handleAddToCart}

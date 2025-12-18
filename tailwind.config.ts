@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         display: ["Cormorant Garamond", "serif"],
         body: ["Lato", "sans-serif"],
+        tangerine: ["Tangerine", "cursive"],
       },
       colors: {
         border: "hsl(var(--border))",
