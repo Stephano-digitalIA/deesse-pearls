@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
+import ProductDetail from "./pages/ProductDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/shop/:category" element={<Shop />} />
+                  <Route path="/product/:slug" element={<ProductDetail />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
