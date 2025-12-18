@@ -27,43 +27,27 @@ const Index: React.FC = () => {
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-lagoon/20 rounded-full blur-3xl" />
         </div>
         <div className="container mx-auto px-4 text-center relative z-10">
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-gold font-body uppercase tracking-[0.3em] text-sm mb-6"
-          >
-            {t('designer25Years')}
-          </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="font-tangerine italic text-5xl md:text-7xl lg:text-8xl text-gold mb-6 leading-tight"
+            transition={{ delay: 0.3 }}
+            className="font-tangerine italic text-5xl md:text-7xl lg:text-8xl text-gold mb-8 leading-tight"
           >
             L'Excellence des Perles de Tahiti
           </motion.h1>
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="font-display text-2xl md:text-3xl lg:text-4xl text-pearl mb-6"
-          >
-            {t('heroTitle')}
-          </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="text-pearl/70 text-lg md:text-xl max-w-2xl mx-auto mb-10"
+            transition={{ delay: 0.5 }}
+            className="text-pearl/70 text-lg md:text-xl max-w-2xl mx-auto mb-12"
           >
             {t('heroSubtitle')}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+            transition={{ delay: 0.7 }}
+            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
           >
             <Link to="/shop">
               <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black font-semibold px-8">
@@ -72,7 +56,7 @@ const Index: React.FC = () => {
               </Button>
             </Link>
             <Link to="/customization">
-              <Button size="lg" variant="outline" className="border-pearl text-pearl hover:bg-pearl/10 px-8">
+              <Button size="lg" className="bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-deep-black font-semibold px-8 transition-all duration-300">
                 {t('customCreation')}
               </Button>
             </Link>
