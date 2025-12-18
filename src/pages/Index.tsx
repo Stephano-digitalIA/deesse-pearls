@@ -33,7 +33,7 @@ const Index: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="font-tangerine italic text-5xl md:text-7xl lg:text-8xl text-gold mb-8 leading-tight"
           >
-            L'Excellence des Perles de Tahiti
+            {t('heroTitle')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
