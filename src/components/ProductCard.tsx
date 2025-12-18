@@ -7,22 +7,25 @@ import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { Button } from '@/components/ui/button';
+import { getProductTranslation } from '@/data/productTranslations';
 
 interface ProductCardProps {
   product: Product;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { t, formatPrice } = useLocale();
+  const { t, formatPrice, language } = useLocale();
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
+
+  const productName = getProductTranslation(product.slug, 'name', language) || product.name;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addItem({
       id: product.id,
-      name: product.name,
+      name: productName,
       price: product.price,
       image: product.images[0],
     });
@@ -79,7 +82,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
         <div className="space-y-2">
           <h3 className="font-display text-lg font-medium group-hover:text-gold transition-colors line-clamp-1">
-            {product.name}
+            {productName}
           </h3>
           <div className="flex items-center gap-2">
             <div className="flex items-center">

@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { shopProductTranslations } from '@/data/shopProductTranslations';
+import { getProductTranslation } from '@/data/productTranslations';
 
 const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -43,7 +44,9 @@ const ProductDetail: React.FC = () => {
   }
 
   const favorite = isFavorite(product.id);
-
+  
+  const productName = getProductTranslation(product.slug, 'name', language) || product.name;
+  const productDescription = getProductTranslation(product.slug, 'description', language) || product.description;
   const handleAddToCart = () => {
     const variantInfo: string[] = [];
     if (selectedSize) variantInfo.push(selectedSize);
@@ -53,13 +56,13 @@ const ProductDetail: React.FC = () => {
     for (let i = 0; i < quantity; i++) {
       addItem({
         id: product.id,
-        name: product.name,
+        name: productName,
         price: product.price,
         image: product.images[0],
         variant: variantInfo.length > 0 ? variantInfo.join(' - ') : undefined,
       });
     }
-    toast.success(`${product.name} ${ts('product.addedToCart')}`);
+    toast.success(`${productName} ${ts('product.addedToCart')}`);
   };
 
   const toggleFavorite = () => {
@@ -93,7 +96,7 @@ const ProductDetail: React.FC = () => {
             <span>/</span>
             <Link to="/shop" className="hover:text-gold transition-colors">{t('shop')}</Link>
             <span>/</span>
-            <span className="text-foreground">{product.name}</span>
+            <span className="text-foreground">{productName}</span>
           </nav>
         </div>
       </div>
@@ -158,7 +161,7 @@ const ProductDetail: React.FC = () => {
             className="space-y-6"
           >
             <div>
-              <h1 className="font-display text-3xl md:text-4xl mb-2">{product.name}</h1>
+              <h1 className="font-display text-3xl md:text-4xl mb-2">{productName}</h1>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
@@ -176,7 +179,7 @@ const ProductDetail: React.FC = () => {
 
             <p className="text-2xl font-display text-gold">{formatPrice(product.price)}</p>
 
-            <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            <p className="text-muted-foreground leading-relaxed">{productDescription}</p>
 
             {/* Variants */}
             <div className="space-y-4">
@@ -342,7 +345,7 @@ const ProductDetail: React.FC = () => {
 
             <TabsContent value="description" className="py-8">
               <div className="prose prose-lg max-w-none">
-                <p className="text-muted-foreground">{product.description}</p>
+                <p className="text-muted-foreground">{productDescription}</p>
                 <h3 className="font-display text-xl mt-6 mb-4">{ts('product.characteristics')}</h3>
                 <ul className="space-y-2 text-muted-foreground">
                   <li>• {ts('product.certifiedPearl')}</li>
