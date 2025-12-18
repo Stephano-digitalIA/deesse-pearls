@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Upload, Send, CheckCircle } from 'lucide-react';
+import { Sparkles, Send, CheckCircle } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
+import { customizationTranslations } from '@/data/customizationTranslations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +11,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 
 const Customization: React.FC = () => {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
+  const pageT = customizationTranslations[language] || customizationTranslations.fr;
+  
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     jewelryType: '',
@@ -26,39 +29,39 @@ const Customization: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Demande de personnalisation envoyée ! Nous vous contacterons sous 48h.');
+    toast.success(pageT.toastSuccess);
     setStep(4);
   };
 
   const jewelryTypes = [
-    { value: 'ring', label: 'Bague' },
-    { value: 'necklace', label: 'Collier' },
-    { value: 'bracelet', label: 'Bracelet' },
-    { value: 'earrings', label: 'Boucles d\'oreilles' },
-    { value: 'pendant', label: 'Pendentif' },
-    { value: 'other', label: 'Autre' },
+    { value: 'ring', label: pageT.ring },
+    { value: 'necklace', label: pageT.necklace },
+    { value: 'bracelet', label: pageT.bracelet },
+    { value: 'earrings', label: pageT.earrings },
+    { value: 'pendant', label: pageT.pendant },
+    { value: 'other', label: pageT.other },
   ];
 
   const pearlTypes = [
-    { value: 'round', label: 'Ronde - La plus classique' },
-    { value: 'drop', label: 'Goutte (Drop) - Élégante' },
-    { value: 'baroque', label: 'Baroque - Unique' },
-    { value: 'button', label: 'Bouton - Moderne' },
-    { value: 'multiple', label: 'Plusieurs perles' },
+    { value: 'round', label: pageT.pearlRound },
+    { value: 'drop', label: pageT.pearlDrop },
+    { value: 'baroque', label: pageT.pearlBaroque },
+    { value: 'button', label: pageT.pearlButton },
+    { value: 'multiple', label: pageT.pearlMultiple },
   ];
 
   const metalTypes = [
-    { value: 'gold-18k', label: 'Or jaune 18 carats' },
-    { value: 'white-gold', label: 'Or blanc 18 carats' },
-    { value: 'rose-gold', label: 'Or rose 18 carats' },
-    { value: 'platinum', label: 'Platine' },
+    { value: 'gold-18k', label: pageT.goldYellow },
+    { value: 'white-gold', label: pageT.goldWhite },
+    { value: 'rose-gold', label: pageT.goldRose },
+    { value: 'platinum', label: pageT.platinum },
   ];
 
   const budgets = [
-    { value: '500-1000', label: '500€ - 1000€' },
-    { value: '1000-2000', label: '1000€ - 2000€' },
-    { value: '2000-5000', label: '2000€ - 5000€' },
-    { value: '5000+', label: '5000€ et plus' },
+    { value: '500-1000', label: pageT.budget1 },
+    { value: '1000-2000', label: pageT.budget2 },
+    { value: '2000-5000', label: pageT.budget3 },
+    { value: '5000+', label: pageT.budget4 },
   ];
 
   return (
@@ -85,7 +88,7 @@ const Customization: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="text-pearl/70 max-w-2xl mx-auto"
           >
-            {t('dreamJewelry')} - Créez un bijou unique qui vous ressemble
+            {t('dreamJewelry')} - {pageT.heroSubtitle}
           </motion.p>
           <div className="w-20 h-1 bg-gold mx-auto mt-6" />
         </div>
@@ -120,7 +123,7 @@ const Customization: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               className="bg-card p-8 rounded-lg border border-border"
             >
-              <h2 className="font-display text-2xl mb-6">Quel type de bijou souhaitez-vous créer ?</h2>
+              <h2 className="font-display text-2xl mb-6">{pageT.step1Title}</h2>
               <RadioGroup
                 value={formData.jewelryType}
                 onValueChange={(value) => setFormData({ ...formData, jewelryType: value })}
@@ -143,7 +146,7 @@ const Customization: React.FC = () => {
               </RadioGroup>
 
               <div className="mt-8">
-                <h3 className="font-display text-xl mb-4">Type de perle</h3>
+                <h3 className="font-display text-xl mb-4">{pageT.pearlTypeTitle}</h3>
                 <RadioGroup
                   value={formData.pearlType}
                   onValueChange={(value) => setFormData({ ...formData, pearlType: value })}
@@ -171,7 +174,7 @@ const Customization: React.FC = () => {
                 disabled={!formData.jewelryType || !formData.pearlType}
                 className="w-full mt-8 bg-gold hover:bg-gold-light text-deep-black"
               >
-                Continuer
+                {pageT.continue}
               </Button>
             </motion.div>
           )}
@@ -183,10 +186,10 @@ const Customization: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               className="bg-card p-8 rounded-lg border border-border"
             >
-              <h2 className="font-display text-2xl mb-6">Choisissez le métal et votre budget</h2>
+              <h2 className="font-display text-2xl mb-6">{pageT.step2Title}</h2>
               
               <div className="mb-8">
-                <h3 className="font-display text-xl mb-4">Type de métal</h3>
+                <h3 className="font-display text-xl mb-4">{pageT.metalTypeTitle}</h3>
                 <RadioGroup
                   value={formData.metalType}
                   onValueChange={(value) => setFormData({ ...formData, metalType: value })}
@@ -210,7 +213,7 @@ const Customization: React.FC = () => {
               </div>
 
               <div className="mb-8">
-                <h3 className="font-display text-xl mb-4">Budget approximatif</h3>
+                <h3 className="font-display text-xl mb-4">{pageT.budgetTitle}</h3>
                 <RadioGroup
                   value={formData.budget}
                   onValueChange={(value) => setFormData({ ...formData, budget: value })}
@@ -234,12 +237,12 @@ const Customization: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="description">Décrivez votre projet (optionnel)</Label>
+                <Label htmlFor="description">{pageT.descriptionLabel}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Style souhaité, occasion, inspiration..."
+                  placeholder={pageT.descriptionPlaceholder}
                   rows={4}
                   className="mt-2"
                 />
@@ -247,14 +250,14 @@ const Customization: React.FC = () => {
 
               <div className="flex gap-4 mt-8">
                 <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
-                  Retour
+                  {pageT.back}
                 </Button>
                 <Button
                   onClick={() => setStep(3)}
                   disabled={!formData.metalType || !formData.budget}
                   className="flex-1 bg-gold hover:bg-gold-light text-deep-black"
                 >
-                  Continuer
+                  {pageT.continue}
                 </Button>
               </div>
             </motion.div>
@@ -267,7 +270,7 @@ const Customization: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               className="bg-card p-8 rounded-lg border border-border"
             >
-              <h2 className="font-display text-2xl mb-6">Vos coordonnées</h2>
+              <h2 className="font-display text-2xl mb-6">{pageT.step3Title}</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
@@ -315,11 +318,11 @@ const Customization: React.FC = () => {
 
                 <div className="flex gap-4">
                   <Button type="button" variant="outline" onClick={() => setStep(2)} className="flex-1">
-                    Retour
+                    {pageT.back}
                   </Button>
                   <Button type="submit" className="flex-1 bg-gold hover:bg-gold-light text-deep-black">
                     <Send className="w-4 h-4 mr-2" />
-                    Envoyer ma demande
+                    {pageT.sendRequest}
                   </Button>
                 </div>
               </form>
@@ -336,12 +339,12 @@ const Customization: React.FC = () => {
               <div className="w-20 h-20 bg-gold/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-10 h-10 text-gold" />
               </div>
-              <h2 className="font-display text-3xl mb-4">Demande envoyée !</h2>
+              <h2 className="font-display text-3xl mb-4">{pageT.successTitle}</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                Merci pour votre demande de création sur mesure. Notre équipe vous contactera sous 48h pour discuter de votre projet.
+                {pageT.successMessage}
               </p>
               <Button onClick={() => setStep(1)} variant="outline" className="border-gold text-gold hover:bg-gold hover:text-deep-black">
-                Nouvelle demande
+                {pageT.newRequest}
               </Button>
             </motion.div>
           )}
