@@ -12,6 +12,7 @@ import CartDrawer from "@/components/CartDrawer";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
+import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/shop/:category" element={<Shop />} />
                   <Route path="/product/:slug" element={<ProductDetail />} />
+                  <Route path="/favorites" element={<Favorites />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
