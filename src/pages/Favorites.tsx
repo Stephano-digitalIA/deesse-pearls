@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const Favorites: React.FC = () => {
-  const { t, formatPrice } = useLocale();
+  const { t, formatPrice, language } = useLocale();
   const { favorites, removeFavorite, clearFavorites } = useFavorites();
   const { addItem } = useCart();
 
@@ -23,12 +23,12 @@ const Favorites: React.FC = () => {
       price: product.price,
       image: product.images[0],
     });
-    toast.success(`${product.name} ajouté au panier`);
+    toast.success(`${product.name} ${t('addedToCart')}`);
   };
 
   const handleRemove = (productId: string, productName: string) => {
     removeFavorite(productId);
-    toast.info(`${productName} retiré des favoris`);
+    toast.info(`${productName} ${t('removedFromFavorites')}`);
   };
 
   return (
@@ -43,7 +43,7 @@ const Favorites: React.FC = () => {
           >
             <Heart className="w-8 h-8 text-gold fill-gold" />
             <h1 className="font-display text-4xl md:text-5xl text-pearl">
-              Mes Favoris
+              {t('myFavorites')}
             </h1>
           </motion.div>
           <div className="w-20 h-1 bg-gold mx-auto" />
@@ -58,9 +58,9 @@ const Favorites: React.FC = () => {
             className="text-center py-16"
           >
             <Heart className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
-            <h2 className="font-display text-2xl mb-4">Aucun favori pour le moment</h2>
+            <h2 className="font-display text-2xl mb-4">{t('noFavoritesYet')}</h2>
             <p className="text-muted-foreground mb-8">
-              Explorez notre collection et ajoutez vos bijoux préférés à vos favoris.
+              {t('exploreFavorites')}
             </p>
             <Link to="/shop">
               <Button className="bg-gold hover:bg-gold-light text-deep-black">
@@ -73,19 +73,19 @@ const Favorites: React.FC = () => {
             {/* Header with count and clear button */}
             <div className="flex items-center justify-between mb-8">
               <p className="text-muted-foreground">
-                {favoriteProducts.length} {favoriteProducts.length === 1 ? 'produit' : 'produits'} dans vos favoris
+                {favoriteProducts.length} {favoriteProducts.length === 1 ? t('productInFavorites') : t('productsInFavorites')}
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   clearFavorites();
-                  toast.info('Tous les favoris ont été supprimés');
+                  toast.info(t('allFavoritesRemoved'));
                 }}
                 className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Tout supprimer
+                {t('removeAll')}
               </Button>
             </div>
 
@@ -114,7 +114,7 @@ const Favorites: React.FC = () => {
                               : 'bg-gold text-deep-black'
                           }`}
                         >
-                          {product.badge === 'new' ? 'Nouveau' : 'Best-seller'}
+                          {product.badge === 'new' ? t('new') : t('bestSeller')}
                         </span>
                       )}
                     </div>
