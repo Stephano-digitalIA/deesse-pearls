@@ -6,12 +6,18 @@ import { useLocale, languages, currencies, languageNames, Language, Currency } f
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { Button } from '@/components/ui/button';
+import SearchBar from '@/components/SearchBar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 const Header: React.FC = () => {
   const { language, currency, setLanguage, setCurrency, t } = useLocale();
@@ -19,6 +25,7 @@ const Header: React.FC = () => {
   const { favorites } = useFavorites();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const shopCategories = [
     { key: 'loosePearls', path: '/shop/pearls' },
@@ -151,9 +158,16 @@ const Header: React.FC = () => {
 
           {/* Right side icons */}
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:text-gold transition-colors">
-              <Search className="w-5 h-5" />
-            </button>
+            <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+              <PopoverTrigger asChild>
+                <button className="p-2 hover:text-gold transition-colors">
+                  <Search className="w-5 h-5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-96 p-0 border-border bg-card">
+                <SearchBar onClose={() => setIsSearchOpen(false)} />
+              </PopoverContent>
+            </Popover>
             <Link to="/favorites" className="p-2 hover:text-gold transition-colors relative">
               <Heart className="w-5 h-5" />
               {favorites.length > 0 && (
