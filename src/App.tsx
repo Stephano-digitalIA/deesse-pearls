@@ -13,6 +13,10 @@ import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
 import Favorites from "./pages/Favorites";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Customization from "./pages/Customization";
+import Commitments from "./pages/Commitments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +39,10 @@ const App = () => (
                   <Route path="/shop/:category" element={<Shop />} />
                   <Route path="/product/:slug" element={<ProductDetail />} />
                   <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/customization" element={<Customization />} />
+                  <Route path="/commitments" element={<Commitments />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
