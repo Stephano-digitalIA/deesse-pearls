@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type Language = 'fr' | 'en' | 'de' | 'es' | 'pt' | 'it' | 'nl' | 'ja' | 'ko';
 export type Currency = 'EUR' | 'USD';
@@ -822,8 +822,22 @@ const languageNames: Record<Language, string> = {
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('fr');
-  const [currency, setCurrency] = useState<Currency>('EUR');
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem('deesse-language');
+    return (saved as Language) || 'fr';
+  });
+  const [currency, setCurrency] = useState<Currency>(() => {
+    const saved = localStorage.getItem('deesse-currency');
+    return (saved as Currency) || 'EUR';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('deesse-language', language);
+  }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('deesse-currency', currency);
+  }, [currency]);
 
   const t = (key: string): string => {
     return translations[language][key] || key;
