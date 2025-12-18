@@ -17,6 +17,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Customization from "./pages/Customization";
 import Commitments from "./pages/Commitments";
+import FAQ from "./pages/FAQ";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/customization" element={<Customization />} />
                   <Route path="/commitments" element={<Commitments />} />
+                  <Route path="/faq" element={<FAQ />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
