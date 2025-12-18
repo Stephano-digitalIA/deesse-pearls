@@ -2,17 +2,19 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Award, Heart, Gem, Users } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
+import { aboutContactTranslations } from '@/data/aboutContactTranslations';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const About: React.FC = () => {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
+  const pageT = aboutContactTranslations[language] || aboutContactTranslations.fr;
 
   const values = [
-    { icon: Gem, title: 'Excellence', description: 'Chaque perle est sélectionnée avec le plus grand soin pour garantir une qualité exceptionnelle.' },
-    { icon: Heart, title: 'Passion', description: 'Plus de 25 ans de passion pour les perles de Tahiti et la création de bijoux uniques.' },
-    { icon: Award, title: 'Authenticité', description: 'Certificat d\'authenticité fourni avec chaque création, garantissant l\'origine de nos perles.' },
-    { icon: Users, title: 'Service', description: 'Un accompagnement personnalisé pour vous aider à trouver le bijou parfait.' },
+    { icon: Gem, title: pageT.valueExcellence, description: pageT.valueExcellenceDesc },
+    { icon: Heart, title: pageT.valuePassion, description: pageT.valuePassionDesc },
+    { icon: Award, title: pageT.valueAuthenticity, description: pageT.valueAuthenticityDesc },
+    { icon: Users, title: pageT.valueService, description: pageT.valueServiceDesc },
   ];
 
   return (
@@ -51,26 +53,12 @@ const About: React.FC = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="font-display text-3xl md:text-4xl mb-6">Notre Histoire</h2>
+              <h2 className="font-display text-3xl md:text-4xl mb-6">{pageT.ourStory}</h2>
               <div className="w-20 h-1 bg-gold mb-8" />
               <div className="space-y-6 text-muted-foreground leading-relaxed">
-                <p>
-                  Depuis plus de 25 ans, DEESSE PEARLS perpétue l'art de la création joaillière 
-                  autour des légendaires perles de Tahiti. Notre voyage a commencé dans les lagons 
-                  cristallins de la Polynésie française, berceau de ces trésors naturels aux 
-                  reflets incomparables.
-                </p>
-                <p>
-                  Fondée par une créatrice passionnée, notre maison s'est construite sur une 
-                  philosophie simple : révéler la beauté naturelle de chaque perle à travers 
-                  des créations d'exception. Chaque bijou raconte une histoire, celle d'une 
-                  perle unique née au cœur de l'océan Pacifique.
-                </p>
-                <p>
-                  Aujourd'hui, nous sommes fiers d'avoir accompagné des milliers de clients 
-                  dans le monde entier, perpétuant la tradition joaillière polynésienne tout 
-                  en innovant constamment dans nos créations.
-                </p>
+                <p>{pageT.aboutStoryP1}</p>
+                <p>{pageT.aboutStoryP2}</p>
+                <p>{pageT.aboutStoryP3}</p>
               </div>
             </motion.div>
             <motion.div
@@ -96,7 +84,7 @@ const About: React.FC = () => {
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-3xl md:text-4xl mb-4">Nos Valeurs</h2>
+            <h2 className="font-display text-3xl md:text-4xl mb-4">{pageT.ourValues}</h2>
             <div className="w-20 h-1 bg-gold mx-auto" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -123,7 +111,7 @@ const About: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-display text-3xl md:text-4xl mb-6">{t('dreamJewelry')}</h2>
           <p className="text-pearl/70 mb-8 max-w-2xl mx-auto">
-            Découvrez notre collection ou créez le bijou de vos rêves avec notre service de personnalisation sur mesure.
+            {pageT.aboutCtaText}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/shop">

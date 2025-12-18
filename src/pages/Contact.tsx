@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
+import { aboutContactTranslations } from '@/data/aboutContactTranslations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 const Contact: React.FC = () => {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
+  const pageT = aboutContactTranslations[language] || aboutContactTranslations.fr;
+  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -27,16 +30,16 @@ const Contact: React.FC = () => {
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    toast.success('Message envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.');
+    toast.success(pageT.messageSent);
     setFormData({ firstName: '', lastName: '', email: '', phone: '', subject: '', message: '' });
     setIsSubmitting(false);
   };
 
   const contactInfo = [
-    { icon: Mail, label: 'Email', value: 'contact@deesse-pearls.com', href: 'mailto:contact@deesse-pearls.com' },
-    { icon: Phone, label: 'Téléphone', value: '+689 40 XX XX XX', href: 'tel:+68940000000' },
-    { icon: MapPin, label: 'Adresse', value: 'Papeete, Polynésie française', href: '#' },
-    { icon: Clock, label: 'Horaires', value: 'Lun-Ven: 9h-18h', href: '#' },
+    { icon: Mail, label: pageT.emailLabel, value: 'contact@deesse-pearls.com', href: 'mailto:contact@deesse-pearls.com' },
+    { icon: Phone, label: pageT.phoneLabel, value: '+689 40 XX XX XX', href: 'tel:+68940000000' },
+    { icon: MapPin, label: pageT.addressLabel, value: pageT.addressValue, href: '#' },
+    { icon: Clock, label: pageT.hoursLabel, value: pageT.hoursValue, href: '#' },
   ];
 
   return (
@@ -57,7 +60,7 @@ const Contact: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="text-pearl/70"
           >
-            Une question ? N'hésitez pas à nous contacter
+            {pageT.contactSubtitle}
           </motion.p>
           <div className="w-20 h-1 bg-gold mx-auto mt-6" />
         </div>
@@ -72,7 +75,7 @@ const Contact: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               className="lg:col-span-1 space-y-6"
             >
-              <h2 className="font-display text-2xl mb-6">Nos Coordonnées</h2>
+              <h2 className="font-display text-2xl mb-6">{pageT.ourContact}</h2>
               {contactInfo.map((item) => (
                 <a
                   key={item.label}
@@ -158,7 +161,7 @@ const Contact: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="subject">Sujet *</Label>
+                    <Label htmlFor="subject">{pageT.subject} *</Label>
                     <Input
                       id="subject"
                       value={formData.subject}
@@ -184,7 +187,7 @@ const Contact: React.FC = () => {
                     className="w-full bg-gold hover:bg-gold-light text-deep-black"
                   >
                     {isSubmitting ? (
-                      'Envoi en cours...'
+                      pageT.sendingMessage
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-2" />
