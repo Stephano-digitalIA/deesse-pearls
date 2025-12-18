@@ -11,12 +11,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { shopProductTranslations } from '@/data/shopProductTranslations';
 
 const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { t, formatPrice } = useLocale();
+  const { t, formatPrice, language } = useLocale();
   const { addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  
+  const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
   const product = getProductBySlug(slug || '');
   
@@ -30,9 +33,9 @@ const ProductDetail: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="font-display text-2xl mb-4">Produit non trouvé</h1>
+          <h1 className="font-display text-2xl mb-4">{ts('product.notFound')}</h1>
           <Link to="/shop">
-            <Button>Retour à la boutique</Button>
+            <Button>{ts('product.backToShop')}</Button>
           </Link>
         </div>
       </div>
@@ -56,16 +59,16 @@ const ProductDetail: React.FC = () => {
         variant: variantInfo.length > 0 ? variantInfo.join(' - ') : undefined,
       });
     }
-    toast.success(`${product.name} ajouté au panier`);
+    toast.success(`${product.name} ${ts('product.addedToCart')}`);
   };
 
   const toggleFavorite = () => {
     if (favorite) {
       removeFavorite(product.id);
-      toast.info('Retiré des favoris');
+      toast.info(ts('product.removedFromFavorites'));
     } else {
       addFavorite(product.id);
-      toast.success('Ajouté aux favoris');
+      toast.success(ts('product.addedToFavorites'));
     }
   };
 
@@ -111,7 +114,7 @@ const ProductDetail: React.FC = () => {
               />
               {product.badge && (
                 <Badge className={`absolute top-4 left-4 ${product.badge === 'new' ? 'bg-lagoon' : 'bg-gold text-deep-black'}`}>
-                  {product.badge === 'new' ? 'Nouveau' : 'Best-seller'}
+                  {product.badge === 'new' ? ts('product.new') : ts('product.bestSeller')}
                 </Badge>
               )}
               {product.images.length > 1 && (
@@ -165,7 +168,7 @@ const ProductDetail: React.FC = () => {
                     />
                   ))}
                   <span className="ml-2 text-sm text-muted-foreground">
-                    {product.rating} ({product.reviews} avis)
+                    {product.rating} ({product.reviews} {ts('product.reviews')})
                   </span>
                 </div>
               </div>
@@ -321,13 +324,13 @@ const ProductDetail: React.FC = () => {
                 value="description"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-gold data-[state=active]:bg-transparent px-6 py-4"
               >
-                Description
+                {ts('product.description')}
               </TabsTrigger>
               <TabsTrigger
                 value="reviews"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-gold data-[state=active]:bg-transparent px-6 py-4"
               >
-                Avis clients ({reviews.length})
+                {ts('product.customerReviews')} ({reviews.length})
               </TabsTrigger>
               <TabsTrigger
                 value="shipping"
@@ -340,12 +343,12 @@ const ProductDetail: React.FC = () => {
             <TabsContent value="description" className="py-8">
               <div className="prose prose-lg max-w-none">
                 <p className="text-muted-foreground">{product.description}</p>
-                <h3 className="font-display text-xl mt-6 mb-4">Caractéristiques</h3>
+                <h3 className="font-display text-xl mt-6 mb-4">{ts('product.characteristics')}</h3>
                 <ul className="space-y-2 text-muted-foreground">
-                  <li>• Perle de Tahiti authentique certifiée</li>
-                  <li>• Or 18 carats (750/1000)</li>
-                  <li>• Livré dans un écrin luxe DEESSE PEARLS</li>
-                  <li>• Certificat d'authenticité inclus</li>
+                  <li>• {ts('product.certifiedPearl')}</li>
+                  <li>• {ts('product.gold18k')}</li>
+                  <li>• {ts('product.luxuryBox')}</li>
+                  <li>• {ts('product.certificateIncluded')}</li>
                 </ul>
               </div>
             </TabsContent>
@@ -364,7 +367,7 @@ const ProductDetail: React.FC = () => {
                         />
                       ))}
                     </div>
-                    <p className="text-sm text-muted-foreground">{product.reviews} avis</p>
+                    <p className="text-sm text-muted-foreground">{product.reviews} {ts('product.reviews')}</p>
                   </div>
                   <div className="flex-1">
                     {[5, 4, 3, 2, 1].map(stars => (
@@ -409,18 +412,18 @@ const ProductDetail: React.FC = () => {
 
             <TabsContent value="shipping" className="py-8">
               <div className="prose prose-lg max-w-none text-muted-foreground">
-                <h3 className="font-display text-xl mb-4 text-foreground">Livraison</h3>
+                <h3 className="font-display text-xl mb-4 text-foreground">{ts('product.shipping')}</h3>
                 <ul className="space-y-2">
-                  <li>• Livraison sécurisée par transporteur</li>
-                  <li>• Délai de livraison : 3-5 jours ouvrés (France)</li>
-                  <li>• Livraison internationale disponible</li>
-                  <li>• Suivi de colis en temps réel</li>
+                  <li>• {ts('product.secureShipping')}</li>
+                  <li>• {ts('product.deliveryTime')}</li>
+                  <li>• {ts('product.internationalShipping')}</li>
+                  <li>• {ts('product.realTimeTracking')}</li>
                 </ul>
-                <h3 className="font-display text-xl mt-6 mb-4 text-foreground">Retours</h3>
+                <h3 className="font-display text-xl mt-6 mb-4 text-foreground">{ts('product.returns')}</h3>
                 <ul className="space-y-2">
-                  <li>• Retour gratuit sous 14 jours</li>
-                  <li>• Échange ou remboursement</li>
-                  <li>• Article dans son état d'origine</li>
+                  <li>• {ts('product.freeReturns')}</li>
+                  <li>• {ts('product.exchangeOrRefund')}</li>
+                  <li>• {ts('product.originalCondition')}</li>
                 </ul>
               </div>
             </TabsContent>
@@ -430,7 +433,7 @@ const ProductDetail: React.FC = () => {
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-16">
-            <h2 className="font-display text-2xl mb-8">Vous aimerez aussi</h2>
+            <h2 className="font-display text-2xl mb-8">{ts('product.youMayAlsoLike')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map(p => (
                 <ProductCard key={p.id} product={p} />
