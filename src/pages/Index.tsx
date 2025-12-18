@@ -7,6 +7,24 @@ import { getFeaturedProducts } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 
+const fadeInUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } }
+};
+
 const Index: React.FC = () => {
   const { t } = useLocale();
   const featuredProducts = getFeaturedProducts();
@@ -65,57 +83,102 @@ const Index: React.FC = () => {
       </section>
 
       {/* Commitments Bar */}
-      <section className="bg-secondary py-6 border-y border-border">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={staggerContainer}
+        className="bg-secondary py-6 border-y border-border"
+      >
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {commitments.map((item) => (
-              <div key={item.key} className="flex items-center justify-center gap-3">
+              <motion.div
+                key={item.key}
+                variants={fadeInUp}
+                className="flex items-center justify-center gap-3"
+              >
                 <item.icon className="w-6 h-6 text-gold" />
                 <span className="font-body text-sm">{t(item.key)}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Featured Products */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="text-center mb-12"
+          >
             <h2 className="font-display text-3xl md:text-4xl mb-4">{t('bestSellers')}</h2>
             <div className="w-20 h-1 bg-gold mx-auto" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+          >
             {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <motion.div key={product.id} variants={scaleIn}>
+                <ProductCard product={product} />
+              </motion.div>
             ))}
-          </div>
-          <div className="text-center mt-12">
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+            className="text-center mt-12"
+          >
             <Link to="/shop">
               <Button variant="outline" className="border-gold text-gold hover:bg-gold hover:text-deep-black">
                 {t('viewAll')}
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Custom Creation CTA */}
-      <section className="py-20 bg-deep-black text-pearl relative overflow-hidden">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={fadeInUp}
+        className="py-20 bg-deep-black text-pearl relative overflow-hidden"
+      >
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 right-0 w-96 h-96 bg-gold/30 rounded-full blur-3xl" />
         </div>
         <div className="container mx-auto px-4 text-center relative z-10">
-          <h2 className="font-display text-3xl md:text-5xl mb-6">{t('dreamJewelry')}</h2>
-          <p className="text-pearl/70 max-w-2xl mx-auto mb-8">{t('customCreationAvailable')}</p>
-          <Link to="/customization">
-            <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black font-semibold">
-              {t('requestCustomization')}
-            </Button>
-          </Link>
+          <motion.h2
+            variants={fadeInUp}
+            className="font-display text-3xl md:text-5xl mb-6"
+          >
+            {t('dreamJewelry')}
+          </motion.h2>
+          <motion.p variants={fadeInUp} className="text-pearl/70 max-w-2xl mx-auto mb-8">
+            {t('customCreationAvailable')}
+          </motion.p>
+          <motion.div variants={scaleIn}>
+            <Link to="/customization">
+              <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black font-semibold">
+                {t('requestCustomization')}
+              </Button>
+            </Link>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 };
