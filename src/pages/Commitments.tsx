@@ -12,42 +12,42 @@ const Commitments: React.FC = () => {
     {
       icon: Award,
       title: t('authenticCertificate'),
-      description: 'Chaque bijou DEESSE PEARLS est accompagné d\'un certificat d\'authenticité garantissant l\'origine polynésienne de nos perles de Tahiti. Ce document officiel atteste de la qualité et de la provenance de votre bijou.',
+      description: t('authenticCertificateDesc'),
     },
     {
       icon: Gem,
       title: t('exceptionalQuality'),
-      description: 'Nos perles sont rigoureusement sélectionnées parmi les plus belles de Polynésie française. Seules les perles présentant un lustre exceptionnel, une surface parfaite et des reflets intenses sont retenues pour nos créations.',
+      description: t('exceptionalQualityDesc'),
     },
     {
       icon: Shield,
       title: t('securePayment'),
-      description: 'Vos transactions sont 100% sécurisées grâce à notre système de paiement crypté SSL. Nous acceptons les principales cartes bancaires et PayPal pour votre confort.',
+      description: t('securePaymentDesc'),
     },
     {
       icon: Truck,
       title: t('freeOver'),
-      description: 'Livraison sécurisée et assurée vers le monde entier. Chaque bijou est soigneusement emballé dans un écrin luxe et expédié avec suivi en temps réel.',
+      description: t('freeOverDesc'),
     },
     {
       icon: Headphones,
       title: t('responsiveService'),
-      description: 'Notre équipe est à votre écoute du lundi au vendredi pour répondre à toutes vos questions. Conseil personnalisé, aide au choix, service après-vente : nous sommes là pour vous.',
+      description: t('responsiveServiceDesc'),
     },
     {
       icon: Clock,
       title: t('artisanalProfessionalism'),
-      description: 'Plus de 25 ans d\'expertise dans la création joaillière. Chaque bijou est conçu et assemblé avec passion par nos artisans qualifiés, dans le respect des traditions polynésiennes.',
+      description: t('artisanalProfessionalismDesc'),
     },
     {
       icon: Heart,
       title: t('customCreationAvailable'),
-      description: 'Vous avez une idée précise ? Notre service de création sur mesure vous permet de concevoir le bijou de vos rêves. Nous vous accompagnons de l\'esquisse à la réalisation finale.',
+      description: t('customCreationAvailableDesc'),
     },
     {
       icon: RefreshCw,
-      title: 'Garantie & Retours',
-      description: 'Satisfait ou remboursé : vous disposez de 14 jours pour changer d\'avis. Garantie 2 ans sur tous nos bijoux couvrant les défauts de fabrication.',
+      title: t('guaranteeReturns'),
+      description: t('guaranteeReturnsDesc'),
     },
   ];
 
@@ -72,8 +72,7 @@ const Commitments: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="text-pearl/70 max-w-2xl mx-auto"
           >
-            Chez DEESSE PEARLS, nous nous engageons à vous offrir une expérience d'exception, 
-            de la sélection de nos perles jusqu'à la livraison de votre bijou.
+            {t('commitmentsHeroSubtitle')}
           </motion.p>
           <div className="w-20 h-1 bg-gold mx-auto mt-6" />
         </div>
@@ -112,10 +111,10 @@ const Commitments: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: '25+', label: 'Années d\'expertise' },
-              { value: '10K+', label: 'Clients satisfaits' },
-              { value: '100%', label: 'Perles authentiques' },
-              { value: '14j', label: 'Droit de retour' },
+              { value: '25+', label: t('yearsExpertise') },
+              { value: '10K+', label: t('satisfiedClients') },
+              { value: '100%', label: t('authenticPearls') },
+              { value: '14j', label: t('returnPolicy') },
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -137,7 +136,7 @@ const Commitments: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-display text-3xl md:text-4xl mb-6">{t('thousandsOfClients')}</h2>
           <p className="text-pearl/70 mb-8 max-w-xl mx-auto">
-            Rejoignez notre communauté de clients satisfaits et découvrez l'excellence des perles de Tahiti.
+            {t('joinCommunity')}
           </p>
           <Link to="/shop">
             <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black">
