@@ -83,7 +83,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: 'Livraison à partir de',
     free: 'Gratuit',
-    freeOver: 'Gratuit dès 500€',
+    freeOver: 'Livraison à votre destination',
   },
   en: {
     home: 'Home',
@@ -155,7 +155,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: 'Shipping from',
     free: 'Free',
-    freeOver: 'Free over €500',
+    freeOver: 'Delivery to your destination',
   },
   de: {
     home: 'Startseite',
@@ -227,7 +227,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: 'Versand ab',
     free: 'Kostenlos',
-    freeOver: 'Kostenlos ab 500€',
+    freeOver: 'Lieferung an Ihr Ziel',
   },
   es: {
     home: 'Inicio',
@@ -299,7 +299,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: 'Envío desde',
     free: 'Gratis',
-    freeOver: 'Gratis desde 500€',
+    freeOver: 'Envío a su destino',
   },
   pt: {
     home: 'Início',
@@ -371,7 +371,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: 'Frete a partir de',
     free: 'Grátis',
-    freeOver: 'Grátis acima de 500€',
+    freeOver: 'Entrega no seu destino',
   },
   it: {
     home: 'Home',
@@ -443,7 +443,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: 'Spedizione da',
     free: 'Gratis',
-    freeOver: 'Gratis oltre 500€',
+    freeOver: 'Consegna alla tua destinazione',
   },
   nl: {
     home: 'Home',
@@ -515,7 +515,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: 'Verzending vanaf',
     free: 'Gratis',
-    freeOver: 'Gratis boven €500',
+    freeOver: 'Levering naar uw bestemming',
   },
   ja: {
     home: 'ホーム',
@@ -587,7 +587,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'よくある質問',
     shippingFrom: '送料',
     free: '無料',
-    freeOver: '500€以上で無料',
+    freeOver: 'お届け先へ配送',
   },
   ko: {
     home: '홈',
@@ -659,7 +659,7 @@ const translations: Record<Language, Record<string, string>> = {
     faq: 'FAQ',
     shippingFrom: '배송비',
     free: '무료',
-    freeOver: '500€ 이상 무료',
+    freeOver: '목적지로 배송',
   },
 };
 
