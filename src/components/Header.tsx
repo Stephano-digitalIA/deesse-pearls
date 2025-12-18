@@ -34,6 +34,7 @@ const Header: React.FC = () => {
     { key: 'shop', path: '/shop', hasDropdown: true },
     { key: 'customization', path: '/customization' },
     { key: 'commitments', path: '/commitments' },
+    { key: 'faq', path: '/faq' },
     { key: 'contact', path: '/contact' },
   ];
 
