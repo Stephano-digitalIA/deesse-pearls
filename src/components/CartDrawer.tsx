@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCart, FREE_SHIPPING_THRESHOLD } from '@/contexts/CartContext';
+import { useCart } from '@/contexts/CartContext';
 import { useLocale } from '@/contexts/LocaleContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -114,21 +114,6 @@ const CartDrawer: React.FC = () => {
             {/* Footer */}
             {items.length > 0 && (
               <div className="border-t border-border p-4 space-y-4">
-                {/* Free shipping progress */}
-                {subtotal < FREE_SHIPPING_THRESHOLD && (
-                  <div className="text-sm">
-                    <p className="text-muted-foreground mb-2">
-                      {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} {t('freeOver').split('€')[1]}
-                    </p>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gold transition-all duration-300"
-                        style={{ width: `${(subtotal / FREE_SHIPPING_THRESHOLD) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {/* Totals */}
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -137,9 +122,7 @@ const CartDrawer: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('shipping')}</span>
-                    <span className={shippingCost === 0 ? 'text-gold' : ''}>
-                      {shippingCost === 0 ? t('freeShipping') : formatPrice(shippingCost)}
-                    </span>
+                    <span>{formatPrice(shippingCost)}</span>
                   </div>
                   <div className="flex justify-between text-lg font-display font-semibold pt-2 border-t border-border">
                     <span>{t('total')}</span>

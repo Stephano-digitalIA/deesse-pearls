@@ -39,10 +39,18 @@ const Index: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="font-display text-4xl md:text-6xl lg:text-7xl text-pearl mb-6 leading-tight"
+            className="font-tangerine italic text-5xl md:text-7xl lg:text-8xl text-gold mb-6 leading-tight"
+          >
+            L'Excellence des Perles de Tahiti
+          </motion.h1>
+          <motion.h2
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="font-display text-2xl md:text-3xl lg:text-4xl text-pearl mb-6"
           >
             {t('heroTitle')}
-          </motion.h1>
+          </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}

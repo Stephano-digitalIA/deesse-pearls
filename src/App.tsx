@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
@@ -17,6 +18,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LocaleProvider>
       <CartProvider>
+        <FavoritesProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -34,6 +36,7 @@ const App = () => (
             </div>
           </BrowserRouter>
         </TooltipProvider>
+        </FavoritesProvider>
       </CartProvider>
     </LocaleProvider>
   </QueryClientProvider>
