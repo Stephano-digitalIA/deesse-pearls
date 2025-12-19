@@ -6,6 +6,7 @@ import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useProductBySlug, useProductsByCategory } from '@/hooks/useProducts';
+import type { ProductCategory } from '@/types/supabase';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +32,9 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
 
   // Fetch related products based on product category
-  const { data: relatedProductsData = [] } = useProductsByCategory(product?.category || '');
+  const { data: relatedProductsData = [] } = useProductsByCategory(
+    (product?.category || 'pearls') as ProductCategory
+  );
   const relatedProducts = relatedProductsData
     .filter(p => p.id !== product?.id)
     .slice(0, 4);

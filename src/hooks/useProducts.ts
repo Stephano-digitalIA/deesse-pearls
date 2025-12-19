@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { Product } from '@/types/supabase';
+import type { Product, ProductCategory } from '@/types/supabase';
 
 // Fetch all products
 export const useProducts = () => {
@@ -23,7 +23,7 @@ export const useProducts = () => {
 };
 
 // Fetch products by category
-export const useProductsByCategory = (category: string) => {
+export const useProductsByCategory = (category: ProductCategory) => {
   return useQuery({
     queryKey: ['products', 'category', category],
     queryFn: async (): Promise<Product[]> => {
