@@ -110,3 +110,51 @@ export interface Database {
 export type Product = Database['public']['Tables']['products']['Row'];
 export type ProductInsert = Database['public']['Tables']['products']['Insert'];
 export type ProductUpdate = Database['public']['Tables']['products']['Update'];
+
+// Order types
+export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+
+export interface ShippingAddress {
+  street: string;
+  city: string;
+  postal_code: string;
+  country: string;
+}
+
+export interface Order {
+  id: string;
+  order_number: string;
+  customer_email: string;
+  customer_name: string;
+  customer_phone: string | null;
+  shipping_address: ShippingAddress;
+  status: OrderStatus;
+  subtotal: number;
+  shipping_cost: number;
+  total: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string | null;
+  product_name: string;
+  product_image: string | null;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  created_at: string;
+}
+
+export interface OrderHistory {
+  id: string;
+  order_id: string;
+  old_status: OrderStatus | null;
+  new_status: OrderStatus;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+}
