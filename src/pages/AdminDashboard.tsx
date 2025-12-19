@@ -27,8 +27,11 @@ import {
   Search,
   Upload,
   X,
-  ImageIcon
+  ImageIcon,
+  ShoppingCart
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import OrderManagement from '@/components/admin/OrderManagement';
 
 const categories: { value: ProductCategory; label: string }[] = [
   { value: 'pearls', label: 'Perles' },
@@ -309,307 +312,326 @@ const AdminDashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Produits ({products?.length || 0})
-            </CardTitle>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full sm:w-64"
-                />
-              </div>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={openCreateDialog}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouveau produit
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingProduct ? 'Modifier le produit' : 'Nouveau produit'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nom *</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="slug">Slug</Label>
-                        <Input
-                          id="slug"
-                          value={formData.slug}
-                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                          placeholder="auto-généré si vide"
-                        />
-                      </div>
-                    </div>
+        <Tabs defaultValue="products" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="products" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Produits
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              Commandes
+            </TabsTrigger>
+          </TabsList>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description *</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        rows={3}
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="category">Catégorie *</Label>
-                        <Select
-                          value={formData.category}
-                          onValueChange={(value) => setFormData({ ...formData, category: value as ProductCategory })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat.value} value={cat.value}>
-                                {cat.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="price">Prix (€) *</Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="badge">Badge</Label>
-                        <Select
-                          value={formData.badge || 'none'}
-                          onValueChange={(value) => setFormData({ ...formData, badge: value === 'none' ? null : value as ProductBadge })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {badges.map((badge) => (
-                              <SelectItem key={badge.value || 'none'} value={badge.value || 'none'}>
-                                {badge.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Image du produit</Label>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                      
-                      {imageUrl ? (
-                        <div className="relative w-full h-48 border border-border rounded-lg overflow-hidden bg-muted">
-                          <img
-                            src={imageUrl}
-                            alt="Aperçu"
-                            className="w-full h-full object-contain"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={removeImage}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full h-48 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
-                        >
-                          {isUploading ? (
-                            <>
-                              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-                              <p className="mt-2 text-sm text-muted-foreground">Téléchargement...</p>
-                            </>
-                          ) : (
-                            <>
-                              <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                              <p className="mt-2 text-sm text-muted-foreground">Cliquez pour ajouter une image</p>
-                              <p className="text-xs text-muted-foreground/70">PNG, JPG jusqu'à 5 Mo</p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>ou</span>
-                        <Input
-                          type="url"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
-                          placeholder="Coller une URL d'image"
-                          className="flex-1 h-8 text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="in_stock"
-                        checked={formData.in_stock}
-                        onCheckedChange={(checked) => setFormData({ ...formData, in_stock: checked })}
-                      />
-                      <Label htmlFor="in_stock">En stock</Label>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        Annuler
+          <TabsContent value="products">
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Produits ({products?.length || 0})
+                </CardTitle>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-full sm:w-64"
+                    />
+                  </div>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={openCreateDialog}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Nouveau produit
                       </Button>
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Enregistrement...
-                          </>
-                        ) : editingProduct ? (
-                          'Modifier'
-                        ) : (
-                          'Créer'
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Produit</TableHead>
-                    <TableHead>Catégorie</TableHead>
-                    <TableHead>Prix</TableHead>
-                    <TableHead>Badge</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts?.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {product.images[0] && (
-                            <img
-                              src={product.images[0]}
-                              alt={product.name}
-                              className="w-10 h-10 object-cover rounded"
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingProduct ? 'Modifier le produit' : 'Nouveau produit'}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="name">Nom *</Label>
+                            <Input
+                              id="name"
+                              value={formData.name}
+                              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                              required
                             />
-                          )}
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-xs text-muted-foreground">{product.slug}</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="slug">Slug</Label>
+                            <Input
+                              id="slug"
+                              value={formData.slug}
+                              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                              placeholder="auto-généré si vide"
+                            />
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {categories.find(c => c.value === product.category)?.label}
-                      </TableCell>
-                      <TableCell>{product.price.toFixed(2)} €</TableCell>
-                      <TableCell>
-                        {product.badge && (
-                          <Badge variant={product.badge === 'new' ? 'default' : 'secondary'}>
-                            {product.badge === 'new' ? 'Nouveau' : 'Bestseller'}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={product.in_stock ? 'outline' : 'destructive'}>
-                          {product.in_stock ? 'En stock' : 'Rupture'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(product)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          {deleteConfirmId === product.id ? (
-                            <div className="flex gap-1">
+
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Description *</Label>
+                          <Textarea
+                            id="description"
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            rows={3}
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="category">Catégorie *</Label>
+                            <Select
+                              value={formData.category}
+                              onValueChange={(value) => setFormData({ ...formData, category: value as ProductCategory })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat.value} value={cat.value}>
+                                    {cat.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="price">Prix (€) *</Label>
+                            <Input
+                              id="price"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={formData.price}
+                              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="badge">Badge</Label>
+                            <Select
+                              value={formData.badge || 'none'}
+                              onValueChange={(value) => setFormData({ ...formData, badge: value === 'none' ? null : value as ProductBadge })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {badges.map((badge) => (
+                                  <SelectItem key={badge.value || 'none'} value={badge.value || 'none'}>
+                                    {badge.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Image du produit</Label>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                          
+                          {imageUrl ? (
+                            <div className="relative w-full h-48 border border-border rounded-lg overflow-hidden bg-muted">
+                              <img
+                                src={imageUrl}
+                                alt="Aperçu"
+                                className="w-full h-full object-contain"
+                              />
                               <Button
+                                type="button"
                                 variant="destructive"
-                                size="sm"
-                                onClick={() => handleDelete(product.id)}
+                                size="icon"
+                                className="absolute top-2 right-2"
+                                onClick={removeImage}
                               >
-                                Confirmer
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeleteConfirmId(null)}
-                              >
-                                Annuler
+                                <X className="w-4 h-4" />
                               </Button>
                             </div>
                           ) : (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteConfirmId(product.id)}
+                            <div
+                              onClick={() => fileInputRef.current?.click()}
+                              className="w-full h-48 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
                             >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
+                              {isUploading ? (
+                                <>
+                                  <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                                  <p className="mt-2 text-sm text-muted-foreground">Téléchargement...</p>
+                                </>
+                              ) : (
+                                <>
+                                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                                  <p className="mt-2 text-sm text-muted-foreground">Cliquez pour ajouter une image</p>
+                                  <p className="text-xs text-muted-foreground/70">PNG, JPG jusqu'à 5 Mo</p>
+                                </>
+                              )}
+                            </div>
                           )}
+                          
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>ou</span>
+                            <Input
+                              type="url"
+                              value={imageUrl}
+                              onChange={(e) => setImageUrl(e.target.value)}
+                              placeholder="Coller une URL d'image"
+                              className="flex-1 h-8 text-xs"
+                            />
+                          </div>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {filteredProducts?.length === 0 && (
-                <p className="text-center py-8 text-muted-foreground">
-                  Aucun produit trouvé
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="in_stock"
+                            checked={formData.in_stock}
+                            onCheckedChange={(checked) => setFormData({ ...formData, in_stock: checked })}
+                          />
+                          <Label htmlFor="in_stock">En stock</Label>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4">
+                          <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            Annuler
+                          </Button>
+                          <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Enregistrement...
+                              </>
+                            ) : editingProduct ? (
+                              'Modifier'
+                            ) : (
+                              'Créer'
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead>Prix</TableHead>
+                        <TableHead>Badge</TableHead>
+                        <TableHead>Stock</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProducts?.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {product.images[0] && (
+                                <img
+                                  src={product.images[0]}
+                                  alt={product.name}
+                                  className="w-10 h-10 object-cover rounded"
+                                />
+                              )}
+                              <div>
+                                <p className="font-medium">{product.name}</p>
+                                <p className="text-xs text-muted-foreground">{product.slug}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {categories.find(c => c.value === product.category)?.label}
+                          </TableCell>
+                          <TableCell>{product.price.toFixed(2)} €</TableCell>
+                          <TableCell>
+                            {product.badge && (
+                              <Badge variant={product.badge === 'new' ? 'default' : 'secondary'}>
+                                {product.badge === 'new' ? 'Nouveau' : 'Bestseller'}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={product.in_stock ? 'outline' : 'destructive'}>
+                              {product.in_stock ? 'En stock' : 'Rupture'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDialog(product)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              {deleteConfirmId === product.id ? (
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDelete(product.id)}
+                                  >
+                                    Confirmer
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDeleteConfirmId(null)}
+                                  >
+                                    Annuler
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteConfirmId(product.id)}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {filteredProducts?.length === 0 && (
+                    <p className="text-center py-8 text-muted-foreground">
+                      Aucun produit trouvé
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <OrderManagement />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
