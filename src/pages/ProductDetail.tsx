@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Sparkles } from 'lucide-react';
+import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Sparkles, Loader2 } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { getProductBySlug, products } from '@/data/products';
+import { useProductBySlug, useProductsByCategory } from '@/hooks/useProducts';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,7 @@ const ProductDetail: React.FC = () => {
   
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
-  const product = getProductBySlug(slug || '');
+  const { data: product, isLoading, error } = useProductBySlug(slug || '');
   
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -30,7 +30,21 @@ const ProductDetail: React.FC = () => {
   const [selectedDiameter, setSelectedDiameter] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
 
-  if (!product) {
+  // Fetch related products based on product category
+  const { data: relatedProductsData = [] } = useProductsByCategory(product?.category || '');
+  const relatedProducts = relatedProductsData
+    .filter(p => p.id !== product?.id)
+    .slice(0, 4);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  if (error || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -74,10 +88,6 @@ const ProductDetail: React.FC = () => {
       toast.success(ts('product.addedToFavorites'));
     }
   };
-
-  const relatedProducts = products
-    .filter(p => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
 
   // Mock reviews
   const reviews = [

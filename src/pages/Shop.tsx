@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Filter, X, ChevronDown } from 'lucide-react';
+import { Filter, X, ChevronDown, Loader2 } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
-import { products, Product } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,6 +36,7 @@ const categoryRouteMap: Record<string, Category> = {
 const Shop: React.FC = () => {
   const { category: categoryParam } = useParams<{ category?: string }>();
   const { t, formatPrice, language } = useLocale();
+  const { data: products = [], isLoading, error } = useProducts();
   
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
@@ -56,19 +57,19 @@ const Shop: React.FC = () => {
     const qualities = new Set<string>();
     products.forEach(p => p.variants?.qualities?.forEach(q => qualities.add(q)));
     return Array.from(qualities).sort();
-  }, []);
+  }, [products]);
 
   const allDiameters = useMemo(() => {
     const diameters = new Set<string>();
     products.forEach(p => p.variants?.diameters?.forEach(d => diameters.add(d)));
     return Array.from(diameters).sort((a, b) => parseInt(a) - parseInt(b));
-  }, []);
+  }, [products]);
 
   const allSizes = useMemo(() => {
     const sizes = new Set<string>();
     products.forEach(p => p.variants?.sizes?.forEach(s => sizes.add(s)));
     return Array.from(sizes);
-  }, []);
+  }, [products]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -267,6 +268,25 @@ const Shop: React.FC = () => {
       )}
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <p className="text-destructive mb-4">{ts('shop.errorLoading')}</p>
+          <Button onClick={() => window.location.reload()}>{ts('shop.retry')}</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
