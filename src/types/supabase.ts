@@ -42,7 +42,7 @@ export interface Database {
           name: string;
           description: string;
           price: number;
-          images: string[];
+          images?: string[];
           badge?: ProductBadge;
           rating?: number;
           reviews?: number;
@@ -67,13 +67,41 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
+      };
+      user_roles: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: 'admin' | 'moderator' | 'user';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: 'admin' | 'moderator' | 'user';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: 'admin' | 'moderator' | 'user';
+          created_at?: string;
+        };
+        Relationships: [];
       };
     };
-    Views: {};
-    Functions: {};
+    Views: Record<string, never>;
+    Functions: {
+      has_role: {
+        Args: { _user_id: string; _role: 'admin' | 'moderator' | 'user' };
+        Returns: boolean;
+      };
+    };
     Enums: {
       product_category: ProductCategory;
       product_badge: ProductBadge;
+      app_role: 'admin' | 'moderator' | 'user';
     };
   };
 }
