@@ -18,6 +18,9 @@ import Contact from "./pages/Contact";
 import Customization from "./pages/Customization";
 import Commitments from "./pages/Commitments";
 import FAQ from "./pages/FAQ";
+import LegalNotice from "./pages/LegalNotice";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfSale from "./pages/TermsOfSale";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +48,9 @@ const App = () => (
                   <Route path="/customization" element={<Customization />} />
                   <Route path="/commitments" element={<Commitments />} />
                   <Route path="/faq" element={<FAQ />} />
+                  <Route path="/legal" element={<LegalNotice />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfSale />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
