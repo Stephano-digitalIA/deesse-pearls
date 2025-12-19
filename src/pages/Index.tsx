@@ -49,7 +49,7 @@ const Index: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="font-tangerine italic text-5xl md:text-7xl lg:text-8xl text-gold mb-8 leading-tight"
+            className="font-tangerine italic text-5xl md:text-7xl lg:text-9xl text-gold mb-8 leading-tight"
           >
             {t('heroTitle')}
           </motion.h1>
