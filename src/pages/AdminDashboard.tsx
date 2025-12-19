@@ -133,9 +133,8 @@ const AdminDashboard: React.FC = () => {
 
     try {
       if (editingProduct) {
-        // @ts-ignore - Supabase types issue
-        const { error } = await supabase
-          .from('products')
+        const { error } = await (supabase
+          .from('products') as any)
           .update(productData)
           .eq('id', editingProduct.id);
 
@@ -146,9 +145,8 @@ const AdminDashboard: React.FC = () => {
           description: "Le produit a été mis à jour avec succès.",
         });
       } else {
-        // @ts-ignore - Supabase types issue
-        const { error } = await supabase
-          .from('products')
+        const { error } = await (supabase
+          .from('products') as any)
           .insert([productData]);
 
         if (error) throw error;
