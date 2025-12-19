@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/hooks/useProducts';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductInsert, ProductCategory, ProductBadge } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,10 @@ import {
   LogOut, 
   Package, 
   Loader2,
-  Search
+  Search,
+  Upload,
+  X,
+  ImageIcon
 } from 'lucide-react';
 
 const categories: { value: ProductCategory; label: string }[] = [
@@ -68,6 +71,71 @@ const AdminDashboard: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une image valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Erreur",
+        description: "L'image ne doit pas dépasser 5 Mo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setImageUrl(publicUrl);
+      toast({
+        title: "Image téléchargée",
+        description: "L'image a été téléchargée avec succès",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erreur d'upload",
+        description: err.message || "Impossible de télécharger l'image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeImage = () => {
+    setImageUrl('');
+  };
 
   // Redirect if not admin
   React.useEffect(() => {
@@ -172,8 +240,8 @@ const AdminDashboard: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('products')
+      const { error } = await (supabase
+        .from('products') as any)
         .delete()
         .eq('id', id);
 
@@ -356,14 +424,62 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="imageUrl">URL de l'image</Label>
-                      <Input
-                        id="imageUrl"
-                        type="url"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://..."
+                      <Label>Image du produit</Label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
                       />
+                      
+                      {imageUrl ? (
+                        <div className="relative w-full h-48 border border-border rounded-lg overflow-hidden bg-muted">
+                          <img
+                            src={imageUrl}
+                            alt="Aperçu"
+                            className="w-full h-full object-contain"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={removeImage}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full h-48 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                              <p className="mt-2 text-sm text-muted-foreground">Téléchargement...</p>
+                            </>
+                          ) : (
+                            <>
+                              <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                              <p className="mt-2 text-sm text-muted-foreground">Cliquez pour ajouter une image</p>
+                              <p className="text-xs text-muted-foreground/70">PNG, JPG jusqu'à 5 Mo</p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>ou</span>
+                        <Input
+                          type="url"
+                          value={imageUrl}
+                          onChange={(e) => setImageUrl(e.target.value)}
+                          placeholder="Coller une URL d'image"
+                          className="flex-1 h-8 text-xs"
+                        />
+                      </div>
                     </div>
 
                     <div className="flex items-center space-x-2">
