@@ -144,6 +144,9 @@ const Footer: React.FC = () => {
               <Link to="/terms" className="hover:text-gold transition-colors">
                 {t('termsOfSale')}
               </Link>
+              <Link to="/admin/login" className="hover:text-pearl/70 transition-colors opacity-50">
+                Admin
+              </Link>
             </div>
           </div>
         </div>
