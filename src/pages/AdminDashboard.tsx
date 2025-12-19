@@ -150,7 +150,7 @@ const AdminDashboard: React.FC = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate('/admin/login');
+    navigate('/');
   };
 
   const openCreateDialog = () => {
