@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
@@ -22,46 +23,59 @@ import LegalNotice from "./pages/LegalNotice";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfSale from "./pages/TermsOfSale";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LocaleProvider>
-      <CartProvider>
-        <FavoritesProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/shop" element={<Shop />} />
-                  <Route path="/shop/:category" element={<Shop />} />
-                  <Route path="/product/:slug" element={<ProductDetail />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/customization" element={<Customization />} />
-                  <Route path="/commitments" element={<Commitments />} />
-                  <Route path="/faq" element={<FAQ />} />
-                  <Route path="/legal" element={<LegalNotice />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfSale />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-              <CartDrawer />
-            </div>
-          </BrowserRouter>
-        </TooltipProvider>
-        </FavoritesProvider>
-      </CartProvider>
-    </LocaleProvider>
+    <AuthProvider>
+      <LocaleProvider>
+        <CartProvider>
+          <FavoritesProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Admin routes - without header/footer */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                
+                {/* Public routes - with header/footer */}
+                <Route path="/*" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/shop" element={<Shop />} />
+                        <Route path="/shop/:category" element={<Shop />} />
+                        <Route path="/product/:slug" element={<ProductDetail />} />
+                        <Route path="/favorites" element={<Favorites />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/contact" element={<Contact />} />
+                        <Route path="/customization" element={<Customization />} />
+                        <Route path="/commitments" element={<Commitments />} />
+                        <Route path="/faq" element={<FAQ />} />
+                        <Route path="/legal" element={<LegalNotice />} />
+                        <Route path="/privacy" element={<PrivacyPolicy />} />
+                        <Route path="/terms" element={<TermsOfSale />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </main>
+                    <Footer />
+                    <CartDrawer />
+                  </div>
+                } />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+          </FavoritesProvider>
+        </CartProvider>
+      </LocaleProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
