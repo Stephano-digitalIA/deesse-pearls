@@ -6,8 +6,11 @@ import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useProductBySlug, useProductsByCategory } from '@/hooks/useProducts';
+import { useReviews } from '@/hooks/useReviews';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ProductCategory } from '@/types/supabase';
 import ProductCard from '@/components/ProductCard';
+import ReviewForm from '@/components/ReviewForm';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,12 +27,20 @@ const ProductDetail: React.FC = () => {
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
   const { data: product, isLoading, error } = useProductBySlug(slug || '');
+  const queryClient = useQueryClient();
+  
+  // Fetch reviews from database
+  const { data: reviews = [], isLoading: reviewsLoading } = useReviews(product?.id || '');
   
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedQuality, setSelectedQuality] = useState<string>('');
   const [selectedDiameter, setSelectedDiameter] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
+  
+  const handleReviewSubmitted = () => {
+    queryClient.invalidateQueries({ queryKey: ['reviews', product?.id] });
+  };
 
   // Fetch related products based on product category
   const { data: relatedProductsData = [] } = useProductsByCategory(
@@ -92,12 +103,9 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  // Mock reviews
-  const reviews = [
-    { id: 1, author: 'Marie L.', rating: 5, date: '2025-01-15', comment: ts('product.review1') },
-    { id: 2, author: 'Sophie M.', rating: 5, date: '2025-01-10', comment: ts('product.review2') },
-    { id: 3, author: 'Catherine D.', rating: 4, date: '2025-01-05', comment: ts('product.review3') },
-  ];
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length 
+    : product?.rating || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -403,26 +411,39 @@ const ProductDetail: React.FC = () => {
 
                 {/* Reviews List */}
                 <div className="space-y-6">
-                  {reviews.map(review => (
-                    <div key={review.id} className="border-b border-border pb-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{review.author}</span>
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-3 h-3 ${i < review.rating ? 'fill-gold text-gold' : 'text-muted-foreground'}`}
-                              />
-                            ))}
+                  {reviews.length === 0 && !reviewsLoading ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      {language === 'fr' ? 'Aucun avis pour le moment. Soyez le premier à donner votre avis !' : 'No reviews yet. Be the first to leave a review!'}
+                    </p>
+                  ) : (
+                    reviews.map(review => (
+                      <div key={review.id} className="border-b border-border pb-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{review.author_name}</span>
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-3 h-3 ${i < review.rating ? 'fill-gold text-gold' : 'text-muted-foreground'}`}
+                                />
+                              ))}
+                            </div>
                           </div>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(review.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
+                          </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{review.date}</span>
+                        <p className="text-muted-foreground">{review.comment}</p>
                       </div>
-                      <p className="text-muted-foreground">{review.comment}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
+
+                {/* Review Form */}
+                {product && (
+                  <ReviewForm productId={product.id} onReviewSubmitted={handleReviewSubmitted} />
+                )}
               </div>
             </TabsContent>
 

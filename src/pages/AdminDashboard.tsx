@@ -28,10 +28,12 @@ import {
   Upload,
   X,
   ImageIcon,
-  ShoppingCart
+  ShoppingCart,
+  MessageSquare
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderManagement from '@/components/admin/OrderManagement';
+import ReviewManagement from '@/components/admin/ReviewManagement';
 
 const categories: { value: ProductCategory; label: string }[] = [
   { value: 'pearls', label: 'Perles' },
@@ -313,7 +315,7 @@ const AdminDashboard: React.FC = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               Produits
@@ -321,6 +323,10 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
               Commandes
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Avis
             </TabsTrigger>
           </TabsList>
 
@@ -630,6 +636,20 @@ const AdminDashboard: React.FC = () => {
 
           <TabsContent value="orders">
             <OrderManagement />
+          </TabsContent>
+
+          <TabsContent value="reviews">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Gestion des avis clients
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ReviewManagement />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
