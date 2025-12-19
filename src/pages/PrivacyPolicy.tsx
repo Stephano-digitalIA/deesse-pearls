@@ -13,7 +13,7 @@ const PrivacyPolicy: React.FC = () => {
           {t('privacyPolicyTitle')}
         </h1>
         <p className="text-center text-deep-black/60 mb-12">
-          {t('lastUpdated')}: 19 décembre 2024
+          {t('lastUpdated')}: 19 décembre 2025
         </p>
 
         <div className="space-y-10 text-deep-black/80">

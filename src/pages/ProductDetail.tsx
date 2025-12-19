@@ -94,9 +94,9 @@ const ProductDetail: React.FC = () => {
 
   // Mock reviews
   const reviews = [
-    { id: 1, author: 'Marie L.', rating: 5, date: '2024-01-15', comment: ts('product.review1') },
-    { id: 2, author: 'Sophie M.', rating: 5, date: '2024-01-10', comment: ts('product.review2') },
-    { id: 3, author: 'Catherine D.', rating: 4, date: '2024-01-05', comment: ts('product.review3') },
+    { id: 1, author: 'Marie L.', rating: 5, date: '2025-01-15', comment: ts('product.review1') },
+    { id: 2, author: 'Sophie M.', rating: 5, date: '2025-01-10', comment: ts('product.review2') },
+    { id: 3, author: 'Catherine D.', rating: 4, date: '2025-01-05', comment: ts('product.review3') },
   ];
 
   return (
