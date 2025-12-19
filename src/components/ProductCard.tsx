@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ShoppingBag, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Product } from '@/data/products';
+import type { Product } from '@/types/supabase';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
