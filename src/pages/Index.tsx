@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Shield, Award, Truck, Heart } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
-import { useFeaturedProducts } from '@/hooks/useProducts';
+import { useTranslatedFeaturedProducts } from '@/hooks/useTranslatedProducts';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 
@@ -27,7 +27,7 @@ const scaleIn = {
 
 const Index: React.FC = () => {
   const { t } = useLocale();
-  const { data: featuredProducts = [] } = useFeaturedProducts();
+  const { data: featuredProducts = [] } = useTranslatedFeaturedProducts();
 
   const commitments = [
     { icon: Shield, key: 'securePayment' },

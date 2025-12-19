@@ -1,1 +1,4 @@
 project_id = "udmqiaegydcdusjlwrke"
+
+[functions.get-translated-products]
+verify_jwt = false
