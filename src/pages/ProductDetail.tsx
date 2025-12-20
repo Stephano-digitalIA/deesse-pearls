@@ -5,7 +5,7 @@ import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Awa
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { useProductBySlug, useProductsByCategory } from '@/hooks/useProducts';
+import { useTranslatedProductBySlug, useTranslatedProductsByCategory } from '@/hooks/useTranslatedProducts';
 import { useReviews } from '@/hooks/useReviews';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ProductCategory } from '@/types/supabase';
@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { shopProductTranslations } from '@/data/shopProductTranslations';
-import { getProductTranslation } from '@/data/productTranslations';
 
 const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -26,7 +25,7 @@ const ProductDetail: React.FC = () => {
   
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
-  const { data: product, isLoading, error } = useProductBySlug(slug || '');
+  const { data: product, isLoading, error } = useTranslatedProductBySlug(slug || '');
   const queryClient = useQueryClient();
   
   // Fetch reviews from database
@@ -43,7 +42,7 @@ const ProductDetail: React.FC = () => {
   };
 
   // Fetch related products based on product category
-  const { data: relatedProductsData = [] } = useProductsByCategory(
+  const { data: relatedProductsData = [] } = useTranslatedProductsByCategory(
     (product?.category || 'pearls') as ProductCategory
   );
   const relatedProducts = relatedProductsData
@@ -73,8 +72,8 @@ const ProductDetail: React.FC = () => {
 
   const favorite = isFavorite(product.id);
   
-  const productName = getProductTranslation(product.slug, 'name', language) || product.name;
-  const productDescription = getProductTranslation(product.slug, 'description', language) || product.description;
+  const productName = product.name;
+  const productDescription = product.description;
   const handleAddToCart = () => {
     const variantInfo: string[] = [];
     if (selectedSize) variantInfo.push(selectedSize);
