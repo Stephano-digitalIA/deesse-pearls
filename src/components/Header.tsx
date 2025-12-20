@@ -175,7 +175,12 @@ const Header: React.FC = () => {
             {/* User account dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="p-2 hover:text-gold transition-colors">
+                <button className="p-2 hover:text-gold transition-colors flex flex-col items-center gap-0.5">
+                  {user && (
+                    <span className="text-[10px] font-medium text-gold truncate max-w-[60px]">
+                      {user.user_metadata?.first_name || user.email?.split('@')[0]}
+                    </span>
+                  )}
                   <User className="w-5 h-5" />
                 </button>
               </DropdownMenuTrigger>
