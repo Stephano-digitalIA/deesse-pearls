@@ -188,14 +188,14 @@ const Header: React.FC = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/account" className="cursor-pointer">
                         <User className="w-4 h-4 mr-2" />
-                        Mon compte
+                        {t('myAccount')}
                       </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link to="/admin" className="cursor-pointer">
                           <User className="w-4 h-4 mr-2" />
-                          Administration
+                          {t('administration')}
                         </Link>
                       </DropdownMenuItem>
                     )}
@@ -205,19 +205,19 @@ const Header: React.FC = () => {
                       className="cursor-pointer text-destructive focus:text-destructive"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
-                      Déconnexion
+                      {t('logout')}
                     </DropdownMenuItem>
                   </>
                 ) : (
                   <>
                     <DropdownMenuItem asChild>
                       <Link to="/auth" className="cursor-pointer">
-                        Connexion
+                        {t('login')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/auth" className="cursor-pointer">
-                        Inscription
+                        {t('signup')}
                       </Link>
                     </DropdownMenuItem>
                   </>
