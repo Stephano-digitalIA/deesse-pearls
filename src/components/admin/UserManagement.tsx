@@ -64,6 +64,27 @@ const UserManagement: React.FC = () => {
 
       if (rolesError) throw rolesError;
 
+      // Fetch emails from edge function
+      let emailsMap: Record<string, string> = {};
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-emails`,
+          {
+            headers: {
+              Authorization: `Bearer ${session?.session?.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        if (response.ok) {
+          const result = await response.json();
+          emailsMap = result.emails || {};
+        }
+      } catch (emailError) {
+        console.warn('Could not fetch user emails:', emailError);
+      }
+
       // Map roles to users
       const rolesMap = new Map<string, string[]>();
       (roles || []).forEach((r: UserRole) => {
@@ -74,6 +95,7 @@ const UserManagement: React.FC = () => {
       // Combine data
       const usersWithRoles: UserWithRole[] = (profiles || []).map((profile: UserProfile) => ({
         ...profile,
+        email: emailsMap[profile.user_id] || undefined,
         roles: rolesMap.get(profile.user_id) || ['user'],
       }));
 
@@ -98,7 +120,8 @@ const UserManagement: React.FC = () => {
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
     return fullName.includes(searchLower) || 
            user.city?.toLowerCase().includes(searchLower) ||
-           user.phone?.includes(searchTerm);
+           user.phone?.includes(searchTerm) ||
+           user.email?.toLowerCase().includes(searchLower);
   });
 
   const getRoleBadge = (role: string) => {
@@ -197,9 +220,16 @@ const UserManagement: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        {user.phone ? (
-                          <p className="text-sm">{user.phone}</p>
-                        ) : (
+                        {user.email && (
+                          <div className="flex items-center gap-1.5 text-sm">
+                            <Mail className="w-3 h-3 text-muted-foreground" />
+                            <span className="truncate max-w-[180px]">{user.email}</span>
+                          </div>
+                        )}
+                        {user.phone && (
+                          <p className="text-sm text-muted-foreground">{user.phone}</p>
+                        )}
+                        {!user.email && !user.phone && (
                           <p className="text-sm text-muted-foreground">—</p>
                         )}
                       </div>
