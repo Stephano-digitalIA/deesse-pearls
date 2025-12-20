@@ -159,6 +159,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
             authorEmail: email.trim(),
             rating,
             comment: comment.trim(),
+            language,
           },
         });
         console.log('Admin notification sent successfully');

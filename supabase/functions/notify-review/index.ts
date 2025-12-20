@@ -16,7 +16,37 @@ interface ReviewNotificationRequest {
   authorEmail: string;
   rating: number;
   comment: string;
+  language?: string;
 }
+
+const translations = {
+  fr: {
+    subject: "Merci pour votre avis !",
+    greeting: "Bonjour",
+    thankYou: "Merci d'avoir partagé votre avis",
+    reviewReceived: "Nous avons bien reçu votre avis sur",
+    yourRating: "Votre note",
+    yourComment: "Votre commentaire",
+    moderation: "Votre avis sera visible sur notre site après modération par notre équipe.",
+    questions: "Si vous avez des questions, n'hésitez pas à nous contacter.",
+    regards: "Cordialement,",
+    team: "L'équipe Perles Éternelles",
+    footer: "Perles Éternelles - L'élégance des perles de culture",
+  },
+  en: {
+    subject: "Thank you for your review!",
+    greeting: "Hello",
+    thankYou: "Thank you for sharing your review",
+    reviewReceived: "We have received your review for",
+    yourRating: "Your rating",
+    yourComment: "Your comment",
+    moderation: "Your review will be visible on our website after moderation by our team.",
+    questions: "If you have any questions, feel free to contact us.",
+    regards: "Best regards,",
+    team: "The Perles Éternelles Team",
+    footer: "Perles Éternelles - The elegance of cultured pearls",
+  },
+};
 
 const handler = async (req: Request): Promise<Response> => {
   console.log("[notify-review] Received request:", req.method);
@@ -27,72 +57,165 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    if (!ADMIN_EMAIL) {
-      console.error("[notify-review] ADMIN_EMAIL not configured");
-      throw new Error("ADMIN_EMAIL not configured");
-    }
-
     if (!RESEND_API_KEY) {
       console.error("[notify-review] RESEND_API_KEY not configured");
       throw new Error("RESEND_API_KEY not configured");
     }
 
-    const { productName, productSlug, authorName, authorEmail, rating, comment }: ReviewNotificationRequest = await req.json();
+    const { productName, productSlug, authorName, authorEmail, rating, comment, language = 'fr' }: ReviewNotificationRequest = await req.json();
     
-    console.log("[notify-review] Sending notification for review on product:", productName);
+    console.log("[notify-review] Sending notifications for review on product:", productName);
 
     const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+    const t = translations[language as keyof typeof translations] || translations.fr;
 
-    const emailHtml = `
+    // Email to admin
+    if (ADMIN_EMAIL) {
+      const adminEmailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Georgia, serif; background: #f5f5f0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #d4af37; padding: 30px; text-align: center; }
+            .header h1 { margin: 0; font-size: 24px; font-weight: normal; letter-spacing: 2px; }
+            .content { padding: 30px; }
+            .rating { color: #d4af37; font-size: 24px; letter-spacing: 2px; margin: 15px 0; }
+            .info { background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 15px 0; }
+            .info p { margin: 8px 0; color: #666; }
+            .info strong { color: #333; }
+            .comment { background: #fff8e7; border-left: 4px solid #d4af37; padding: 15px; margin: 20px 0; font-style: italic; color: #555; }
+            .footer { text-align: center; padding: 20px; background: #f5f5f0; color: #888; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✨ NOUVEL AVIS CLIENT ✨</h1>
+            </div>
+            <div class="content">
+              <h2 style="color: #333; margin-top: 0;">Un nouveau avis a été soumis</h2>
+              
+              <div class="info">
+                <p><strong>Produit:</strong> ${productName}</p>
+                <p><strong>Client:</strong> ${authorName}</p>
+                <p><strong>Email:</strong> ${authorEmail}</p>
+              </div>
+              
+              <div class="rating">${stars}</div>
+              
+              <div class="comment">
+                "${comment}"
+              </div>
+              
+              <p style="color: #666;">Cet avis est en attente de modération. Connectez-vous au tableau de bord admin pour l'approuver ou le rejeter.</p>
+            </div>
+            <div class="footer">
+              <p>Perles Éternelles - Système de notification automatique</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const adminRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "Perles Éternelles <onboarding@resend.dev>",
+          to: [ADMIN_EMAIL],
+          subject: `Nouvel avis client - ${productName}`,
+          html: adminEmailHtml,
+        }),
+      });
+
+      if (!adminRes.ok) {
+        const errorData = await adminRes.text();
+        console.error("[notify-review] Failed to send admin email:", errorData);
+      } else {
+        const adminEmailResponse = await adminRes.json();
+        console.log("[notify-review] Admin email sent:", adminEmailResponse);
+      }
+    }
+
+    // Confirmation email to customer
+    const customerEmailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <style>
-          body { font-family: Georgia, serif; background: #f5f5f0; padding: 20px; }
+          body { font-family: Georgia, serif; background: #f5f5f0; padding: 20px; margin: 0; }
           .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #d4af37; padding: 30px; text-align: center; }
-          .header h1 { margin: 0; font-size: 24px; font-weight: normal; letter-spacing: 2px; }
-          .content { padding: 30px; }
-          .rating { color: #d4af37; font-size: 24px; letter-spacing: 2px; margin: 15px 0; }
-          .info { background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 15px 0; }
-          .info p { margin: 8px 0; color: #666; }
-          .info strong { color: #333; }
-          .comment { background: #fff8e7; border-left: 4px solid #d4af37; padding: 15px; margin: 20px 0; font-style: italic; color: #555; }
-          .footer { text-align: center; padding: 20px; background: #f5f5f0; color: #888; font-size: 12px; }
+          .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #d4af37; padding: 40px 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 28px; font-weight: normal; letter-spacing: 3px; }
+          .header p { margin: 10px 0 0; color: #a0926b; font-size: 14px; letter-spacing: 1px; }
+          .content { padding: 40px 30px; }
+          .greeting { color: #333; font-size: 18px; margin-bottom: 20px; }
+          .thank-you { background: linear-gradient(135deg, #fff8e7 0%, #fff5db 100%); border-radius: 8px; padding: 25px; margin: 20px 0; text-align: center; }
+          .thank-you h2 { color: #d4af37; margin: 0 0 10px; font-size: 22px; font-weight: normal; }
+          .thank-you p { color: #666; margin: 0; }
+          .review-summary { background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 25px 0; }
+          .review-summary h3 { color: #333; margin: 0 0 15px; font-size: 16px; }
+          .product-name { color: #d4af37; font-weight: bold; }
+          .rating { color: #d4af37; font-size: 20px; letter-spacing: 2px; margin: 10px 0; }
+          .comment-box { background: white; border-left: 3px solid #d4af37; padding: 15px; margin-top: 15px; font-style: italic; color: #555; }
+          .moderation-note { background: #e8f4f8; border-radius: 6px; padding: 15px; margin: 25px 0; color: #4a6d7c; font-size: 14px; }
+          .moderation-note strong { color: #3a5a6a; }
+          .signature { margin-top: 30px; color: #666; }
+          .signature p { margin: 5px 0; }
+          .footer { text-align: center; padding: 25px; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); }
+          .footer p { color: #a0926b; margin: 0; font-size: 12px; letter-spacing: 1px; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>✨ NOUVEL AVIS CLIENT ✨</h1>
+            <h1>PERLES ÉTERNELLES</h1>
+            <p>✨ ${t.footer} ✨</p>
           </div>
           <div class="content">
-            <h2 style="color: #333; margin-top: 0;">Un nouveau avis a été soumis</h2>
+            <p class="greeting">${t.greeting} ${authorName},</p>
             
-            <div class="info">
-              <p><strong>Produit:</strong> ${productName}</p>
-              <p><strong>Client:</strong> ${authorName}</p>
-              <p><strong>Email:</strong> ${authorEmail}</p>
+            <div class="thank-you">
+              <h2>🎉 ${t.thankYou} !</h2>
+              <p>${t.reviewReceived} <span class="product-name">${productName}</span></p>
             </div>
             
-            <div class="rating">${stars}</div>
-            
-            <div class="comment">
-              "${comment}"
+            <div class="review-summary">
+              <h3>${t.yourRating}</h3>
+              <div class="rating">${stars}</div>
+              
+              <h3 style="margin-top: 20px;">${t.yourComment}</h3>
+              <div class="comment-box">
+                "${comment}"
+              </div>
             </div>
             
-            <p style="color: #666;">Cet avis est en attente de modération. Connectez-vous au tableau de bord admin pour l'approuver ou le rejeter.</p>
+            <div class="moderation-note">
+              <strong>ℹ️</strong> ${t.moderation}
+            </div>
+            
+            <div class="signature">
+              <p>${t.questions}</p>
+              <p style="margin-top: 20px;">${t.regards}</p>
+              <p><strong>${t.team}</strong></p>
+            </div>
           </div>
           <div class="footer">
-            <p>Perles Éternelles - Système de notification automatique</p>
+            <p>PERLES ÉTERNELLES</p>
           </div>
         </div>
       </body>
       </html>
     `;
 
-    const res = await fetch("https://api.resend.com/emails", {
+    const customerRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -100,22 +223,21 @@ const handler = async (req: Request): Promise<Response> => {
       },
       body: JSON.stringify({
         from: "Perles Éternelles <onboarding@resend.dev>",
-        to: [ADMIN_EMAIL],
-        subject: `Nouvel avis client - ${productName}`,
-        html: emailHtml,
+        to: [authorEmail],
+        subject: t.subject,
+        html: customerEmailHtml,
       }),
     });
 
-    if (!res.ok) {
-      const errorData = await res.text();
-      console.error("[notify-review] Resend API error:", errorData);
-      throw new Error(`Failed to send email: ${errorData}`);
+    if (!customerRes.ok) {
+      const errorData = await customerRes.text();
+      console.error("[notify-review] Failed to send customer email:", errorData);
+    } else {
+      const customerEmailResponse = await customerRes.json();
+      console.log("[notify-review] Customer confirmation email sent:", customerEmailResponse);
     }
 
-    const emailResponse = await res.json();
-    console.log("[notify-review] Email sent successfully:", emailResponse);
-
-    return new Response(JSON.stringify({ success: true, emailResponse }), {
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
