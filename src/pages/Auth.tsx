@@ -25,7 +25,7 @@ const Auth: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const { signIn, signUp, resetPassword, signInWithGoogle, user, isLoading } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithGoogle, user, session, isLoading } = useAuth();
   const { t } = useLocale();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,11 +44,12 @@ const Auth: React.FC = () => {
     path: ["confirmPassword"],
   });
 
+  // Redirect authenticated users to account page
   useEffect(() => {
-    if (user && !isLoading) {
-      navigate('/account');
+    if (!isLoading && (user || session)) {
+      navigate('/account', { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, session, isLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
