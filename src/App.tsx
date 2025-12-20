@@ -25,6 +25,8 @@ import TermsOfSale from "./pages/TermsOfSale";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import Auth from "./pages/Auth";
+import Account from "./pages/Account";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,8 @@ const App = () => (
                         <Route path="/shop/:category" element={<Shop />} />
                         <Route path="/product/:slug" element={<ProductDetail />} />
                         <Route path="/favorites" element={<Favorites />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/account" element={<Account />} />
                         <Route path="/about" element={<About />} />
                         <Route path="/contact" element={<Contact />} />
                         <Route path="/customization" element={<Customization />} />
