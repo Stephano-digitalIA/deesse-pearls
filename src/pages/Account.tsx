@@ -213,10 +213,14 @@ const Account: React.FC = () => {
     return locales[language] || 'fr-FR';
   };
 
-  if (isLoading || isLoadingData) {
+  // Build welcome name from profile or user metadata
+  const welcomeName = firstName || user?.user_metadata?.first_name || user?.email?.split('@')[0] || '';
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-pearl">
+        <Loader2 className="w-10 h-10 animate-spin text-gold" />
+        <p className="text-muted-foreground animate-pulse">{t('loading')}…</p>
       </div>
     );
   }
@@ -230,12 +234,31 @@ const Account: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="container mx-auto max-w-4xl"
       >
+        {/* Welcome banner */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8 p-6 rounded-xl bg-gradient-to-r from-gold/10 via-gold/5 to-transparent border border-gold/20"
+        >
+          <h1 className="font-display text-2xl md:text-3xl font-semibold mb-1">
+            {t('welcome')}, <span className="text-gold">{welcomeName}</span> 👋
+          </h1>
+          <p className="text-muted-foreground text-sm">{user.email}</p>
+        </motion.div>
+
+        {/* Header with logout */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="font-display text-3xl md:text-4xl font-semibold mb-2">
+            <h2 className="font-display text-xl md:text-2xl font-semibold">
               {t('myAccount')}
-            </h1>
-            <p className="text-muted-foreground">{user.email}</p>
+            </h2>
+            {isLoadingData && (
+              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t('loadingProfile')}
+              </p>
+            )}
           </div>
           <Button
             variant="outline"
