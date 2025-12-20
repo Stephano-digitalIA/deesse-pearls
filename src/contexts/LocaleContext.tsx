@@ -112,6 +112,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'retiré des favoris',
     new: 'Nouveau',
     bestSeller: 'Best-seller',
+    // User account
+    myAccount: 'Mon compte',
+    login: 'Connexion',
+    signup: 'Inscription',
+    logout: 'Déconnexion',
+    administration: 'Administration',
   },
   en: {
     home: 'Home',
@@ -212,6 +218,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'removed from favorites',
     new: 'New',
     bestSeller: 'Best-seller',
+    // User account
+    myAccount: 'My Account',
+    login: 'Login',
+    signup: 'Sign Up',
+    logout: 'Logout',
+    administration: 'Administration',
   },
   de: {
     home: 'Startseite',
@@ -312,6 +324,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'aus Favoriten entfernt',
     new: 'Neu',
     bestSeller: 'Bestseller',
+    // User account
+    myAccount: 'Mein Konto',
+    login: 'Anmelden',
+    signup: 'Registrieren',
+    logout: 'Abmelden',
+    administration: 'Verwaltung',
   },
   es: {
     home: 'Inicio',
@@ -412,6 +430,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'eliminado de favoritos',
     new: 'Nuevo',
     bestSeller: 'Más vendido',
+    // User account
+    myAccount: 'Mi cuenta',
+    login: 'Iniciar sesión',
+    signup: 'Registrarse',
+    logout: 'Cerrar sesión',
+    administration: 'Administración',
   },
   pt: {
     home: 'Início',
@@ -512,6 +536,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'removido dos favoritos',
     new: 'Novo',
     bestSeller: 'Mais vendido',
+    // User account
+    myAccount: 'Minha conta',
+    login: 'Entrar',
+    signup: 'Cadastrar',
+    logout: 'Sair',
+    administration: 'Administração',
   },
   it: {
     home: 'Home',
@@ -612,6 +642,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'rimosso dai preferiti',
     new: 'Nuovo',
     bestSeller: 'Best-seller',
+    // User account
+    myAccount: 'Il mio account',
+    login: 'Accedi',
+    signup: 'Registrati',
+    logout: 'Esci',
+    administration: 'Amministrazione',
   },
   nl: {
     home: 'Home',
@@ -712,6 +748,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'verwijderd uit favorieten',
     new: 'Nieuw',
     bestSeller: 'Bestseller',
+    // User account
+    myAccount: 'Mijn account',
+    login: 'Inloggen',
+    signup: 'Registreren',
+    logout: 'Uitloggen',
+    administration: 'Beheer',
   },
   ja: {
     home: 'ホーム',
@@ -812,6 +854,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: 'お気に入りから削除しました',
     new: '新着',
     bestSeller: 'ベストセラー',
+    // User account
+    myAccount: 'マイアカウント',
+    login: 'ログイン',
+    signup: '新規登録',
+    logout: 'ログアウト',
+    administration: '管理',
   },
   ko: {
     home: '홈',
@@ -912,6 +960,12 @@ const translations: Record<Language, Record<string, string>> = {
     removedFromFavorites: '즐겨찾기에서 삭제됨',
     new: '신상품',
     bestSeller: '베스트셀러',
+    // User account
+    myAccount: '내 계정',
+    login: '로그인',
+    signup: '회원가입',
+    logout: '로그아웃',
+    administration: '관리',
   },
 };
 
