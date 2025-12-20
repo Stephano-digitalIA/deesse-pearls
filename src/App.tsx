@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import Account from "./pages/Account";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -58,6 +59,7 @@ const App = () => (
                         <Route path="/product/:slug" element={<ProductDetail />} />
                         <Route path="/favorites" element={<Favorites />} />
                         <Route path="/auth" element={<Auth />} />
+                        <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/account" element={<Account />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/about" element={<About />} />
