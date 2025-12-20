@@ -77,10 +77,20 @@ const reviewTranslations: Record<string, Record<string, string>> = {
   },
 };
 
+// Sanitize text by stripping HTML tags and dangerous content
+const sanitizeText = (text: string): string => {
+  return text
+    .replace(/<script[^>]*>.*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '')
+    .trim();
+};
+
 const reviewSchema = z.object({
-  author_name: z.string().trim().min(2).max(50),
+  author_name: z.string().trim().min(2).max(50).transform(sanitizeText),
   author_email: z.string().trim().email().max(255),
-  comment: z.string().trim().min(10).max(1000),
+  comment: z.string().trim().min(10).max(1000).transform(sanitizeText),
   rating: z.number().min(1).max(5),
 });
 
