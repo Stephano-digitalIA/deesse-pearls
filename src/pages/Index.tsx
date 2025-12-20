@@ -39,32 +39,54 @@ const Index: React.FC = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center bg-gradient-to-br from-deep-black via-deep-black to-lagoon-dark overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
+      <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center bg-deep-black overflow-hidden">
+        {/* Video Background */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 2, ease: "easeOut" }}
+          className="absolute inset-0 z-0"
+        >
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src="/videos/hero-background.mp4" type="video/mp4" />
+          </video>
+          {/* Overlay for better text readability */}
+          <div className="absolute inset-0 bg-deep-black/50" />
+        </motion.div>
+
+        {/* Decorative elements */}
+        <div className="absolute inset-0 opacity-20 z-[1]">
           <div className="absolute top-20 left-20 w-64 h-64 bg-gold/20 rounded-full blur-3xl" />
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-lagoon/20 rounded-full blur-3xl" />
         </div>
+
         <div className="container mx-auto px-4 text-center relative z-10">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="font-tangerine italic text-5xl md:text-7xl lg:text-9xl text-gold mb-8 leading-tight"
+            transition={{ delay: 0.8 }}
+            className="font-tangerine italic text-5xl md:text-7xl lg:text-9xl text-gold mb-8 leading-tight drop-shadow-lg"
           >
             {t('heroTitle')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="text-pearl/70 text-lg md:text-xl max-w-2xl mx-auto mb-12"
+            transition={{ delay: 1 }}
+            className="text-pearl/90 text-lg md:text-xl max-w-2xl mx-auto mb-12 drop-shadow-md"
           >
             {t('heroSubtitle')}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
+            transition={{ delay: 1.2 }}
             className="flex flex-col sm:flex-row gap-6 justify-center items-center"
           >
             <Link to="/shop">
