@@ -269,6 +269,26 @@ const Header: React.FC = () => {
             className="lg:hidden bg-card border-t border-border"
           >
             <nav className="container mx-auto px-4 py-4 space-y-4">
+              {/* User greeting in mobile */}
+              {user && (
+                <div className="pb-3 mb-3 border-b border-border">
+                  <Link 
+                    to="/account" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 hover:text-gold transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center">
+                      <User className="w-5 h-5 text-gold" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gold">
+                        {user.user_metadata?.first_name || user.email?.split('@')[0]}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                  </Link>
+                </div>
+              )}
               {navItems.map((item) => (
                 <div key={item.key}>
                   <Link
