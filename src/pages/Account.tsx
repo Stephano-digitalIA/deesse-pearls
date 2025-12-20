@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocale } from '@/contexts/LocaleContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ interface Order {
 
 const Account: React.FC = () => {
   const { user, isLoading, signOut } = useAuth();
+  const { t, language, formatPrice } = useLocale();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -130,14 +132,14 @@ const Account: React.FC = () => {
 
     if (error) {
       toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder votre profil.",
+        title: t('error'),
+        description: t('cannotSaveProfile'),
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Profil mis à jour",
-        description: "Vos informations ont été enregistrées.",
+        title: t('profileUpdated'),
+        description: t('infoSaved'),
       });
     }
   };
@@ -149,11 +151,11 @@ const Account: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      pending: 'En attente',
-      confirmed: 'Confirmée',
-      shipped: 'Expédiée',
-      delivered: 'Livrée',
-      cancelled: 'Annulée',
+      pending: t('orderPending'),
+      confirmed: t('orderConfirmed'),
+      shipped: t('orderShipped'),
+      delivered: t('orderDelivered'),
+      cancelled: t('orderCancelled'),
     };
     return labels[status] || status;
   };
@@ -167,6 +169,21 @@ const Account: React.FC = () => {
       cancelled: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getDateLocale = () => {
+    const locales: Record<string, string> = {
+      fr: 'fr-FR',
+      en: 'en-US',
+      de: 'de-DE',
+      es: 'es-ES',
+      pt: 'pt-PT',
+      it: 'it-IT',
+      nl: 'nl-NL',
+      ja: 'ja-JP',
+      ko: 'ko-KR',
+    };
+    return locales[language] || 'fr-FR';
   };
 
   if (isLoading || isLoadingData) {
@@ -189,7 +206,7 @@ const Account: React.FC = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="font-display text-3xl md:text-4xl font-semibold mb-2">
-              Mon compte
+              {t('myAccount')}
             </h1>
             <p className="text-muted-foreground">{user.email}</p>
           </div>
@@ -199,7 +216,7 @@ const Account: React.FC = () => {
             className="border-destructive text-destructive hover:bg-destructive hover:text-white"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
+            {t('logout')}
           </Button>
         </div>
 
@@ -207,11 +224,11 @@ const Account: React.FC = () => {
           <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
             <TabsTrigger value="profile" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black">
               <User className="w-4 h-4 mr-2" />
-              Profil
+              {t('profile')}
             </TabsTrigger>
             <TabsTrigger value="orders" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black">
               <Package className="w-4 h-4 mr-2" />
-              Commandes
+              {t('orders')}
             </TabsTrigger>
           </TabsList>
 
@@ -221,12 +238,12 @@ const Account: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="w-5 h-5 text-gold" />
-                    Informations personnelles
+                    {t('personalInfo')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">Prénom</Label>
+                    <Label htmlFor="firstName">{t('firstName')}</Label>
                     <Input
                       id="firstName"
                       value={firstName}
@@ -235,7 +252,7 @@ const Account: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Nom</Label>
+                    <Label htmlFor="lastName">{t('lastName')}</Label>
                     <Input
                       id="lastName"
                       value={lastName}
@@ -244,7 +261,7 @@ const Account: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="phone">Téléphone</Label>
+                    <Label htmlFor="phone">{t('phone')}</Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -260,15 +277,15 @@ const Account: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-gold" />
-                    Adresse de livraison
+                    {t('shippingAddress')}
                   </CardTitle>
                   <CardDescription>
-                    Cette adresse sera utilisée par défaut pour vos commandes
+                    {t('shippingAddressDesc')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="addressLine1">Adresse</Label>
+                    <Label htmlFor="addressLine1">{t('address')}</Label>
                     <Input
                       id="addressLine1"
                       value={addressLine1}
@@ -277,7 +294,7 @@ const Account: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="addressLine2">Complément d'adresse</Label>
+                    <Label htmlFor="addressLine2">{t('addressComplement')}</Label>
                     <Input
                       id="addressLine2"
                       value={addressLine2}
@@ -286,7 +303,7 @@ const Account: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="city">Ville</Label>
+                    <Label htmlFor="city">{t('city')}</Label>
                     <Input
                       id="city"
                       value={city}
@@ -295,7 +312,7 @@ const Account: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="postalCode">Code postal</Label>
+                    <Label htmlFor="postalCode">{t('postalCode')}</Label>
                     <Input
                       id="postalCode"
                       value={postalCode}
@@ -304,7 +321,7 @@ const Account: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="country">Pays</Label>
+                    <Label htmlFor="country">{t('country')}</Label>
                     <Input
                       id="country"
                       value={country}
@@ -323,12 +340,12 @@ const Account: React.FC = () => {
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enregistrement...
+                    {t('saving')}
                   </>
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />
-                    Enregistrer les modifications
+                    {t('saveChanges')}
                   </>
                 )}
               </Button>
@@ -340,20 +357,20 @@ const Account: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5 text-gold" />
-                  Historique des commandes
+                  {t('orderHistory')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {orders.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Vous n'avez pas encore passé de commande.</p>
+                    <p>{t('noOrdersYet')}</p>
                     <Button
                       variant="outline"
                       className="mt-4"
                       onClick={() => navigate('/shop')}
                     >
-                      Découvrir notre boutique
+                      {t('discoverShop')}
                     </Button>
                   </div>
                 ) : (
@@ -366,7 +383,7 @@ const Account: React.FC = () => {
                         <div>
                           <p className="font-semibold">{order.order_number}</p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(order.created_at).toLocaleDateString('fr-FR', {
+                            {new Date(order.created_at).toLocaleDateString(getDateLocale(), {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric',
@@ -374,7 +391,7 @@ const Account: React.FC = () => {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-gold">{order.total.toFixed(2)} €</p>
+                          <p className="font-semibold text-gold">{formatPrice(order.total)}</p>
                           <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
                             {getStatusLabel(order.status)}
                           </span>
