@@ -22,8 +22,10 @@ const Auth: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const { signIn, signUp, user, isLoading } = useAuth();
+  const { signIn, signUp, resetPassword, user, isLoading } = useAuth();
   const { t } = useLocale();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -138,6 +140,36 @@ const Auth: React.FC = () => {
     setFirstName('');
     setLastName('');
     setErrors({});
+    setShowForgotPassword(false);
+    setResetEmailSent(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    if (!email || !email.includes('@')) {
+      setErrors({ email: t('invalidEmail') });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error } = await resetPassword(email);
+    setIsSubmitting(false);
+
+    if (error) {
+      toast({
+        title: t('error'),
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setResetEmailSent(true);
+      toast({
+        title: t('resetEmailSent'),
+        description: t('resetEmailSentDesc'),
+      });
+    }
   };
 
   if (isLoading) {
@@ -179,59 +211,132 @@ const Auth: React.FC = () => {
 
             <CardContent className="pt-6">
               <TabsContent value="login" className="mt-0">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">{t('email')}</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="votre@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className={errors.email ? 'border-destructive' : ''}
-                    />
-                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">{t('password')}</Label>
-                    <div className="relative">
-                      <Input
-                        id="login-password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                {showForgotPassword ? (
+                  resetEmailSent ? (
+                    <div className="text-center py-6">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="font-semibold mb-2">{t('resetEmailSent')}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{t('resetEmailSentDesc')}</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => { setShowForgotPassword(false); setResetEmailSent(false); }}
+                        className="w-full"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                        {t('backToLogin')}
+                      </Button>
                     </div>
-                    {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                  </div>
+                  ) : (
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <div className="text-center mb-4">
+                        <p className="text-sm text-muted-foreground">{t('forgotPasswordDesc')}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">{t('email')}</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="votre@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className={errors.email ? 'border-destructive' : ''}
+                        />
+                        {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                      </div>
 
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('loggingIn')}
-                      </>
-                    ) : (
-                      t('loginButton')
-                    )}
-                  </Button>
-                </form>
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t('sending')}
+                          </>
+                        ) : (
+                          t('sendResetLink')
+                        )}
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setShowForgotPassword(false)}
+                        className="w-full"
+                      >
+                        {t('backToLogin')}
+                      </Button>
+                    </form>
+                  )
+                ) : (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">{t('email')}</Label>
+                      <Input
+                        id="login-email"
+                        type="email"
+                        placeholder="votre@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className={errors.email ? 'border-destructive' : ''}
+                      />
+                      {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="login-password">{t('password')}</Label>
+                        <button
+                          type="button"
+                          onClick={() => setShowForgotPassword(true)}
+                          className="text-sm text-gold hover:underline"
+                        >
+                          {t('forgotPassword')}
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t('loggingIn')}
+                        </>
+                      ) : (
+                        t('loginButton')
+                      )}
+                    </Button>
+                  </form>
+                )}
               </TabsContent>
 
               <TabsContent value="signup" className="mt-0">
