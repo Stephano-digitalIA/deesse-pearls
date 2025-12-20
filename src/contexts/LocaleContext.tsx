@@ -186,6 +186,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'Redirection vers votre compte...',
     invalidResetLink: 'Lien de réinitialisation invalide ou expiré.',
     redirectingToLogin: 'Redirection vers la page de connexion...',
+    // Google auth
+    or: 'ou',
+    continueWithGoogle: 'Continuer avec Google',
   },
   en: {
     home: 'Home',
@@ -360,6 +363,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'Redirecting to your account...',
     invalidResetLink: 'Invalid or expired reset link.',
     redirectingToLogin: 'Redirecting to login page...',
+    // Google auth
+    or: 'or',
+    continueWithGoogle: 'Continue with Google',
   },
   de: {
     home: 'Startseite',
@@ -534,6 +540,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'Weiterleitung zu Ihrem Konto...',
     invalidResetLink: 'Ungültiger oder abgelaufener Link.',
     redirectingToLogin: 'Weiterleitung zur Anmeldeseite...',
+    // Google auth
+    or: 'oder',
+    continueWithGoogle: 'Mit Google fortfahren',
   },
   es: {
     home: 'Inicio',
@@ -708,6 +717,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'Redirigiendo a tu cuenta...',
     invalidResetLink: 'Enlace de restablecimiento inválido o expirado.',
     redirectingToLogin: 'Redirigiendo a la página de inicio de sesión...',
+    // Google auth
+    or: 'o',
+    continueWithGoogle: 'Continuar con Google',
   },
   pt: {
     home: 'Início',
@@ -882,6 +894,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'Redirecionando para sua conta...',
     invalidResetLink: 'Link de redefinição inválido ou expirado.',
     redirectingToLogin: 'Redirecionando para a página de login...',
+    // Google auth
+    or: 'ou',
+    continueWithGoogle: 'Continuar com Google',
   },
   it: {
     home: 'Home',
@@ -1056,6 +1071,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'Reindirizzamento al tuo account...',
     invalidResetLink: 'Link di reimpostazione non valido o scaduto.',
     redirectingToLogin: 'Reindirizzamento alla pagina di login...',
+    // Google auth
+    or: 'o',
+    continueWithGoogle: 'Continua con Google',
   },
   nl: {
     home: 'Home',
@@ -1230,6 +1248,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'Doorverwijzen naar uw account...',
     invalidResetLink: 'Ongeldige of verlopen resetlink.',
     redirectingToLogin: 'Doorverwijzen naar de inlogpagina...',
+    // Google auth
+    or: 'of',
+    continueWithGoogle: 'Doorgaan met Google',
   },
   ja: {
     home: 'ホーム',
@@ -1404,6 +1425,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: 'アカウントページにリダイレクト中...',
     invalidResetLink: '無効または期限切れのリセットリンクです。',
     redirectingToLogin: 'ログインページにリダイレクト中...',
+    // Google auth
+    or: 'または',
+    continueWithGoogle: 'Googleで続行',
   },
   ko: {
     home: '홈',
@@ -1578,6 +1602,9 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToAccount: '계정 페이지로 이동 중...',
     invalidResetLink: '유효하지 않거나 만료된 재설정 링크입니다.',
     redirectingToLogin: '로그인 페이지로 이동 중...',
+    // Google auth
+    or: '또는',
+    continueWithGoogle: 'Google로 계속하기',
   },
 };
 
