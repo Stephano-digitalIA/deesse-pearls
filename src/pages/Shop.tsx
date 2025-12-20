@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Filter, X, ChevronDown, Loader2 } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
-import { useProducts } from '@/hooks/useProducts';
+import { useTranslatedProducts } from '@/hooks/useTranslatedProducts';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,7 +36,7 @@ const categoryRouteMap: Record<string, Category> = {
 const Shop: React.FC = () => {
   const { category: categoryParam } = useParams<{ category?: string }>();
   const { t, formatPrice, language } = useLocale();
-  const { data: products = [], isLoading, error } = useProducts();
+  const { data: products = [], isLoading, error } = useTranslatedProducts();
   
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
