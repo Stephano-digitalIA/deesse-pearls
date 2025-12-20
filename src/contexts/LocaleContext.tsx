@@ -189,6 +189,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'ou',
     continueWithGoogle: 'Continuer avec Google',
+    // Account page
+    loading: 'Chargement',
+    loadingProfile: 'Chargement du profil...',
   },
   en: {
     home: 'Home',
@@ -366,6 +369,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'or',
     continueWithGoogle: 'Continue with Google',
+    // Account page
+    loading: 'Loading',
+    loadingProfile: 'Loading profile...',
   },
   de: {
     home: 'Startseite',
