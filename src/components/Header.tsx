@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingBag, Menu, X, ChevronDown, Globe, Heart } from 'lucide-react';
+import { Search, ShoppingBag, Menu, X, ChevronDown, Globe, Heart, User, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale, languages, currencies, languageNames, Language, Currency } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import SearchBar from '@/components/SearchBar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -23,6 +25,7 @@ const Header: React.FC = () => {
   const { language, currency, setLanguage, setCurrency, t } = useLocale();
   const { totalItems, setIsCartOpen } = useCart();
   const { favorites } = useFavorites();
+  const { user, signOut, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -157,7 +160,7 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Right side icons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
                 <button className="p-2 hover:text-gold transition-colors">
@@ -168,6 +171,60 @@ const Header: React.FC = () => {
                 <SearchBar onClose={() => setIsSearchOpen(false)} />
               </PopoverContent>
             </Popover>
+            
+            {/* User account dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 hover:text-gold transition-colors">
+                  <User className="w-5 h-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-card min-w-[180px]">
+                {user ? (
+                  <>
+                    <div className="px-3 py-2 text-sm text-muted-foreground border-b border-border">
+                      {user.email}
+                    </div>
+                    <DropdownMenuItem asChild>
+                      <Link to="/account" className="cursor-pointer">
+                        <User className="w-4 h-4 mr-2" />
+                        Mon compte
+                      </Link>
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="cursor-pointer">
+                          <User className="w-4 h-4 mr-2" />
+                          Administration
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => signOut()} 
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Déconnexion
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/auth" className="cursor-pointer">
+                        Connexion
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/auth" className="cursor-pointer">
+                        Inscription
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Link to="/favorites" className="p-2 hover:text-gold transition-colors relative">
               <Heart className="w-5 h-5" />
               {favorites.length > 0 && (
