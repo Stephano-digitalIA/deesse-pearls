@@ -27,6 +27,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
                         <Route path="/favorites" element={<Favorites />} />
                         <Route path="/auth" element={<Auth />} />
                         <Route path="/account" element={<Account />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/about" element={<About />} />
                         <Route path="/contact" element={<Contact />} />
                         <Route path="/customization" element={<Customization />} />
