@@ -9,31 +9,44 @@ const AuthCallback: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const run = async () => {
+    const waitForSession = async () => {
+      // Some OAuth flows might not provide a `code` query param (or it can be lost if redirecting across domains).
+      // We try to exchange the code when present, then we wait until the session is actually available before redirecting.
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
 
-      if (!code) {
-        navigate('/auth', { replace: true });
-        return;
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          toast({
+            title: 'Connexion impossible',
+            description: error.message,
+            variant: 'destructive',
+          });
+          navigate('/auth', { replace: true });
+          return;
+        }
       }
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-      if (error) {
-        toast({
-          title: 'Connexion impossible',
-          description: error.message,
-          variant: 'destructive',
-        });
-        navigate('/auth', { replace: true });
-        return;
+      // Wait until the session is available (prevents /account redirecting back to /auth due to timing)
+      for (let i = 0; i < 15; i++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          navigate('/account', { replace: true });
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 200));
       }
 
-      navigate('/account', { replace: true });
+      toast({
+        title: 'Connexion non finalisée',
+        description: 'Merci de réessayer la connexion Google.',
+        variant: 'destructive',
+      });
+      navigate('/auth', { replace: true });
     };
 
-    run();
+    void waitForSession();
   }, [navigate, toast]);
 
   return (
