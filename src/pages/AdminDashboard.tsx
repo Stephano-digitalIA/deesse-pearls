@@ -29,11 +29,13 @@ import {
   X,
   ImageIcon,
   ShoppingCart,
-  MessageSquare
+  MessageSquare,
+  Users
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderManagement from '@/components/admin/OrderManagement';
 import ReviewManagement from '@/components/admin/ReviewManagement';
+import UserManagement from '@/components/admin/UserManagement';
 
 const categories: { value: ProductCategory; label: string }[] = [
   { value: 'pearls', label: 'Perles' },
@@ -329,7 +331,7 @@ const AdminDashboard: React.FC = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               Produits
@@ -341,6 +343,10 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="reviews" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Avis
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Utilisateurs
             </TabsTrigger>
           </TabsList>
 
@@ -664,6 +670,10 @@ const AdminDashboard: React.FC = () => {
                 <ReviewManagement />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement />
           </TabsContent>
         </Tabs>
       </main>
