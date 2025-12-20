@@ -12,20 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 
-const loginSchema = z.object({
-  email: z.string().trim().email({ message: "Email invalide" }).max(255),
-  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }).max(100),
-});
-
-const signupSchema = loginSchema.extend({
-  firstName: z.string().trim().min(1, { message: "Le prénom est requis" }).max(50),
-  lastName: z.string().trim().min(1, { message: "Le nom est requis" }).max(50),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Les mots de passe ne correspondent pas",
-  path: ["confirmPassword"],
-});
-
 const Auth: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
@@ -41,6 +27,20 @@ const Auth: React.FC = () => {
   const { t } = useLocale();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const loginSchema = z.object({
+    email: z.string().trim().email({ message: t('invalidEmail') }).max(255),
+    password: z.string().min(6, { message: t('passwordMinLength') }).max(100),
+  });
+
+  const signupSchema = loginSchema.extend({
+    firstName: z.string().trim().min(1, { message: t('firstNameRequired') }).max(50),
+    lastName: z.string().trim().min(1, { message: t('lastNameRequired') }).max(50),
+    confirmPassword: z.string(),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('passwordsDoNotMatch'),
+    path: ["confirmPassword"],
+  });
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -68,16 +68,16 @@ const Auth: React.FC = () => {
 
     if (error) {
       toast({
-        title: "Erreur de connexion",
+        title: t('loginError'),
         description: error.message === 'Invalid login credentials' 
-          ? "Email ou mot de passe incorrect" 
+          ? t('invalidCredentials')
           : error.message,
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Connexion réussie",
-        description: "Bienvenue !",
+        title: t('loginSuccess'),
+        description: t('welcome'),
       });
       navigate('/account');
     }
@@ -111,21 +111,21 @@ const Auth: React.FC = () => {
     if (error) {
       if (error.message.includes('already registered')) {
         toast({
-          title: "Email déjà utilisé",
-          description: "Un compte existe déjà avec cet email. Essayez de vous connecter.",
+          title: t('emailAlreadyUsed'),
+          description: t('accountExistsWithEmail'),
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Erreur d'inscription",
+          title: t('signupError'),
           description: error.message,
           variant: "destructive",
         });
       }
     } else {
       toast({
-        title: "Inscription réussie",
-        description: "Votre compte a été créé avec succès !",
+        title: t('signupSuccess'),
+        description: t('accountCreated'),
       });
       navigate('/account');
     }
@@ -160,7 +160,7 @@ const Auth: React.FC = () => {
             <span className="text-gold">DEESSE</span> PEARLS
           </h1>
           <p className="text-muted-foreground">
-            {activeTab === 'login' ? 'Connectez-vous à votre compte' : 'Créez votre compte'}
+            {activeTab === 'login' ? t('loginToAccount') : t('createAccount')}
           </p>
         </div>
 
@@ -169,10 +169,10 @@ const Auth: React.FC = () => {
             <CardHeader className="pb-0">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black">
-                  Connexion
+                  {t('login')}
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black">
-                  Inscription
+                  {t('signup')}
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -181,7 +181,7 @@ const Auth: React.FC = () => {
               <TabsContent value="login" className="mt-0">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email">{t('email')}</Label>
                     <Input
                       id="login-email"
                       type="email"
@@ -195,7 +195,7 @@ const Auth: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Mot de passe</Label>
+                    <Label htmlFor="login-password">{t('password')}</Label>
                     <div className="relative">
                       <Input
                         id="login-password"
@@ -225,10 +225,10 @@ const Auth: React.FC = () => {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Connexion...
+                        {t('loggingIn')}
                       </>
                     ) : (
-                      'Se connecter'
+                      t('loginButton')
                     )}
                   </Button>
                 </form>
@@ -238,7 +238,7 @@ const Auth: React.FC = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">Prénom</Label>
+                      <Label htmlFor="firstName">{t('firstName')}</Label>
                       <Input
                         id="firstName"
                         type="text"
@@ -251,7 +251,7 @@ const Auth: React.FC = () => {
                       {errors.firstName && <p className="text-sm text-destructive">{errors.firstName}</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Nom</Label>
+                      <Label htmlFor="lastName">{t('lastName')}</Label>
                       <Input
                         id="lastName"
                         type="text"
@@ -266,7 +266,7 @@ const Auth: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">{t('email')}</Label>
                     <Input
                       id="signup-email"
                       type="email"
@@ -280,7 +280,7 @@ const Auth: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe</Label>
+                    <Label htmlFor="signup-password">{t('password')}</Label>
                     <div className="relative">
                       <Input
                         id="signup-password"
@@ -303,7 +303,7 @@ const Auth: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                    <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
                     <Input
                       id="confirmPassword"
                       type={showPassword ? 'text' : 'password'}
@@ -324,10 +324,10 @@ const Auth: React.FC = () => {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Inscription...
+                        {t('signingUp')}
                       </>
                     ) : (
-                      "S'inscrire"
+                      t('signupButton')
                     )}
                   </Button>
                 </form>
@@ -337,10 +337,10 @@ const Auth: React.FC = () => {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          En vous inscrivant, vous acceptez nos{' '}
-          <a href="/terms" className="text-gold hover:underline">Conditions de vente</a>
-          {' '}et notre{' '}
-          <a href="/privacy" className="text-gold hover:underline">Politique de confidentialité</a>.
+          {t('termsAgreement')}{' '}
+          <a href="/terms" className="text-gold hover:underline">{t('termsOfSale')}</a>
+          {' '}{t('and')}{' '}
+          <a href="/privacy" className="text-gold hover:underline">{t('privacyPolicy')}</a>.
         </p>
       </motion.div>
     </div>
