@@ -11,7 +11,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, MapPin, Package, LogOut, Save } from 'lucide-react';
+import { z } from 'zod';
 
+// Validation schema for profile
+const profileSchema = z.object({
+  first_name: z.string().max(50, 'First name too long').optional().nullable(),
+  last_name: z.string().max(50, 'Last name too long').optional().nullable(),
+  phone: z.string().regex(/^[+0-9\s()-]{0,20}$/, 'Invalid phone format').optional().nullable().or(z.literal('')),
+  address_line1: z.string().max(200, 'Address too long').optional().nullable(),
+  address_line2: z.string().max(200, 'Address too long').optional().nullable(),
+  city: z.string().max(100, 'City name too long').optional().nullable(),
+  postal_code: z.string().max(10, 'Postal code too long').optional().nullable(),
+  country: z.string().max(100, 'Country name too long').optional().nullable(),
+});
 interface Profile {
   id: string;
   user_id: string;
@@ -112,20 +124,34 @@ const Account: React.FC = () => {
     e.preventDefault();
     if (!user) return;
 
+    // Client-side validation
+    const profileData = {
+      first_name: firstName || null,
+      last_name: lastName || null,
+      phone: phone || null,
+      address_line1: addressLine1 || null,
+      address_line2: addressLine2 || null,
+      city: city || null,
+      postal_code: postalCode || null,
+      country: country || null,
+    };
+
+    const validationResult = profileSchema.safeParse(profileData);
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      toast({
+        title: t('error'),
+        description: firstError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     const { error } = await supabase
       .from('profiles')
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        address_line1: addressLine1,
-        address_line2: addressLine2,
-        city,
-        postal_code: postalCode,
-        country,
-      })
+      .update(profileData)
       .eq('user_id', user.id);
 
     setIsSaving(false);

@@ -143,12 +143,26 @@ const AdminDashboard: React.FC = () => {
     setImageUrl('');
   };
 
-  // Redirect if not admin
+  // Server-side admin verification
   React.useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      navigate('/admin/login');
-    }
-  }, [user, isAdmin, authLoading, navigate]);
+    const verifyAdminAccess = async () => {
+      if (authLoading) return;
+      
+      if (!user) {
+        navigate('/admin/login');
+        return;
+      }
+      
+      // Verify admin access server-side using RPC
+      const { data: isAdminVerified, error } = await supabase.rpc('verify_admin_access');
+      
+      if (error || !isAdminVerified) {
+        navigate('/admin/login');
+      }
+    };
+    
+    verifyAdminAccess();
+  }, [user, authLoading, navigate]);
 
   const handleLogout = async () => {
     await signOut();
