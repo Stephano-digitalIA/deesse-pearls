@@ -46,7 +46,7 @@ interface Order {
 }
 
 const Account: React.FC = () => {
-  const { user, isLoading, signOut } = useAuth();
+  const { user, session, isLoading, signOut } = useAuth();
   const { t, language, formatPrice } = useLocale();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,10 +67,11 @@ const Account: React.FC = () => {
   const [country, setCountry] = useState('France');
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/auth');
+    // Avoid bouncing back to /auth while OAuth session is still being persisted.
+    if (!isLoading && !user && !session) {
+      navigate('/auth', { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, session, isLoading, navigate]);
 
   useEffect(() => {
     if (user) {
