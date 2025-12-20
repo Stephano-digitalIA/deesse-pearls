@@ -130,6 +130,13 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
     setIsSubmitting(true);
 
     try {
+      // First, get product info for the email notification
+      const { data: productData } = await supabase
+        .from('products')
+        .select('name, slug')
+        .eq('id', productId)
+        .single();
+
       const { error } = await supabase
         .from('reviews')
         .insert({
@@ -141,6 +148,24 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
         });
 
       if (error) throw error;
+
+      // Send email notification to admin (fire and forget - don't block on errors)
+      try {
+        await supabase.functions.invoke('notify-review', {
+          body: {
+            productName: productData?.name || 'Produit',
+            productSlug: productData?.slug || '',
+            authorName: name.trim(),
+            authorEmail: email.trim(),
+            rating,
+            comment: comment.trim(),
+          },
+        });
+        console.log('Admin notification sent successfully');
+      } catch (notifyError) {
+        console.error('Failed to send admin notification:', notifyError);
+        // Don't fail the review submission if notification fails
+      }
 
       toast.success(t('review.success'));
       setName('');
