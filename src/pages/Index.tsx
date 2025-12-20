@@ -56,8 +56,6 @@ const Index: React.FC = () => {
           >
             <source src="/videos/hero-background.mp4" type="video/mp4" />
           </video>
-          {/* Overlay for better text readability */}
-          <div className="absolute inset-0 bg-deep-black/50" />
         </motion.div>
 
         {/* Decorative elements */}
