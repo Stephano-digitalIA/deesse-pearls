@@ -148,7 +148,99 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const response = await fetch("https://api.resend.com/emails", {
+    // Email de confirmation au client
+    const clientEmailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Georgia, serif; background: #f5f5f0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #d4af37; padding: 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; font-weight: normal; letter-spacing: 2px; }
+          .content { padding: 30px; color: #333; line-height: 1.6; }
+          .section { background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .section h2 { color: #333; margin: 0 0 15px; font-size: 18px; border-bottom: 2px solid #d4af37; padding-bottom: 10px; }
+          .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+          .info-row:last-child { border-bottom: none; }
+          .info-label { color: #666; }
+          .info-value { color: #333; font-weight: 500; }
+          .footer { text-align: center; padding: 20px; background: #f5f5f0; color: #888; font-size: 12px; }
+          .highlight { color: #d4af37; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✨ PERLES ÉTERNELLES ✨</h1>
+          </div>
+          <div class="content">
+            <p>Cher(e) <strong>${data.firstName}</strong>,</p>
+            
+            <p>Nous vous remercions pour votre demande de création sur mesure. Notre équipe d'artisans joailliers va étudier votre projet avec la plus grande attention.</p>
+            
+            <div class="section">
+              <h2>💎 Récapitulatif de votre demande</h2>
+              <div class="info-row">
+                <span class="info-label">Type de bijou</span>
+                <span class="info-value">${jewelryLabels[data.jewelryType] || data.jewelryType}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Type de perle</span>
+                <span class="info-value">${pearlLabels[data.pearlType] || data.pearlType}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Métal</span>
+                <span class="info-value">${metalLabels[data.metalType] || data.metalType}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Budget</span>
+                <span class="info-value">${data.budget}</span>
+              </div>
+            </div>
+            
+            <p><span class="highlight">Prochaine étape :</span> Un de nos conseillers vous contactera sous <strong>48 heures ouvrées</strong> pour discuter des détails de votre création et vous proposer un devis personnalisé.</p>
+            
+            <p>Si vous avez des questions en attendant, n'hésitez pas à nous contacter.</p>
+            
+            <p style="margin-top: 30px;">
+              Bien cordialement,<br>
+              <strong>L'équipe Perles Éternelles</strong>
+            </p>
+          </div>
+          <div class="footer">
+            <p>Perles Éternelles - L'excellence des perles de Tahiti</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Envoyer email au client
+    const clientResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: "Perles Éternelles <onboarding@resend.dev>",
+        to: [data.email],
+        subject: "Confirmation de votre demande de personnalisation - Perles Éternelles",
+        html: clientEmailHtml,
+      }),
+    });
+
+    if (!clientResponse.ok) {
+      const errorData = await clientResponse.text();
+      console.error("[notify-customization] Failed to send client email:", errorData);
+    } else {
+      console.log("[notify-customization] Client confirmation email sent to:", data.email);
+    }
+
+    // Envoyer email à l'admin
+    const adminResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -162,14 +254,13 @@ const handler = async (req: Request): Promise<Response> => {
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("[notify-customization] Failed to send email:", errorData);
-      throw new Error(`Failed to send email: ${errorData}`);
+    if (!adminResponse.ok) {
+      const errorData = await adminResponse.text();
+      console.error("[notify-customization] Failed to send admin email:", errorData);
+      throw new Error(`Failed to send admin email: ${errorData}`);
     }
 
-    const emailResponse = await response.json();
-    console.log("[notify-customization] Email sent successfully:", emailResponse);
+    console.log("[notify-customization] Admin email sent successfully");
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
