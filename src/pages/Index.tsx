@@ -1,28 +1,28 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Shield, Award, Truck, Heart } from 'lucide-react';
-import { useLocale } from '@/contexts/LocaleContext';
-import { useTranslatedFeaturedProducts } from '@/hooks/useTranslatedProducts';
-import ProductCard from '@/components/ProductCard';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowRight, Shield, Award, Truck, Heart } from "lucide-react";
+import { useLocale } from "@/contexts/LocaleContext";
+import { useTranslatedFeaturedProducts } from "@/hooks/useTranslatedProducts";
+import ProductCard from "@/components/ProductCard";
+import { Button } from "@/components/ui/button";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+    transition: { staggerChildren: 0.1 },
+  },
 };
 
 const scaleIn = {
   hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } }
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const Index: React.FC = () => {
@@ -30,16 +30,16 @@ const Index: React.FC = () => {
   const { data: featuredProducts = [] } = useTranslatedFeaturedProducts();
 
   const commitments = [
-    { icon: Shield, key: 'securePayment' },
-    { icon: Award, key: 'authenticCertificate' },
-    { icon: Truck, key: 'freeOver' },
-    { icon: Heart, key: 'responsiveService' },
+    { icon: Shield, key: "securePayment" },
+    { icon: Award, key: "authenticCertificate" },
+    { icon: Truck, key: "freeOver" },
+    { icon: Heart, key: "responsiveService" },
   ];
 
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center bg-deep-black overflow-hidden">
+      <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center bg-deep-black overflow-hiddenpt-24 md:pt-32">
         {/* Video Background */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -47,13 +47,7 @@ const Index: React.FC = () => {
           transition={{ duration: 2, ease: "easeOut" }}
           className="absolute inset-0 z-0"
         >
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          >
+          <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
             <source src="/videos/hero-background.mp4" type="video/mp4" />
           </video>
         </motion.div>
@@ -71,7 +65,7 @@ const Index: React.FC = () => {
             transition={{ delay: 0.8 }}
             className="font-tangerine italic text-5xl md:text-7xl lg:text-9xl text-gold mb-8 leading-tight drop-shadow-lg"
           >
-            {t('heroTitle')}
+            {t("heroTitle")}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
@@ -79,7 +73,7 @@ const Index: React.FC = () => {
             transition={{ delay: 1 }}
             className="text-pearl/90 text-lg md:text-xl max-w-2xl mx-auto mb-12 drop-shadow-md"
           >
-            {t('heroSubtitle')}
+            {t("heroSubtitle")}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -89,13 +83,16 @@ const Index: React.FC = () => {
           >
             <Link to="/shop">
               <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black font-semibold px-8">
-                {t('discoverCollection')}
+                {t("discoverCollection")}
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link to="/customization">
-              <Button size="lg" className="bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-deep-black font-semibold px-8 transition-all duration-300">
-                {t('customCreation')}
+              <Button
+                size="lg"
+                className="bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-deep-black font-semibold px-8 transition-all duration-300"
+              >
+                {t("customCreation")}
               </Button>
             </Link>
           </motion.div>
@@ -113,11 +110,7 @@ const Index: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {commitments.map((item) => (
-              <motion.div
-                key={item.key}
-                variants={fadeInUp}
-                className="flex items-center justify-center gap-3"
-              >
+              <motion.div key={item.key} variants={fadeInUp} className="flex items-center justify-center gap-3">
                 <item.icon className="w-6 h-6 text-gold" />
                 <span className="font-body text-sm">{t(item.key)}</span>
               </motion.div>
@@ -136,7 +129,7 @@ const Index: React.FC = () => {
             variants={fadeInUp}
             className="text-center mb-12"
           >
-            <h2 className="font-display text-3xl md:text-4xl mb-4">{t('bestSellers')}</h2>
+            <h2 className="font-display text-3xl md:text-4xl mb-4">{t("bestSellers")}</h2>
             <div className="w-20 h-1 bg-gold mx-auto" />
           </motion.div>
           <motion.div
@@ -161,7 +154,7 @@ const Index: React.FC = () => {
           >
             <Link to="/shop">
               <Button variant="outline" className="border-gold text-gold hover:bg-gold hover:text-deep-black">
-                {t('viewAll')}
+                {t("viewAll")}
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
@@ -181,19 +174,16 @@ const Index: React.FC = () => {
           <div className="absolute top-0 right-0 w-96 h-96 bg-gold/30 rounded-full blur-3xl" />
         </div>
         <div className="container mx-auto px-4 text-center relative z-10">
-          <motion.h2
-            variants={fadeInUp}
-            className="font-display text-3xl md:text-5xl mb-6"
-          >
-            {t('dreamJewelry')}
+          <motion.h2 variants={fadeInUp} className="font-display text-3xl md:text-5xl mb-6">
+            {t("dreamJewelry")}
           </motion.h2>
           <motion.p variants={fadeInUp} className="text-pearl/70 max-w-2xl mx-auto mb-8">
-            {t('customCreationAvailable')}
+            {t("customCreationAvailable")}
           </motion.p>
           <motion.div variants={scaleIn}>
             <Link to="/customization">
               <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black font-semibold">
-                {t('requestCustomization')}
+                {t("requestCustomization")}
               </Button>
             </Link>
           </motion.div>
