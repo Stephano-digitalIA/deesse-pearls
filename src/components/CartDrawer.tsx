@@ -14,8 +14,17 @@ const CartDrawer: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCheckout = async () => {
+    if (isLoading) return;
+
+    // Open a blank tab/window immediately to avoid popup blockers
+    const popup = window.open('about:blank', '_blank');
+
     setIsLoading(true);
     try {
+      if (!popup) {
+        throw new Error('POPUP_BLOCKED');
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           items,
@@ -24,13 +33,26 @@ const CartDrawer: React.FC = () => {
       });
 
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        setIsCartOpen(false);
-      }
+      if (!data?.url) throw new Error('NO_CHECKOUT_URL');
+
+      popup.location.href = data.url;
+      setIsCartOpen(false);
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error(t('checkoutError') || 'Une erreur est survenue lors du paiement');
+
+      // Cleanup if we opened a blank tab
+      try {
+        popup?.close();
+      } catch {
+        // ignore
+      }
+
+      const message =
+        error instanceof Error && error.message === 'POPUP_BLOCKED'
+          ? "Le navigateur a bloqué l'ouverture. Autorisez les popups puis réessayez."
+          : t('checkoutError') || 'Une erreur est survenue lors du paiement';
+
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
