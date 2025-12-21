@@ -25,7 +25,8 @@ const CartDrawer: React.FC = () => {
 
       if (error) throw error;
       if (data?.url) {
-        window.location.href = data.url;
+        window.open(data.url, '_blank');
+        setIsCartOpen(false);
       }
     } catch (error) {
       console.error('Checkout error:', error);
