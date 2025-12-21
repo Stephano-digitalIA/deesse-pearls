@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Send, CheckCircle } from 'lucide-react';
+import { Sparkles, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
 import { customizationTranslations } from '@/data/customizationTranslations';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Customization: React.FC = () => {
   const { t, language } = useLocale();
   const pageT = customizationTranslations[language] || customizationTranslations.fr;
   
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     jewelryType: '',
     pearlType: '',
@@ -29,8 +31,47 @@ const Customization: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(pageT.toastSuccess);
-    setStep(4);
+    setIsSubmitting(true);
+
+    try {
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('customization_requests')
+        .insert({
+          jewelry_type: formData.jewelryType,
+          pearl_type: formData.pearlType,
+          metal_type: formData.metalType,
+          budget: formData.budget,
+          description: formData.description || null,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone || null,
+        });
+
+      if (dbError) {
+        console.error('Error saving customization request:', dbError);
+        throw dbError;
+      }
+
+      // Send notification email to admin
+      try {
+        await supabase.functions.invoke('notify-customization', {
+          body: formData,
+        });
+      } catch (emailError) {
+        console.error('Error sending notification email:', emailError);
+        // Don't fail the whole submission if email fails
+      }
+
+      toast.success(pageT.toastSuccess);
+      setStep(4);
+    } catch (error: any) {
+      console.error('Error submitting customization request:', error);
+      toast.error('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const jewelryTypes = [
@@ -317,11 +358,15 @@ const Customization: React.FC = () => {
                 </div>
 
                 <div className="flex gap-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(2)} className="flex-1">
+                  <Button type="button" variant="outline" onClick={() => setStep(2)} className="flex-1" disabled={isSubmitting}>
                     {pageT.back}
                   </Button>
-                  <Button type="submit" className="flex-1 bg-gold hover:bg-gold-light text-deep-black">
-                    <Send className="w-4 h-4 mr-2" />
+                  <Button type="submit" className="flex-1 bg-gold hover:bg-gold-light text-deep-black" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 mr-2" />
+                    )}
                     {pageT.sendRequest}
                   </Button>
                 </div>

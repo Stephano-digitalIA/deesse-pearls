@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      customization_requests: {
+        Row: {
+          admin_notes: string | null
+          budget: string
+          created_at: string
+          description: string | null
+          email: string
+          first_name: string
+          id: string
+          jewelry_type: string
+          last_name: string
+          metal_type: string
+          pearl_type: string
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          budget: string
+          created_at?: string
+          description?: string | null
+          email: string
+          first_name: string
+          id?: string
+          jewelry_type: string
+          last_name: string
+          metal_type: string
+          pearl_type: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          budget?: string
+          created_at?: string
+          description?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          jewelry_type?: string
+          last_name?: string
+          metal_type?: string
+          pearl_type?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_history: {
         Row: {
           changed_by: string | null
