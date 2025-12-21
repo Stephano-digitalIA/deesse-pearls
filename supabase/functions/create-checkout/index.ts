@@ -83,7 +83,7 @@ serve(async (req) => {
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/shop`,
+      cancel_url: `${origin}/payment-cancelled`,
       shipping_address_collection: {
         allowed_countries: ["FR", "BE", "CH", "LU", "MC"],
       },
