@@ -29,6 +29,7 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Account from "./pages/Account";
 import ResetPassword from "./pages/ResetPassword";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/account" element={<Account />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/payment-success" element={<PaymentSuccess />} />
                         <Route path="/about" element={<About />} />
                         <Route path="/contact" element={<Contact />} />
                         <Route path="/customization" element={<Customization />} />
