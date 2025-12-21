@@ -43,6 +43,7 @@ const PaymentSuccess: React.FC = () => {
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     clearCart();
@@ -72,6 +73,54 @@ const PaymentSuccess: React.FC = () => {
 
     fetchOrderDetails();
   }, [sessionId]);
+
+  // Send confirmation email when order details are loaded
+  useEffect(() => {
+    const sendConfirmationEmail = async () => {
+      if (!orderDetails || emailSent || !orderDetails.customerEmail) return;
+
+      try {
+        const { error } = await supabase.functions.invoke('send-order-confirmation', {
+          body: {
+            customerEmail: orderDetails.customerEmail,
+            customerName: orderDetails.customerName || 'Client',
+            orderNumber: orderDetails.id.slice(-8).toUpperCase(),
+            orderDate: new Date(orderDetails.createdAt).toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            }),
+            items: orderDetails.items.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: Math.round(item.unitAmount * 100),
+            })),
+            subtotal: Math.round(orderDetails.amountTotal * 100),
+            shipping: 0,
+            total: Math.round(orderDetails.amountTotal * 100),
+            shippingAddress: orderDetails.shippingAddress ? {
+              line1: orderDetails.shippingAddress.line1,
+              line2: orderDetails.shippingAddress.line2,
+              city: orderDetails.shippingAddress.city,
+              postal_code: orderDetails.shippingAddress.postalCode,
+              country: orderDetails.shippingAddress.country,
+            } : undefined,
+          },
+        });
+
+        if (error) {
+          console.error('Error sending confirmation email:', error);
+        } else {
+          console.log('Confirmation email sent successfully');
+          setEmailSent(true);
+        }
+      } catch (err) {
+        console.error('Error sending confirmation email:', err);
+      }
+    };
+
+    sendConfirmationEmail();
+  }, [orderDetails, emailSent]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
