@@ -1,14 +1,39 @@
-import React from 'react';
-import { X, Plus, Minus, ShoppingBag } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Plus, Minus, ShoppingBag, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/contexts/CartContext';
 import { useLocale } from '@/contexts/LocaleContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const CartDrawer: React.FC = () => {
   const { items, removeItem, updateQuantity, subtotal, shippingCost, total, isCartOpen, setIsCartOpen } = useCart();
   const { t, formatPrice } = useLocale();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCheckout = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          items,
+          shippingCost,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error(t('checkoutError') || 'Une erreur est survenue lors du paiement');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -131,8 +156,19 @@ const CartDrawer: React.FC = () => {
                 </div>
 
                 {/* Checkout button */}
-                <Button className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold">
-                  {t('checkout')}
+                <Button 
+                  onClick={handleCheckout}
+                  disabled={isLoading}
+                  className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {t('processing') || 'Traitement...'}
+                    </>
+                  ) : (
+                    t('checkout')
+                  )}
                 </Button>
               </div>
             )}
