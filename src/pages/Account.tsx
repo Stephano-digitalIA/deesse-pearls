@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, MapPin, Package, LogOut, Save } from 'lucide-react';
+import OrderCard from '@/components/OrderCard';
 import { z } from 'zod';
 
 // Validation schema for profile
@@ -37,12 +38,30 @@ interface Profile {
   country: string | null;
 }
 
+interface OrderItem {
+  id: string;
+  product_name: string;
+  product_image: string | null;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
 interface Order {
   id: string;
   order_number: string;
   status: string;
   total: number;
+  subtotal: number;
+  shipping_cost: number;
   created_at: string;
+  shipping_address: {
+    line1?: string;
+    city?: string;
+    postal_code?: string;
+    country?: string;
+  };
+  order_items: OrderItem[];
 }
 
 const Account: React.FC = () => {
@@ -110,14 +129,31 @@ const Account: React.FC = () => {
 
     const { data, error } = await supabase
       .from('orders')
-      .select('id, order_number, status, total, created_at')
+      .select(`
+        id,
+        order_number,
+        status,
+        total,
+        subtotal,
+        shipping_cost,
+        created_at,
+        shipping_address,
+        order_items (
+          id,
+          product_name,
+          product_image,
+          quantity,
+          unit_price,
+          total_price
+        )
+      `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching orders:', error);
     } else {
-      setOrders(data || []);
+      setOrders((data as Order[]) || []);
     }
   };
 
@@ -409,6 +445,12 @@ const Account: React.FC = () => {
                   <Package className="w-5 h-5 text-gold" />
                   {t('orderHistory')}
                 </CardTitle>
+                <CardDescription>
+                  {orders.length > 0 
+                    ? `${orders.length} commande${orders.length > 1 ? 's' : ''}`
+                    : t('noOrdersYet')
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {orders.length === 0 ? (
@@ -426,27 +468,15 @@ const Account: React.FC = () => {
                 ) : (
                   <div className="space-y-4">
                     {orders.map((order) => (
-                      <div
+                      <OrderCard
                         key={order.id}
-                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div>
-                          <p className="font-semibold">{order.order_number}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(order.created_at).toLocaleDateString(getDateLocale(), {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gold">{formatPrice(order.total)}</p>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
-                            {getStatusLabel(order.status)}
-                          </span>
-                        </div>
-                      </div>
+                        order={order}
+                        getStatusLabel={getStatusLabel}
+                        getStatusColor={getStatusColor}
+                        getDateLocale={getDateLocale}
+                        formatPrice={formatPrice}
+                        t={t}
+                      />
                     ))}
                   </div>
                 )}
