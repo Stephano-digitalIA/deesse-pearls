@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Sparkles, Loader2 } from 'lucide-react';
+import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Loader2 } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -10,7 +10,7 @@ import { useReviews } from '@/hooks/useReviews';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ProductCategory } from '@/types/supabase';
 import ProductCard from '@/components/ProductCard';
-import ReviewForm from '@/components/ReviewForm';
+import ReviewForm, { reviewTranslations } from '@/components/ReviewForm';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -403,7 +403,7 @@ const ProductDetail: React.FC = () => {
                 <div className="space-y-6">
                   {reviews.length === 0 && !reviewsLoading ? (
                     <p className="text-muted-foreground text-center py-4">
-                      {language === 'fr' ? 'Aucun avis pour le moment. Soyez le premier à donner votre avis !' : 'No reviews yet. Be the first to leave a review!'}
+                      {reviewTranslations['review.noReviews']?.[language] || reviewTranslations['review.noReviews']?.['en']}
                     </p>
                   ) : (
                     reviews.map(review => (
