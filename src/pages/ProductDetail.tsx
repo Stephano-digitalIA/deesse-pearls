@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { shopProductTranslations } from '@/data/shopProductTranslations';
+import { getProductTranslation } from '@/data/productTranslations';
 
 const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -72,8 +73,9 @@ const ProductDetail: React.FC = () => {
 
   const favorite = isFavorite(product.id);
   
-  const productName = product.name;
-  const productDescription = product.description;
+  const productName = getProductTranslation(product.slug, 'name', language) || product.name;
+  const productDescription = getProductTranslation(product.slug, 'description', language) || product.description;
+  
   const handleAddToCart = () => {
     const variantInfo: string[] = [];
     if (selectedSize) variantInfo.push(selectedSize);
