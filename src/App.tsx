@@ -16,7 +16,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Favorites from "./pages/Favorites";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import Customization from "./pages/Customization";
+
 import Commitments from "./pages/Commitments";
 import FAQ from "./pages/FAQ";
 import LegalNotice from "./pages/LegalNotice";
@@ -68,7 +68,7 @@ const App = () => (
                         <Route path="/payment-cancelled" element={<PaymentCancelled />} />
                         <Route path="/about" element={<About />} />
                         <Route path="/contact" element={<Contact />} />
-                        <Route path="/customization" element={<Customization />} />
+                        
                         <Route path="/commitments" element={<Commitments />} />
                         <Route path="/faq" element={<FAQ />} />
                         <Route path="/legal" element={<LegalNotice />} />
