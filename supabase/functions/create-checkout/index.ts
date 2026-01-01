@@ -44,16 +44,30 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
+    // Helper to validate if a string is an absolute URL
+    const isAbsoluteUrl = (url: string): boolean => {
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     // Create line items for Stripe
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => {
       const description = [item.variant, item.size, item.quality].filter(Boolean).join(" • ");
+      
+      // Only include images that are valid absolute URLs (Stripe requires this)
+      const validImage = item.image && isAbsoluteUrl(item.image) ? item.image : null;
+      
       return {
         price_data: {
           currency: "eur",
           product_data: {
             name: item.name,
             ...(description && { description }),
-            ...(item.image && { images: [item.image] }),
+            ...(validImage && { images: [validImage] }),
           },
           unit_amount: Math.round(item.price * 100), // Convert to cents
         },
