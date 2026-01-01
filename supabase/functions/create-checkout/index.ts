@@ -91,12 +91,11 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://lovable.dev";
 
-    // Create checkout session
+    // Create checkout session - Force EUR only, no currency conversion
     const session = await stripe.checkout.sessions.create({
       customer_email: customerEmail || undefined,
       line_items: lineItems,
       mode: "payment",
-      currency: "eur", // Force EUR currency to avoid automatic conversion
       success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/payment-cancelled`,
       shipping_address_collection: {
@@ -106,6 +105,8 @@ serve(async (req) => {
       phone_number_collection: {
         enabled: true,
       },
+      // Disable currency conversion - customer pays in EUR only
+      locale: "fr",
       metadata: {
         customer_name: customerName || "",
       },
