@@ -1502,7 +1502,7 @@ const translations: Record<Language, Record<string, string>> = {
     customerService: '고객 서비스',
     deliveryReturns: '배송 및 반품',
     sizeGuide: '사이즈 가이드',
-    faq: 'FAQ',
+    faq: '자주 묻는 질문',
     shippingFrom: '배송비',
     free: '무료',
     freeOver: '목적지로 배송',
