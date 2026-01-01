@@ -96,6 +96,7 @@ serve(async (req) => {
       customer_email: customerEmail || undefined,
       line_items: lineItems,
       mode: "payment",
+      currency: "eur", // Force EUR currency to avoid automatic conversion
       success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/payment-cancelled`,
       shipping_address_collection: {
