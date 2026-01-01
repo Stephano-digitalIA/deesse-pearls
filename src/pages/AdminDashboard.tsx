@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderManagement from '@/components/admin/OrderManagement';
 import ReviewManagement from '@/components/admin/ReviewManagement';
 import UserManagement from '@/components/admin/UserManagement';
+import AdminStats from '@/components/admin/AdminStats';
 
 
 const categories: { value: ProductCategory; label: string }[] = [
@@ -331,6 +332,9 @@ const AdminDashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Statistics */}
+        <AdminStats />
+
         <Tabs defaultValue="products" className="space-y-6">
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="products" className="flex items-center gap-2">
