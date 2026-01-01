@@ -127,12 +127,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const redirectTo = `${window.location.origin}/auth/callback`;
+
+    // In embedded previews (iframes), Google OAuth can fail or be blocked.
+    // We request the OAuth URL and redirect the TOP window ourselves.
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
+        skipBrowserRedirect: true,
       },
     });
+
+    if (!error && data?.url) {
+      // Redirect the top-level browsing context when possible.
+      const target = window.top ?? window;
+      target.location.assign(data.url);
+    }
+
     return { error: error as Error | null };
   };
 
