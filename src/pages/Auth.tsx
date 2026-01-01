@@ -173,6 +173,20 @@ const Auth: React.FC = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    const { error } = await signInWithGoogle();
+
+    // Most OAuth failures happen before we can reach /auth/callback.
+    // If we get an error here, surface it immediately.
+    if (error) {
+      toast({
+        title: t('error'),
+        description: `${error.message} (Google OAuth)`,
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -349,7 +363,7 @@ const Auth: React.FC = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={signInWithGoogle}
+                      onClick={handleGoogleSignIn}
                       className="w-full"
                     >
                       <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
