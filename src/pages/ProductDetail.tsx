@@ -311,17 +311,6 @@ const ProductDetail: React.FC = () => {
               </Button>
             </div>
 
-            {/* Customization CTA */}
-            <Link to="/customization" className="block">
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full border-lagoon text-lagoon hover:bg-lagoon hover:text-pearl"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                {t('requestCustomization')}
-              </Button>
-            </Link>
 
             {/* Trust badges */}
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-border">
