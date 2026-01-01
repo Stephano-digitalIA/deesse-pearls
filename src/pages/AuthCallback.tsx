@@ -14,6 +14,21 @@ const AuthCallback: React.FC = () => {
       // We try to exchange the code when present, then we wait until the session is actually available before redirecting.
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
+      const oauthError = params.get('error');
+      const oauthErrorDescription = params.get('error_description');
+
+      // If the provider (or auth gateway) returned an explicit error, show it.
+      if (oauthError) {
+        toast({
+          title: 'Connexion Google refusée',
+          description: oauthErrorDescription
+            ? `${oauthError}: ${oauthErrorDescription}`
+            : oauthError,
+          variant: 'destructive',
+        });
+        navigate('/auth', { replace: true });
+        return;
+      }
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -40,7 +55,8 @@ const AuthCallback: React.FC = () => {
 
       toast({
         title: 'Connexion non finalisée',
-        description: 'Merci de réessayer la connexion Google.',
+        description:
+          'Merci de réessayer la connexion Google. Si le problème persiste, vérifiez la configuration OAuth.',
         variant: 'destructive',
       });
       navigate('/auth', { replace: true });
