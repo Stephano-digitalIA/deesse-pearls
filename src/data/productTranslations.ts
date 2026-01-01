@@ -1214,3 +1214,13 @@ export const productTranslations: Record<string, ProductTranslation> = {
     },
   },
 };
+
+export function getProductTranslation(
+  slug: string,
+  field: 'name' | 'description',
+  language: string
+): string | null {
+  const translation = productTranslations[slug];
+  if (!translation) return null;
+  return translation[field][language] || translation[field]['en'] || null;
+}
