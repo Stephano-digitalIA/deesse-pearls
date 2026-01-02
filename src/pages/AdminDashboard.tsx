@@ -532,10 +532,10 @@ const AdminDashboard: React.FC = () => {
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>ou</span>
                             <Input
-                              type="url"
+                              type="text"
                               value={imageUrl}
                               onChange={(e) => setImageUrl(e.target.value)}
-                              placeholder="Coller une URL d'image"
+                              placeholder="Chemin ou URL d'image"
                               className="flex-1 h-8 text-xs"
                             />
                           </div>
