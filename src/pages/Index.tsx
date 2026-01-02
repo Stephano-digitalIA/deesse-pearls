@@ -75,21 +75,6 @@ const Index: React.FC = () => {
           >
             {t("heroSubtitle")}
           </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
-            className="flex justify-center items-center"
-          >
-            <Link to="/customization">
-              <Button
-                size="lg"
-                className="bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-deep-black font-semibold px-8 transition-all duration-300"
-              >
-                {t("customCreation")}
-              </Button>
-            </Link>
-          </motion.div>
         </div>
       </section>
 
