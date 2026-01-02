@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLocale } from '@/contexts/LocaleContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { z } from 'zod';
 
 interface ReviewFormProps {
@@ -212,6 +213,7 @@ const reviewSchema = z.object({
 
 const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted }) => {
   const { language } = useLocale();
+  const { user } = useAuth();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [name, setName] = useState('');
@@ -219,6 +221,23 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Pre-fill user info if logged in
+  useEffect(() => {
+    if (user) {
+      // Set email from user
+      if (user.email && !email) {
+        setEmail(user.email);
+      }
+      // Set name from user metadata or profile
+      const firstName = user.user_metadata?.first_name || '';
+      const lastName = user.user_metadata?.last_name || '';
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+      if (fullName && !name) {
+        setName(fullName);
+      }
+    }
+  }, [user]);
 
   const t = (key: string) => reviewTranslations[key]?.[language] || reviewTranslations[key]?.['fr'] || key;
 
