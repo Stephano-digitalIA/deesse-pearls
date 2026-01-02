@@ -1655,26 +1655,67 @@ const languageNames: Record<Language, string> = {
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
+// Safely get item from localStorage (handles SSR and Safari private mode)
+const safeGetItem = (key: string): string | null => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(key);
+    }
+  } catch {
+    // localStorage not available (Safari private mode, etc.)
+    console.warn('localStorage not available');
+  }
+  return null;
+};
+
+// Safely set item to localStorage
+const safeSetItem = (key: string, value: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(key, value);
+    }
+  } catch {
+    // localStorage not available
+    console.warn('localStorage not available');
+  }
+};
+
 export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem('deesse-language');
+  const [language, setLanguageState] = useState<Language>(() => {
+    const saved = safeGetItem('deesse-language');
     return (saved as Language) || 'fr';
   });
-  const [currency, setCurrency] = useState<Currency>(() => {
-    const saved = localStorage.getItem('deesse-currency');
+  const [currency, setCurrencyState] = useState<Currency>(() => {
+    const saved = safeGetItem('deesse-currency');
     return (saved as Currency) || 'EUR';
   });
 
-  useEffect(() => {
-    localStorage.setItem('deesse-language', language);
-  }, [language]);
+  // Custom setLanguage that also persists immediately
+  const setLanguage = (lang: Language) => {
+    safeSetItem('deesse-language', lang);
+    setLanguageState(lang);
+  };
 
+  // Custom setCurrency that also persists immediately
+  const setCurrency = (curr: Currency) => {
+    safeSetItem('deesse-currency', curr);
+    setCurrencyState(curr);
+  };
+
+  // Sync with localStorage on mount (for cases where state was initialized before localStorage was ready)
   useEffect(() => {
-    localStorage.setItem('deesse-currency', currency);
-  }, [currency]);
+    const savedLang = safeGetItem('deesse-language');
+    const savedCurr = safeGetItem('deesse-currency');
+    if (savedLang && savedLang !== language) {
+      setLanguageState(savedLang as Language);
+    }
+    if (savedCurr && savedCurr !== currency) {
+      setCurrencyState(savedCurr as Currency);
+    }
+  }, []);
 
   const t = (key: string): string => {
-    return translations[language][key] || key;
+    return translations[language]?.[key] || translations.fr[key] || key;
   };
 
   const formatPrice = (price: number): string => {
