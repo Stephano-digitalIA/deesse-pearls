@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Lock, Mail, UserPlus, Home } from 'lucide-react';
+import { Loader2, Lock, Mail, UserPlus, Home, ShieldAlert } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -22,20 +24,42 @@ const AdminLogin: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
   const [activeTab, setActiveTab] = useState('login');
+  const [accessDenied, setAccessDenied] = useState(false);
   
   const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Log unauthorized access attempt
+  const logUnauthorizedAccess = async (userEmail: string, userId?: string) => {
+    try {
+      await supabase.from('admin_access_logs').insert({
+        user_id: userId || null,
+        email: userEmail,
+        user_agent: navigator.userAgent,
+        attempt_type: 'unauthorized_admin_access'
+      });
+    } catch (error) {
+      console.error('Failed to log access attempt:', error);
+    }
+  };
+
   useEffect(() => {
-    if (!isLoading && user && isAdmin) {
-      navigate('/admin');
+    if (!isLoading && user) {
+      if (isAdmin) {
+        navigate('/admin');
+      } else {
+        // User is logged in but not admin - show access denied and log
+        setAccessDenied(true);
+        logUnauthorizedAccess(user.email || 'unknown', user.id);
+      }
     }
   }, [user, isAdmin, isLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setAccessDenied(false);
     
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
@@ -64,6 +88,7 @@ const AdminLogin: React.FC = () => {
       return;
     }
     
+    // Note: the useEffect will handle checking admin status after login
     setTimeout(() => {
       setIsSubmitting(false);
     }, 1500);
@@ -135,6 +160,15 @@ const AdminLogin: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {accessDenied && (
+            <Alert variant="destructive" className="mb-4">
+              <ShieldAlert className="h-4 w-4" />
+              <AlertTitle>Accès refusé</AlertTitle>
+              <AlertDescription>
+                Vous n'avez pas les droits d'administration. Cette tentative d'accès a été enregistrée.
+              </AlertDescription>
+            </Alert>
+          )}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Connexion</TabsTrigger>
