@@ -115,13 +115,13 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="font-display text-lg mb-4 text-gold">{t('newsletter')}</h3>
             <p className="text-pearl/70 text-sm mb-4">{t('subscribeNewsletter')}</p>
-            <form className="flex gap-2">
+            <form className="flex flex-col sm:flex-row gap-2">
               <Input
                 type="email"
                 placeholder={t('email')}
-                className="bg-pearl/10 border-pearl/20 text-pearl placeholder:text-pearl/50"
+                className="bg-pearl/10 border-pearl/20 text-pearl placeholder:text-pearl/50 flex-1"
               />
-              <Button variant="default" className="bg-gold hover:bg-gold-dark text-deep-black">
+              <Button variant="default" className="bg-gold hover:bg-gold-dark text-deep-black w-full sm:w-auto">
                 {t('subscribe')}
               </Button>
             </form>
