@@ -296,16 +296,16 @@ const Shop: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Banner */}
-      <section className="bg-gradient-to-r from-deep-black to-lagoon-dark py-16">
+      <section className="bg-gradient-to-r from-deep-black to-lagoon-dark py-10 sm:py-16">
         <div className="container mx-auto px-4 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-display text-4xl md:text-5xl text-pearl mb-4"
+            className="font-display text-3xl sm:text-4xl md:text-5xl text-pearl mb-3 sm:mb-4"
           >
             {getCategoryTitle()}
           </motion.h1>
-          <div className="w-20 h-1 bg-gold mx-auto" />
+          <div className="w-16 sm:w-20 h-1 bg-gold mx-auto" />
         </div>
       </section>
 
@@ -351,39 +351,42 @@ const Shop: React.FC = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Mobile Filter Button & Sort */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="lg:hidden">
-                <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Filter className="w-4 h-4 mr-2" />
-                      {t('filterBy')}
-                      {hasActiveFilters && (
-                        <span className="ml-2 bg-gold text-deep-black rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                          !
-                        </span>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80 bg-card">
-                    <SheetHeader>
-                      <SheetTitle className="font-display">{t('filterBy')}</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6">
-                      <FilterSection />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="lg:hidden">
+                  <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9">
+                        <Filter className="w-4 h-4 mr-2" />
+                        <span className="hidden xs:inline">{t('filterBy')}</span>
+                        {hasActiveFilters && (
+                          <span className="ml-1.5 bg-gold text-deep-black rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                            !
+                          </span>
+                        )}
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[85vw] max-w-[320px] bg-card">
+                      <SheetHeader>
+                        <SheetTitle className="font-display">{t('filterBy')}</SheetTitle>
+                      </SheetHeader>
+                      <div className="mt-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+                        <FilterSection />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
 
-              <p className="text-muted-foreground hidden lg:block">
-                {filteredProducts.length} {filteredProducts.length === 1 ? ts('shop.product') : ts('shop.products')}
-              </p>
+                {/* Product count - visible on all screens */}
+                <p className="text-sm text-muted-foreground">
+                  {filteredProducts.length} {filteredProducts.length === 1 ? ts('shop.product') : ts('shop.products')}
+                </p>
+              </div>
 
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-card border border-border rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
+                className="bg-card border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold h-9 min-w-[120px]"
               >
                 <option value="default">{t('sortBy')}</option>
                 <option value="price-asc">{t('price')} ↑</option>

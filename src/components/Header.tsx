@@ -159,14 +159,14 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Right side icons */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
             <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
-                <button className="p-2 hover:text-gold transition-colors">
+                <button className="p-2 hover:text-gold transition-colors touch-manipulation">
                   <Search className="w-5 h-5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-96 p-0 border-border bg-card">
+              <PopoverContent align="end" className="w-[calc(100vw-2rem)] sm:w-96 p-0 border-border bg-card" sideOffset={8}>
                 <SearchBar onClose={() => setIsSearchOpen(false)} />
               </PopoverContent>
             </Popover>
@@ -229,27 +229,27 @@ const Header: React.FC = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link to="/favorites" className="p-2 hover:text-gold transition-colors relative">
+            <Link to="/favorites" className="p-2 hover:text-gold transition-colors relative touch-manipulation">
               <Heart className="w-5 h-5" />
               {favorites.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-deep-black text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-gold text-deep-black text-[10px] sm:text-xs font-bold rounded-full flex items-center justify-center">
                   {favorites.length}
                 </span>
               )}
             </Link>
             <button
               onClick={() => setIsCartOpen(true)}
-              className="p-2 hover:text-gold transition-colors relative"
+              className="p-2 hover:text-gold transition-colors relative touch-manipulation"
             >
               <ShoppingBag className="w-5 h-5" />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-deep-black text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-gold text-deep-black text-[10px] sm:text-xs font-bold rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
             </button>
             <button
-              className="lg:hidden p-2"
+              className="lg:hidden p-2 touch-manipulation"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
