@@ -262,6 +262,33 @@ export type Database = {
         }
         Relationships: []
       }
+      product_translations: {
+        Row: {
+          created_at: string
+          description_translations: Json
+          id: string
+          name_translations: Json
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_translations?: Json
+          id?: string
+          name_translations?: Json
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_translations?: Json
+          id?: string
+          name_translations?: Json
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           badge: string | null

@@ -1245,7 +1245,22 @@ interface TranslatedProduct {
   updated_at: string;
 }
 
-const translateProduct = (product: TranslatedProduct, language: string): TranslatedProduct => {
+const translateProduct = (
+  product: TranslatedProduct,
+  language: string,
+  dynamicTranslations: Map<string, { name: Record<string, string>; description: Record<string, string> }>
+): TranslatedProduct => {
+  // First check dynamic translations from database
+  const dynamicTranslation = dynamicTranslations.get(product.slug);
+  if (dynamicTranslation) {
+    return {
+      ...product,
+      name: dynamicTranslation.name[language] || dynamicTranslation.name['fr'] || product.name,
+      description: dynamicTranslation.description[language] || dynamicTranslation.description['fr'] || product.description,
+    };
+  }
+
+  // Fall back to static translations
   const translatedName = getProductTranslation(product.slug, 'name', language);
   const translatedDescription = getProductTranslation(product.slug, 'description', language);
 
@@ -1277,6 +1292,22 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Fetch dynamic translations from database
+    const { data: translationsData } = await supabase
+      .from('product_translations')
+      .select('slug, name_translations, description_translations');
+    
+    const dynamicTranslations = new Map<string, { name: Record<string, string>; description: Record<string, string> }>();
+    if (translationsData) {
+      for (const t of translationsData) {
+        dynamicTranslations.set(t.slug, {
+          name: t.name_translations as Record<string, string>,
+          description: t.description_translations as Record<string, string>,
+        });
+      }
+    }
+    console.log(`[get-translated-products] Loaded ${dynamicTranslations.size} dynamic translations`);
+
     let translatedData: TranslatedProduct | TranslatedProduct[] | null;
 
     if (slug) {
@@ -1295,7 +1326,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      translatedData = data ? translateProduct(data as TranslatedProduct, language) : null;
+      translatedData = data ? translateProduct(data as TranslatedProduct, language, dynamicTranslations) : null;
     } else {
       // Multiple products query
       let query = supabase.from('products').select('*');
@@ -1326,7 +1357,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      translatedData = (data as TranslatedProduct[] || []).map(p => translateProduct(p, language));
+      translatedData = (data as TranslatedProduct[] || []).map(p => translateProduct(p, language, dynamicTranslations));
     }
 
     console.log(`[get-translated-products] Returning ${slug ? (translatedData ? '1' : '0') : (translatedData as TranslatedProduct[]).length} product(s)`);

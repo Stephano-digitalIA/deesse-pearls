@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,8 @@ const corsHeaders = {
 };
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 interface TranslationRequest {
   name: string;
@@ -122,6 +125,26 @@ IMPORTANT: Respond ONLY with valid JSON in exactly this format, no other text:
     const translations = JSON.parse(jsonMatch[0]);
 
     console.log(`[generate-translations] Successfully generated translations for: ${slug}`);
+
+    // Save translations to database using service role
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    
+    const { error: upsertError } = await supabase
+      .from('product_translations')
+      .upsert({
+        slug,
+        name_translations: translations.name,
+        description_translations: translations.description,
+      }, {
+        onConflict: 'slug'
+      });
+
+    if (upsertError) {
+      console.error('[generate-translations] Database upsert error:', upsertError);
+      // Don't throw - translations were generated, just couldn't save
+    } else {
+      console.log(`[generate-translations] Saved translations to database for: ${slug}`);
+    }
 
     const result: TranslationResult = {
       slug,
