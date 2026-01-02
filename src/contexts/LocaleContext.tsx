@@ -192,6 +192,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Account page
     loading: 'Chargement',
     loadingProfile: 'Chargement du profil...',
+    // Mobile header
+    language: 'Langue',
+    currency: 'Devise',
   },
   en: {
     home: 'Home',
@@ -372,6 +375,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Account page
     loading: 'Loading',
     loadingProfile: 'Loading profile...',
+    // Mobile header
+    language: 'Language',
+    currency: 'Currency',
   },
   de: {
     home: 'Startseite',
@@ -549,6 +555,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'oder',
     continueWithGoogle: 'Mit Google fortfahren',
+    // Mobile header
+    language: 'Sprache',
+    currency: 'Währung',
   },
   es: {
     home: 'Inicio',
@@ -726,6 +735,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'o',
     continueWithGoogle: 'Continuar con Google',
+    // Mobile header
+    language: 'Idioma',
+    currency: 'Moneda',
   },
   pt: {
     home: 'Início',
@@ -903,6 +915,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'ou',
     continueWithGoogle: 'Continuar com Google',
+    // Mobile header
+    language: 'Idioma',
+    currency: 'Moeda',
   },
   it: {
     home: 'Home',
@@ -1080,6 +1095,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'o',
     continueWithGoogle: 'Continua con Google',
+    // Mobile header
+    language: 'Lingua',
+    currency: 'Valuta',
   },
   nl: {
     home: 'Home',
@@ -1257,6 +1275,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'of',
     continueWithGoogle: 'Doorgaan met Google',
+    // Mobile header
+    language: 'Taal',
+    currency: 'Valuta',
   },
   ja: {
     home: 'ホーム',
@@ -1434,6 +1455,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'または',
     continueWithGoogle: 'Googleで続行',
+    // Mobile header
+    language: '言語',
+    currency: '通貨',
   },
   ko: {
     home: '홈',
@@ -1611,6 +1635,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: '또는',
     continueWithGoogle: 'Google로 계속하기',
+    // Mobile header
+    language: '언어',
+    currency: '통화',
   },
 };
 
