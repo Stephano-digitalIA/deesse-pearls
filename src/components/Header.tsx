@@ -99,44 +99,47 @@ const Header: React.FC = () => {
       {/* Main header */}
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
-          {/* Mobile menu button - Left side on mobile */}
-          <button
-            className="lg:hidden p-2 -ml-2 touch-manipulation hover:bg-muted/50 rounded-md transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Menu"
-          >
-            <AnimatePresence mode="wait">
-              {isMobileMenuOpen ? (
-                <motion.div
-                  key="close"
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <X className="w-6 h-6" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="menu"
-                  initial={{ rotate: 90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -90, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <Menu className="w-6 h-6" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </button>
+          {/* Left side: Menu button + Logo */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile menu button */}
+            <button
+              className="lg:hidden p-2 -ml-2 touch-manipulation hover:bg-muted/50 rounded-md transition-colors"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Menu"
+            >
+              <AnimatePresence mode="wait">
+                {isMobileMenuOpen ? (
+                  <motion.div
+                    key="close"
+                    initial={{ rotate: -90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <X className="w-6 h-6" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="menu"
+                    initial={{ rotate: 90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -90, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Menu className="w-6 h-6" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
 
-          {/* Logo - Centered on mobile */}
-          <Link to="/" className="flex-shrink-0 lg:flex-shrink absolute left-1/2 -translate-x-1/2 lg:relative lg:left-0 lg:translate-x-0">
-            <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold tracking-wide whitespace-nowrap">
-              <span className="text-gold">DEESSE</span>{' '}
-              <span className="text-foreground">PEARLS</span>
-            </h1>
-          </Link>
+            {/* Logo - Left aligned */}
+            <Link to="/" className="flex-shrink-0">
+              <h1 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-wide whitespace-nowrap">
+                <span className="text-gold">DEESSE</span>{' '}
+                <span className="text-foreground">PEARLS</span>
+              </h1>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
@@ -190,7 +193,43 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Right side icons */}
-          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-3">
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            {/* Language Selector - Mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="lg:hidden p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors touch-manipulation">
+                  <Globe className="w-5 h-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-card min-w-[140px]">
+                <div className="px-2 py-1.5 text-xs text-muted-foreground border-b border-border">
+                  {t('language') || 'Langue'}
+                </div>
+                {languages.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang}
+                    onClick={() => setLanguage(lang)}
+                    className={language === lang ? 'bg-muted' : ''}
+                  >
+                    {languageNames[lang]}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  {t('currency') || 'Devise'}
+                </div>
+                {currencies.map((curr) => (
+                  <DropdownMenuItem
+                    key={curr}
+                    onClick={() => setCurrency(curr)}
+                    className={currency === curr ? 'bg-muted' : ''}
+                  >
+                    {curr === 'EUR' ? '€ EUR' : '$ USD'}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Search */}
             <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
@@ -203,16 +242,16 @@ const Header: React.FC = () => {
               </PopoverContent>
             </Popover>
             
-            {/* User account dropdown - hidden on small mobile */}
+            {/* User account dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="hidden sm:flex p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors flex-col items-center gap-0.5">
+                <button className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors touch-manipulation flex items-center">
+                  <User className="w-5 h-5" />
                   {user && (
-                    <span className="text-[10px] font-medium text-gold truncate max-w-[60px] hidden md:block">
+                    <span className="text-[10px] font-medium text-gold truncate max-w-[50px] ml-1 hidden md:block">
                       {user.user_metadata?.first_name || user.email?.split('@')[0]}
                     </span>
                   )}
-                  <User className="w-5 h-5" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-card min-w-[180px]">
@@ -265,7 +304,7 @@ const Header: React.FC = () => {
             <Link to="/favorites" className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors relative touch-manipulation">
               <Heart className="w-5 h-5" />
               {favorites.length > 0 && (
-                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-0 right-0 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
                   {favorites.length}
                 </span>
               )}
@@ -278,7 +317,7 @@ const Header: React.FC = () => {
             >
               <ShoppingBag className="w-5 h-5" />
               {totalItems > 0 && (
-                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-0 right-0 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
