@@ -8,13 +8,19 @@ import { Button } from '@/components/ui/button';
 
 const About: React.FC = () => {
   const { t, language } = useLocale();
+  // Always fallback to French if translation not found
   const pageT = aboutContactTranslations[language] || aboutContactTranslations.fr;
+  
+  // Helper to safely get translation with fallback
+  const getPageText = (key: keyof typeof aboutContactTranslations.fr): string => {
+    return pageT[key] || aboutContactTranslations.fr[key] || '';
+  };
 
   const values = [
-    { icon: Gem, title: pageT.valueExcellence, description: pageT.valueExcellenceDesc },
-    { icon: Heart, title: pageT.valuePassion, description: pageT.valuePassionDesc },
-    { icon: Award, title: pageT.valueAuthenticity, description: pageT.valueAuthenticityDesc },
-    { icon: Users, title: pageT.valueService, description: pageT.valueServiceDesc },
+    { icon: Gem, title: getPageText('valueExcellence'), description: getPageText('valueExcellenceDesc') },
+    { icon: Heart, title: getPageText('valuePassion'), description: getPageText('valuePassionDesc') },
+    { icon: Award, title: getPageText('valueAuthenticity'), description: getPageText('valueAuthenticityDesc') },
+    { icon: Users, title: getPageText('valueService'), description: getPageText('valueServiceDesc') },
   ];
 
   return (
@@ -31,7 +37,7 @@ const About: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="font-display text-4xl md:text-6xl text-pearl mb-6"
           >
-            {t('about')}
+            {t('about') || 'À propos'}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -53,12 +59,12 @@ const About: React.FC = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="font-display text-3xl md:text-4xl mb-6">{pageT.ourStory}</h2>
+              <h2 className="font-display text-3xl md:text-4xl mb-6">{getPageText('ourStory')}</h2>
               <div className="w-20 h-1 bg-gold mb-8" />
               <div className="space-y-6 text-muted-foreground leading-relaxed">
-                <p>{pageT.aboutStoryP1}</p>
-                <p>{pageT.aboutStoryP2}</p>
-                <p>{pageT.aboutStoryP3}</p>
+                <p>{getPageText('aboutStoryP1')}</p>
+                <p>{getPageText('aboutStoryP2')}</p>
+                <p>{getPageText('aboutStoryP3')}</p>
               </div>
             </motion.div>
             <motion.div
@@ -84,7 +90,7 @@ const About: React.FC = () => {
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-3xl md:text-4xl mb-4">{pageT.ourValues}</h2>
+            <h2 className="font-display text-3xl md:text-4xl mb-4">{getPageText('ourValues')}</h2>
             <div className="w-20 h-1 bg-gold mx-auto" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -111,7 +117,7 @@ const About: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-display text-3xl md:text-4xl mb-6">{t('dreamJewelry')}</h2>
           <p className="text-pearl/70 mb-8 max-w-2xl mx-auto">
-            {pageT.aboutCtaText}
+            {getPageText('aboutCtaText')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/shop">
