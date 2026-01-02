@@ -79,14 +79,8 @@ const Index: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2 }}
-            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+            className="flex justify-center items-center"
           >
-            <Link to="/shop">
-              <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black font-semibold px-8">
-                {t("discoverCollection")}
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
             <Link to="/customization">
               <Button
                 size="lg"
