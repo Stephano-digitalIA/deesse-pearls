@@ -131,7 +131,7 @@ const Header: React.FC = () => {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
-                          className="absolute top-full left-0 bg-card shadow-elegant rounded-md py-2 min-w-[200px]"
+                          className="absolute top-full left-0 z-[60] bg-card border border-border shadow-elegant rounded-md py-2 min-w-[200px] pointer-events-auto"
                         >
                           {shopCategories.map((cat) => (
                             <Link
