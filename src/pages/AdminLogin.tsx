@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Lock, Mail, UserPlus } from 'lucide-react';
+import { Loader2, Lock, Mail, UserPlus, Home } from 'lucide-react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -278,6 +278,14 @@ const AdminLogin: React.FC = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
+        <CardFooter className="justify-center border-t pt-6">
+          <Link to="/">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Home className="w-4 h-4 mr-2" />
+              Retour à l'accueil
+            </Button>
+          </Link>
+        </CardFooter>
       </Card>
     </div>
   );
