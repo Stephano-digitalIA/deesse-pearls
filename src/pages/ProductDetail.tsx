@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { shopProductTranslations } from '@/data/shopProductTranslations';
 import { getProductTranslation } from '@/data/productTranslations';
+import { resolveImagePath } from '@/lib/utils';
 
 const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -133,7 +134,7 @@ const ProductDetail: React.FC = () => {
           >
             <div className="relative aspect-square rounded-lg overflow-hidden bg-secondary">
               <img
-                src={product.images[selectedImage]}
+                src={resolveImagePath(product.images[selectedImage])}
                 alt={productName}
                 className="w-full h-full object-cover"
               />
@@ -169,7 +170,7 @@ const ProductDetail: React.FC = () => {
                       selectedImage === index ? 'border-gold' : 'border-transparent'
                     }`}
                   >
-                    <img src={img} alt={`${productName} ${index + 1}`} className="w-full h-full object-cover" />
+                    <img src={resolveImagePath(img)} alt={`${productName} ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

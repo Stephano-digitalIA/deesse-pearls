@@ -78,8 +78,8 @@ const Shop: React.FC = () => {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    // Filter out out-of-stock products first
-    let filtered = products.filter(p => p.in_stock !== false);
+    // Filter out out-of-stock products
+    let filtered = products.filter(p => p.in_stock === true);
 
     // Category filter
     if (selectedCategory !== 'all') {

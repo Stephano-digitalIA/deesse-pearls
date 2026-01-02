@@ -8,7 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { Button } from '@/components/ui/button';
 import { getProductTranslation } from '@/data/productTranslations';
-
+import { resolveImagePath } from '@/lib/utils';
 interface ProductCardProps {
   product: Product;
 }
@@ -45,7 +45,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <Link to={`/product/${product.slug}`} className="block">
         <div className="relative aspect-square overflow-hidden rounded-lg bg-muted mb-3 sm:mb-4">
           <img
-            src={product.images[0]}
+            src={resolveImagePath(product.images[0])}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { resolveImagePath } from '@/lib/utils';
 
 const CartDrawer: React.FC = () => {
   const { items, removeItem, updateQuantity, subtotal, shippingCost, total, isCartOpen, setIsCartOpen } = useCart();
@@ -119,7 +120,7 @@ const CartDrawer: React.FC = () => {
                       className="flex gap-4 p-3 bg-muted/30 rounded-lg"
                     >
                       <img
-                        src={item.image}
+                        src={resolveImagePath(item.image)}
                         alt={item.name}
                         className="w-20 h-20 object-cover rounded-md"
                       />
