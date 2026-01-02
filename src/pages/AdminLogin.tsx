@@ -289,12 +289,7 @@ const AdminLogin: React.FC = () => {
               <ShieldAlert className="h-4 w-4" />
               <AlertTitle>Accès refusé</AlertTitle>
               <AlertDescription>
-                Vous n'avez pas les droits d'administration. Cette tentative d'accès a été enregistrée.
-                {blockStatus && blockStatus.attemptCount > 0 && (
-                  <span className="block mt-1 text-xs">
-                    Tentative {blockStatus.attemptCount}/{MAX_ATTEMPTS} avant blocage temporaire.
-                  </span>
-                )}
+                Vous n'avez pas les droits d'administration
               </AlertDescription>
             </Alert>
           )}
