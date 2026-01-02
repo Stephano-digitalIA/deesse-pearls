@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Lock, Mail, UserPlus, Home, ShieldAlert } from 'lucide-react';
+import { Loader2, Lock, Mail, UserPlus, Home, ShieldAlert, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
@@ -16,6 +16,15 @@ const loginSchema = z.object({
   email: z.string().trim().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
 });
+
+const MAX_ATTEMPTS = 3;
+const BLOCK_DURATION_MINUTES = 15;
+
+interface BlockStatus {
+  isBlocked: boolean;
+  remainingMinutes: number;
+  attemptCount: number;
+}
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,19 +34,105 @@ const AdminLogin: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
   const [activeTab, setActiveTab] = useState('login');
   const [accessDenied, setAccessDenied] = useState(false);
+  const [blockStatus, setBlockStatus] = useState<BlockStatus | null>(null);
   
   const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Check if email is blocked
+  const checkBlockStatus = async (userEmail: string): Promise<BlockStatus> => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_access_blocks')
+        .select('*')
+        .eq('email', userEmail.toLowerCase())
+        .maybeSingle();
+      
+      if (error || !data) {
+        return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
+      }
+
+      const now = new Date();
+      const blockedUntil = data.blocked_until ? new Date(data.blocked_until) : null;
+
+      if (blockedUntil && blockedUntil > now) {
+        const remainingMs = blockedUntil.getTime() - now.getTime();
+        const remainingMinutes = Math.ceil(remainingMs / (1000 * 60));
+        return { isBlocked: true, remainingMinutes, attemptCount: data.attempt_count };
+      }
+
+      // Block expired, reset if needed
+      if (blockedUntil && blockedUntil <= now) {
+        await supabase
+          .from('admin_access_blocks')
+          .delete()
+          .eq('email', userEmail.toLowerCase());
+        return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
+      }
+
+      return { isBlocked: false, remainingMinutes: 0, attemptCount: data.attempt_count };
+    } catch (error) {
+      console.error('Failed to check block status:', error);
+      return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
+    }
+  };
+
+  // Increment attempt count and potentially block
+  const recordFailedAttempt = async (userEmail: string): Promise<BlockStatus> => {
+    try {
+      const normalizedEmail = userEmail.toLowerCase();
+      
+      // Check existing record
+      const { data: existing } = await supabase
+        .from('admin_access_blocks')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      const newAttemptCount = (existing?.attempt_count || 0) + 1;
+      const shouldBlock = newAttemptCount >= MAX_ATTEMPTS;
+      const blockedUntil = shouldBlock 
+        ? new Date(Date.now() + BLOCK_DURATION_MINUTES * 60 * 1000).toISOString()
+        : null;
+
+      if (existing) {
+        await supabase
+          .from('admin_access_blocks')
+          .update({
+            attempt_count: newAttemptCount,
+            blocked_until: blockedUntil
+          })
+          .eq('email', normalizedEmail);
+      } else {
+        await supabase
+          .from('admin_access_blocks')
+          .insert({
+            email: normalizedEmail,
+            attempt_count: newAttemptCount,
+            blocked_until: blockedUntil
+          });
+      }
+
+      return {
+        isBlocked: shouldBlock,
+        remainingMinutes: shouldBlock ? BLOCK_DURATION_MINUTES : 0,
+        attemptCount: newAttemptCount
+      };
+    } catch (error) {
+      console.error('Failed to record failed attempt:', error);
+      return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
+    }
+  };
+
   // Log unauthorized access attempt
-  const logUnauthorizedAccess = async (userEmail: string, userId?: string) => {
+  const logUnauthorizedAccess = async (userEmail: string, userId?: string, attemptType = 'unauthorized_admin_access') => {
     try {
       await supabase.from('admin_access_logs').insert({
         user_id: userId || null,
         email: userEmail,
         user_agent: navigator.userAgent,
-        attempt_type: 'unauthorized_admin_access'
+        attempt_type: attemptType
       });
     } catch (error) {
       console.error('Failed to log access attempt:', error);
@@ -47,11 +142,17 @@ const AdminLogin: React.FC = () => {
   useEffect(() => {
     if (!isLoading && user) {
       if (isAdmin) {
+        // Admin logged in - clear any blocks for this email
+        supabase
+          .from('admin_access_blocks')
+          .delete()
+          .eq('email', (user.email || '').toLowerCase());
         navigate('/admin');
       } else {
         // User is logged in but not admin - show access denied and log
         setAccessDenied(true);
         logUnauthorizedAccess(user.email || 'unknown', user.id);
+        recordFailedAttempt(user.email || 'unknown').then(setBlockStatus);
       }
     }
   }, [user, isAdmin, isLoading, navigate]);
@@ -69,6 +170,18 @@ const AdminLogin: React.FC = () => {
         if (err.path[0] === 'password') fieldErrors.password = err.message;
       });
       setErrors(fieldErrors);
+      return;
+    }
+
+    // Check if blocked before attempting login
+    const currentBlockStatus = await checkBlockStatus(email);
+    if (currentBlockStatus.isBlocked) {
+      setBlockStatus(currentBlockStatus);
+      toast({
+        title: "Accès temporairement bloqué",
+        description: `Trop de tentatives. Réessayez dans ${currentBlockStatus.remainingMinutes} minutes.`,
+        variant: "destructive",
+      });
       return;
     }
     
@@ -147,6 +260,8 @@ const AdminLogin: React.FC = () => {
     );
   }
 
+  const isBlocked = blockStatus?.isBlocked;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-pearl px-4">
       <Card className="w-full max-w-md shadow-elegant">
@@ -160,19 +275,33 @@ const AdminLogin: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {accessDenied && (
+          {isBlocked && (
+            <Alert variant="destructive" className="mb-4">
+              <Clock className="h-4 w-4" />
+              <AlertTitle>Accès temporairement bloqué</AlertTitle>
+              <AlertDescription>
+                Trop de tentatives d'accès non autorisées. Veuillez réessayer dans {blockStatus.remainingMinutes} minute{blockStatus.remainingMinutes > 1 ? 's' : ''}.
+              </AlertDescription>
+            </Alert>
+          )}
+          {accessDenied && !isBlocked && (
             <Alert variant="destructive" className="mb-4">
               <ShieldAlert className="h-4 w-4" />
               <AlertTitle>Accès refusé</AlertTitle>
               <AlertDescription>
                 Vous n'avez pas les droits d'administration. Cette tentative d'accès a été enregistrée.
+                {blockStatus && blockStatus.attemptCount > 0 && (
+                  <span className="block mt-1 text-xs">
+                    Tentative {blockStatus.attemptCount}/{MAX_ATTEMPTS} avant blocage temporaire.
+                  </span>
+                )}
               </AlertDescription>
             </Alert>
           )}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription</TabsTrigger>
+              <TabsTrigger value="login" disabled={isBlocked}>Connexion</TabsTrigger>
+              <TabsTrigger value="signup" disabled={isBlocked}>Inscription</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
@@ -188,7 +317,7 @@ const AdminLogin: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isBlocked}
                     />
                   </div>
                   {errors.email && (
@@ -207,7 +336,7 @@ const AdminLogin: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isBlocked}
                     />
                   </div>
                   {errors.password && (
@@ -218,7 +347,7 @@ const AdminLogin: React.FC = () => {
                 <Button 
                   type="submit" 
                   className="w-full"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isBlocked}
                 >
                   {isSubmitting ? (
                     <>
@@ -245,7 +374,7 @@ const AdminLogin: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isBlocked}
                     />
                   </div>
                   {errors.email && (
@@ -264,7 +393,7 @@ const AdminLogin: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isBlocked}
                     />
                   </div>
                   {errors.password && (
@@ -283,7 +412,7 @@ const AdminLogin: React.FC = () => {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isBlocked}
                     />
                   </div>
                   {errors.confirmPassword && (
@@ -294,7 +423,7 @@ const AdminLogin: React.FC = () => {
                 <Button 
                   type="submit" 
                   className="w-full"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isBlocked}
                 >
                   {isSubmitting ? (
                     <>
