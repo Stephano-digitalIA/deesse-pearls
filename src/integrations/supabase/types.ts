@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_access_blocks: {
+        Row: {
+          attempt_count: number
+          blocked_until: string | null
+          created_at: string
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_access_logs: {
         Row: {
           attempt_type: string
