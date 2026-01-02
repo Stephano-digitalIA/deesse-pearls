@@ -32,11 +32,13 @@ import {
   MessageSquare,
   Users,
   Home,
+  ShieldAlert,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderManagement from '@/components/admin/OrderManagement';
 import ReviewManagement from '@/components/admin/ReviewManagement';
 import UserManagement from '@/components/admin/UserManagement';
+import AccessLogsManagement from '@/components/admin/AccessLogsManagement';
 import AdminStats from '@/components/admin/AdminStats';
 
 
@@ -341,22 +343,26 @@ const AdminDashboard: React.FC = () => {
         <AdminStats />
 
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-3xl grid-cols-5">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              Produits
+              <span className="hidden sm:inline">Produits</span>
             </TabsTrigger>
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
-              Commandes
+              <span className="hidden sm:inline">Commandes</span>
             </TabsTrigger>
             <TabsTrigger value="reviews" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Avis
+              <span className="hidden sm:inline">Avis</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Utilisateurs
+              <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4" />
+              <span className="hidden sm:inline">Sécurité</span>
             </TabsTrigger>
           </TabsList>
 
@@ -685,6 +691,10 @@ const AdminDashboard: React.FC = () => {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="security">
+            <AccessLogsManagement />
           </TabsContent>
         </Tabs>
       </main>
