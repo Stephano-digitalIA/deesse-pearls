@@ -31,6 +31,7 @@ import {
   ShoppingCart,
   MessageSquare,
   Users,
+  Home,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderManagement from '@/components/admin/OrderManagement';
@@ -322,9 +323,13 @@ const AdminDashboard: React.FC = () => {
             <span className="text-sm text-muted-foreground hidden sm:block">
               {user?.email}
             </span>
+            <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+              <Home className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Accueil</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
-              Déconnexion
+              <span className="hidden sm:inline">Déconnexion</span>
             </Button>
           </div>
         </div>
