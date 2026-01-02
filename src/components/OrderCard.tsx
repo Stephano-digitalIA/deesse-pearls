@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { resolveImagePath } from '@/lib/utils';
 
 interface OrderItem {
   id: string;
@@ -159,7 +160,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                       <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                         {item.product_image ? (
                           <img
-                            src={item.product_image}
+                            src={resolveImagePath(item.product_image)}
                             alt={item.product_name}
                             className="w-full h-full object-cover"
                           />

@@ -40,6 +40,7 @@ import ReviewManagement from '@/components/admin/ReviewManagement';
 import UserManagement from '@/components/admin/UserManagement';
 import AccessLogsManagement from '@/components/admin/AccessLogsManagement';
 import AdminStats from '@/components/admin/AdminStats';
+import { resolveImagePath } from '@/lib/utils';
 
 
 const categories: { value: ProductCategory; label: string }[] = [
@@ -495,7 +496,7 @@ const AdminDashboard: React.FC = () => {
                           {imageUrl ? (
                             <div className="relative w-full h-48 border border-border rounded-lg overflow-hidden bg-muted">
                               <img
-                                src={imageUrl}
+                                src={resolveImagePath(imageUrl)}
                                 alt="Aperçu"
                                 className="w-full h-full object-contain"
                               />
@@ -592,7 +593,7 @@ const AdminDashboard: React.FC = () => {
                             <div className="flex items-center gap-3">
                               {product.images[0] && (
                                 <img
-                                  src={product.images[0]}
+                                  src={resolveImagePath(product.images[0])}
                                   alt={product.name}
                                   className="w-10 h-10 object-cover rounded"
                                 />

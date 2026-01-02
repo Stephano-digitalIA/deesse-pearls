@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { resolveImagePath } from '@/lib/utils';
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { label: 'En attente', color: 'bg-yellow-500', icon: <Clock className="w-4 h-4" /> },
@@ -348,7 +349,7 @@ const OrderManagement: React.FC = () => {
                           <div className="flex items-center gap-3">
                             {item.product_image && (
                               <img
-                                src={item.product_image}
+                                src={resolveImagePath(item.product_image)}
                                 alt={item.product_name}
                                 className="w-10 h-10 object-cover rounded"
                               />

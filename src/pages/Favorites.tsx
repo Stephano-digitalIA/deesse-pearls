@@ -8,6 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { products } from '@/data/products';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { resolveImagePath } from '@/lib/utils';
 
 const Favorites: React.FC = () => {
   const { t, formatPrice, language } = useLocale();
@@ -102,7 +103,7 @@ const Favorites: React.FC = () => {
                   <Link to={`/product/${product.slug}`}>
                     <div className="relative aspect-square overflow-hidden">
                       <img
-                        src={product.images[0]}
+                        src={resolveImagePath(product.images[0])}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
