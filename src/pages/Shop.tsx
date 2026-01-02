@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Filter, X, ChevronDown, Loader2 } from 'lucide-react';
+import { Filter, X, ChevronDown, Loader2, Home, ChevronRight } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useTranslatedProducts } from '@/hooks/useTranslatedProducts';
 import ProductCard from '@/components/ProductCard';
@@ -304,6 +304,34 @@ const Shop: React.FC = () => {
         </div>
       </section>
 
+      {/* Breadcrumb */}
+      <nav className="container mx-auto px-4 py-4">
+        <ol className="flex items-center gap-2 text-sm text-muted-foreground">
+          <li>
+            <Link to="/" className="flex items-center hover:text-gold transition-colors">
+              <Home className="w-4 h-4" />
+            </Link>
+          </li>
+          <li>
+            <ChevronRight className="w-4 h-4" />
+          </li>
+          <li>
+            <Link to="/shop" className={`hover:text-gold transition-colors ${selectedCategory === 'all' ? 'text-gold font-medium' : ''}`}>
+              {t('shop')}
+            </Link>
+          </li>
+          {selectedCategory !== 'all' && (
+            <>
+              <li>
+                <ChevronRight className="w-4 h-4" />
+              </li>
+              <li className="text-gold font-medium">
+                {getCategoryTitle()}
+              </li>
+            </>
+          )}
+        </ol>
+      </nav>
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex gap-8">
