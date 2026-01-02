@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.generate-translations]
 verify_jwt = false
+
+[functions.batch-generate-translations]
+verify_jwt = false
