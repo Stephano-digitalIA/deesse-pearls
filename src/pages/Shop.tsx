@@ -304,27 +304,6 @@ const Shop: React.FC = () => {
         </div>
       </section>
 
-      {/* Category Navigation */}
-      <nav className="bg-secondary border-b border-border sticky top-[73px] z-40">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-1 overflow-x-auto py-4 scrollbar-hide">
-            {categories.map(cat => (
-              <Link
-                key={cat.key}
-                to={cat.route}
-                onClick={() => setSelectedCategory(cat.key)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap font-body text-sm transition-colors ${
-                  selectedCategory === cat.key
-                    ? 'bg-gold text-deep-black'
-                    : 'bg-background hover:bg-gold/20 text-foreground'
-                }`}
-              >
-                {cat.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </nav>
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex gap-8">
