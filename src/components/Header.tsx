@@ -49,16 +49,16 @@ const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-      {/* Top bar */}
-      <div className="bg-deep-black text-pearl py-2">
+      {/* Top bar - hidden on mobile for cleaner look */}
+      <div className="hidden sm:block bg-deep-black text-pearl py-1.5">
         <div className="container mx-auto px-4 flex justify-between items-center text-sm">
-          <span className="hidden sm:block font-display italic">{t('designer25Years')}</span>
-          <div className="flex items-center gap-4 ml-auto">
+          <span className="font-display italic text-xs md:text-sm">{t('designer25Years')}</span>
+          <div className="flex items-center gap-3 md:gap-4">
             {/* Language Selector */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 hover:text-gold transition-colors">
-                <Globe className="w-4 h-4" />
-                <span className="hidden sm:inline">{languageNames[language].split(' ')[0]}</span>
+              <DropdownMenuTrigger className="flex items-center gap-1 hover:text-gold transition-colors text-xs md:text-sm">
+                <Globe className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>{languageNames[language].split(' ')[0]}</span>
                 <ChevronDown className="w-3 h-3" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-card">
@@ -76,7 +76,7 @@ const Header: React.FC = () => {
 
             {/* Currency Selector */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 hover:text-gold transition-colors">
+              <DropdownMenuTrigger className="flex items-center gap-1 hover:text-gold transition-colors text-xs md:text-sm">
                 <span>{currency === 'EUR' ? '€ EUR' : '$ USD'}</span>
                 <ChevronDown className="w-3 h-3" />
               </DropdownMenuTrigger>
@@ -97,11 +97,42 @@ const Header: React.FC = () => {
       </div>
 
       {/* Main header */}
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link to="/" className="flex-shrink-0">
-            <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-wide">
+      <div className="container mx-auto px-3 sm:px-4">
+        <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
+          {/* Mobile menu button - Left side on mobile */}
+          <button
+            className="lg:hidden p-2 -ml-2 touch-manipulation hover:bg-muted/50 rounded-md transition-colors"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Menu"
+          >
+            <AnimatePresence mode="wait">
+              {isMobileMenuOpen ? (
+                <motion.div
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <X className="w-6 h-6" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="menu"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Menu className="w-6 h-6" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
+
+          {/* Logo - Centered on mobile */}
+          <Link to="/" className="flex-shrink-0 lg:flex-shrink absolute left-1/2 -translate-x-1/2 lg:relative lg:left-0 lg:translate-x-0">
+            <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold tracking-wide whitespace-nowrap">
               <span className="text-gold">DEESSE</span>{' '}
               <span className="text-foreground">PEARLS</span>
             </h1>
@@ -159,24 +190,25 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Right side icons */}
-          <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
+          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-3">
+            {/* Search */}
             <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
-                <button className="p-2 hover:text-gold transition-colors touch-manipulation">
+                <button className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors touch-manipulation">
                   <Search className="w-5 h-5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-[calc(100vw-2rem)] sm:w-96 p-0 border-border bg-card" sideOffset={8}>
+              <PopoverContent align="end" className="w-[calc(100vw-1rem)] sm:w-96 p-0 border-border bg-card" sideOffset={8}>
                 <SearchBar onClose={() => setIsSearchOpen(false)} />
               </PopoverContent>
             </Popover>
             
-            {/* User account dropdown */}
+            {/* User account dropdown - hidden on small mobile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="p-2 hover:text-gold transition-colors flex flex-col items-center gap-0.5">
+                <button className="hidden sm:flex p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors flex-col items-center gap-0.5">
                   {user && (
-                    <span className="text-[10px] font-medium text-gold truncate max-w-[60px]">
+                    <span className="text-[10px] font-medium text-gold truncate max-w-[60px] hidden md:block">
                       {user.user_metadata?.first_name || user.email?.split('@')[0]}
                     </span>
                   )}
@@ -229,30 +261,27 @@ const Header: React.FC = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link to="/favorites" className="p-2 hover:text-gold transition-colors relative touch-manipulation">
+            {/* Favorites */}
+            <Link to="/favorites" className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors relative touch-manipulation">
               <Heart className="w-5 h-5" />
               {favorites.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-gold text-deep-black text-[10px] sm:text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
                   {favorites.length}
                 </span>
               )}
             </Link>
+            
+            {/* Cart */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="p-2 hover:text-gold transition-colors relative touch-manipulation"
+              className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors relative touch-manipulation"
             >
               <ShoppingBag className="w-5 h-5" />
               {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-gold text-deep-black text-[10px] sm:text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
-            </button>
-            <button
-              className="lg:hidden p-2 touch-manipulation"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -265,18 +294,19 @@ const Header: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-card border-t border-border"
+            transition={{ duration: 0.2 }}
+            className="lg:hidden bg-card border-t border-border overflow-hidden"
           >
-            <nav className="container mx-auto px-4 py-4 space-y-4">
+            <nav className="container mx-auto px-4 py-4">
               {/* User greeting in mobile */}
               {user && (
-                <div className="pb-3 mb-3 border-b border-border">
+                <div className="pb-4 mb-4 border-b border-border">
                   <Link 
                     to="/account" 
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-3 hover:text-gold transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center">
+                    <div className="w-11 h-11 rounded-full bg-gold/20 flex items-center justify-center">
                       <User className="w-5 h-5 text-gold" />
                     </div>
                     <div>
@@ -288,31 +318,92 @@ const Header: React.FC = () => {
                   </Link>
                 </div>
               )}
-              {navItems.map((item) => (
-                <div key={item.key}>
-                  <Link
-                    to={item.path}
-                    onClick={() => !item.hasDropdown && setIsMobileMenuOpen(false)}
-                    className="block font-body text-sm uppercase tracking-wider py-2 hover:text-gold transition-colors"
-                  >
-                    {t(item.key)}
-                  </Link>
-                  {item.hasDropdown && (
-                    <div className="pl-4 space-y-2">
-                      {shopCategories.map((cat) => (
-                        <Link
-                          key={cat.key}
-                          to={cat.path}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className="block text-sm text-muted-foreground hover:text-gold transition-colors py-1"
+              
+              {/* Navigation items */}
+              <div className="space-y-1">
+                {navItems.map((item) => (
+                  <div key={item.key}>
+                    <Link
+                      to={item.path}
+                      onClick={() => !item.hasDropdown && setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-between font-body text-base uppercase tracking-wider py-3 hover:text-gold transition-colors border-b border-border/50"
+                    >
+                      {t(item.key)}
+                      {item.hasDropdown && <ChevronDown className="w-4 h-4" />}
+                    </Link>
+                    {item.hasDropdown && (
+                      <div className="pl-4 py-2 space-y-1 bg-muted/30 rounded-b-md mb-1">
+                        {shopCategories.map((cat) => (
+                          <Link
+                            key={cat.key}
+                            to={cat.path}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="block text-sm text-muted-foreground hover:text-gold transition-colors py-2.5 px-2"
+                          >
+                            {t(cat.key)}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Mobile language/currency selectors */}
+              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {/* Language */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-1.5 text-sm hover:text-gold transition-colors py-2 px-3 bg-muted/50 rounded-md">
+                      <Globe className="w-4 h-4" />
+                      <span>{languageNames[language].split(' ')[0]}</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="bg-card">
+                      {languages.map((lang) => (
+                        <DropdownMenuItem
+                          key={lang}
+                          onClick={() => setLanguage(lang)}
+                          className={language === lang ? 'bg-muted' : ''}
                         >
-                          {t(cat.key)}
-                        </Link>
+                          {languageNames[lang]}
+                        </DropdownMenuItem>
                       ))}
-                    </div>
-                  )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Currency */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-1.5 text-sm hover:text-gold transition-colors py-2 px-3 bg-muted/50 rounded-md">
+                      <span>{currency === 'EUR' ? '€ EUR' : '$ USD'}</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="bg-card">
+                      {currencies.map((curr) => (
+                        <DropdownMenuItem
+                          key={curr}
+                          onClick={() => setCurrency(curr)}
+                          className={currency === curr ? 'bg-muted' : ''}
+                        >
+                          {curr === 'EUR' ? '€ EUR' : '$ USD'}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-              ))}
+
+                {/* Login/Account link for mobile */}
+                {!user && (
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 text-sm py-2 px-3 bg-gold text-deep-black rounded-md font-medium"
+                  >
+                    <User className="w-4 h-4" />
+                    {t('login')}
+                  </Link>
+                )}
+              </div>
             </nav>
           </motion.div>
         )}
