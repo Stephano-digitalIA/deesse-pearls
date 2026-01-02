@@ -212,12 +212,35 @@ const AdminDashboard: React.FC = () => {
       .replace(/(^-|-$)/g, '');
   };
 
+  const generateTranslations = async (name: string, description: string, slug: string) => {
+    try {
+      console.log('[AdminDashboard] Generating translations for:', slug);
+      
+      const { data, error } = await supabase.functions.invoke('generate-translations', {
+        body: { name, description, slug }
+      });
+
+      if (error) {
+        console.error('[AdminDashboard] Translation error:', error);
+        return null;
+      }
+
+      console.log('[AdminDashboard] Translations generated:', data);
+      return data;
+    } catch (err) {
+      console.error('[AdminDashboard] Translation fetch error:', err);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const slug = formData.slug || generateSlug(formData.name);
+    
     const productData = {
-      slug: formData.slug || generateSlug(formData.name),
+      slug,
       category: formData.category,
       name: formData.name,
       description: formData.description,
@@ -236,6 +259,16 @@ const AdminDashboard: React.FC = () => {
 
         if (error) throw error;
 
+        // Generate translations in background
+        generateTranslations(formData.name, formData.description, slug).then((result) => {
+          if (result) {
+            toast({
+              title: "Traductions générées",
+              description: "Les traductions multilingues ont été mises à jour.",
+            });
+          }
+        });
+
         toast({
           title: "Produit modifié",
           description: "Le produit a été mis à jour avec succès.",
@@ -246,6 +279,16 @@ const AdminDashboard: React.FC = () => {
           .insert([productData]);
 
         if (error) throw error;
+
+        // Generate translations in background
+        generateTranslations(formData.name, formData.description, slug).then((result) => {
+          if (result) {
+            toast({
+              title: "Traductions générées",
+              description: "Les traductions multilingues ont été créées.",
+            });
+          }
+        });
 
         toast({
           title: "Produit créé",
