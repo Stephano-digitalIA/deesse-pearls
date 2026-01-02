@@ -65,7 +65,10 @@ const Header: React.FC = () => {
                 {languages.map((lang) => (
                   <DropdownMenuItem
                     key={lang}
-                    onClick={() => setLanguage(lang)}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setLanguage(lang);
+                    }}
                     className={language === lang ? 'bg-muted' : ''}
                   >
                     {languageNames[lang]}
@@ -84,7 +87,10 @@ const Header: React.FC = () => {
                 {currencies.map((curr) => (
                   <DropdownMenuItem
                     key={curr}
-                    onClick={() => setCurrency(curr)}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setCurrency(curr);
+                    }}
                     className={currency === curr ? 'bg-muted' : ''}
                   >
                     {curr === 'EUR' ? '€ EUR' : '$ USD'}
@@ -208,7 +214,10 @@ const Header: React.FC = () => {
                 {languages.map((lang) => (
                   <DropdownMenuItem
                     key={lang}
-                    onClick={() => setLanguage(lang)}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setLanguage(lang);
+                    }}
                     className={language === lang ? 'bg-muted' : ''}
                   >
                     {languageNames[lang]}
@@ -221,7 +230,10 @@ const Header: React.FC = () => {
                 {currencies.map((curr) => (
                   <DropdownMenuItem
                     key={curr}
-                    onClick={() => setCurrency(curr)}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setCurrency(curr);
+                    }}
                     className={currency === curr ? 'bg-muted' : ''}
                   >
                     {curr === 'EUR' ? '€ EUR' : '$ USD'}
@@ -402,7 +414,10 @@ const Header: React.FC = () => {
                       {languages.map((lang) => (
                         <DropdownMenuItem
                           key={lang}
-                          onClick={() => setLanguage(lang)}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setLanguage(lang);
+                          }}
                           className={language === lang ? 'bg-muted' : ''}
                         >
                           {languageNames[lang]}
@@ -421,7 +436,10 @@ const Header: React.FC = () => {
                       {currencies.map((curr) => (
                         <DropdownMenuItem
                           key={curr}
-                          onClick={() => setCurrency(curr)}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setCurrency(curr);
+                          }}
                           className={currency === curr ? 'bg-muted' : ''}
                         >
                           {curr === 'EUR' ? '€ EUR' : '$ USD'}
