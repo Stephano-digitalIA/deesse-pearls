@@ -547,6 +547,9 @@ Deno.serve(async (req) => {
       // Multiple products query
       let query = supabase.from('products').select('*');
 
+      // Always filter out out-of-stock products for shop display
+      query = query.eq('in_stock', true);
+
       if (category) {
         query = query.eq('category', category);
       }
