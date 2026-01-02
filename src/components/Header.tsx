@@ -31,11 +31,11 @@ const Header: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const shopCategories = [
-    { key: 'loosePearls', path: '/shop/pearls' },
+    { key: 'loosePearls', path: '/shop/perles' },
     { key: 'bracelets', path: '/shop/bracelets' },
-    { key: 'necklaces', path: '/shop/necklaces' },
-    { key: 'rings', path: '/shop/rings' },
-    { key: 'otherJewelry', path: '/shop/other' },
+    { key: 'necklaces', path: '/shop/colliers' },
+    { key: 'rings', path: '/shop/bagues' },
+    { key: 'otherJewelry', path: '/shop/autres' },
   ];
 
   const navItems = [
