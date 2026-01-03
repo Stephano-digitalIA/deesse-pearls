@@ -256,7 +256,7 @@ const AccessLogsManagement: React.FC = () => {
                             {log.attempt_type === 'unauthorized_admin_access' 
                               ? 'Non autorisé' 
                               : log.attempt_type === 'admin_login_success'
-                              ? 'Connexion admin'
+                              ? 'Autorisé'
                               : log.attempt_type}
                           </Badge>
                         </TableCell>
