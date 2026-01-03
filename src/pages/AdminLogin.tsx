@@ -145,12 +145,19 @@ const AdminLogin: React.FC = () => {
   useEffect(() => {
     if (!isLoading && user) {
       if (isAdmin) {
-        // Admin logged in - clear any blocks for this email and reset log tracking
+        // Admin logged in - clear any blocks and log successful access
+        const adminEmail = (user.email || '').toLowerCase();
         supabase
           .from('admin_access_blocks')
           .delete()
-          .eq('email', (user.email || '').toLowerCase());
-        setHasLoggedAttempt(false);
+          .eq('email', adminEmail);
+        
+        // Log successful admin access (only once per session)
+        if (!hasLoggedAttempt) {
+          setHasLoggedAttempt(true);
+          logAccessAttempt(user.email || 'unknown', user.id, 'admin_login_success');
+        }
+        
         navigate('/admin');
       } else if (!hasLoggedAttempt) {
         // User is logged in but not admin - show access denied and log (only once)
