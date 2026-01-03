@@ -209,7 +209,7 @@ const Header: React.FC = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-card min-w-[140px]">
                 <div className="px-2 py-1.5 text-xs text-muted-foreground border-b border-border">
-                  {t('language') || 'Langue'}
+                  {t('language')}
                 </div>
                 {languages.map((lang) => (
                   <DropdownMenuItem
@@ -225,7 +225,7 @@ const Header: React.FC = () => {
                 ))}
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  {t('currency') || 'Devise'}
+                  {t('currency')}
                 </div>
                 {currencies.map((curr) => (
                   <DropdownMenuItem
@@ -348,7 +348,7 @@ const Header: React.FC = () => {
             transition={{ duration: 0.2 }}
             className="lg:hidden bg-card border-t border-border overflow-hidden"
           >
-            <nav className="container mx-auto px-4 py-4">
+            <nav key={language} className="container mx-auto px-4 py-4">
               {/* User greeting in mobile */}
               {user && (
                 <div className="pb-4 mb-4 border-b border-border">
