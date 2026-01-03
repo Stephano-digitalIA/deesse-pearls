@@ -45,36 +45,9 @@ const Shop: React.FC = () => {
     : 'all';
 
   const [selectedCategory, setSelectedCategory] = useState<Category>(initialCategory);
-  const [selectedQualities, setSelectedQualities] = useState<string[]>([]);
-  const [selectedDiameters, setSelectedDiameters] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [sortBy, setSortBy] = useState<string>('default');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
-  // Keep selectedCategory in sync with the URL (Header submenu navigation)
-  useEffect(() => {
-    setSelectedCategory(initialCategory);
-  }, [initialCategory]);
-
-  // Get all available filter options from products
-  const allQualities = useMemo(() => {
-    const qualities = new Set<string>();
-    products.forEach(p => p.variants?.qualities?.forEach(q => qualities.add(q)));
-    return Array.from(qualities).sort();
-  }, [products]);
-
-  const allDiameters = useMemo(() => {
-    const diameters = new Set<string>();
-    products.forEach(p => p.variants?.diameters?.forEach(d => diameters.add(d)));
-    return Array.from(diameters).sort((a, b) => parseInt(a) - parseInt(b));
-  }, [products]);
-
-  const allSizes = useMemo(() => {
-    const sizes = new Set<string>();
-    products.forEach(p => p.variants?.sizes?.forEach(s => sizes.add(s)));
-    return Array.from(sizes);
-  }, [products]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -84,27 +57,6 @@ const Shop: React.FC = () => {
     // Category filter
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => p.category === selectedCategory);
-    }
-
-    // Quality filter
-    if (selectedQualities.length > 0) {
-      filtered = filtered.filter(p => 
-        p.variants?.qualities?.some(q => selectedQualities.includes(q))
-      );
-    }
-
-    // Diameter filter
-    if (selectedDiameters.length > 0) {
-      filtered = filtered.filter(p => 
-        p.variants?.diameters?.some(d => selectedDiameters.includes(d))
-      );
-    }
-
-    // Size filter
-    if (selectedSizes.length > 0) {
-      filtered = filtered.filter(p => 
-        p.variants?.sizes?.some(s => selectedSizes.includes(s))
-      );
     }
 
     // Price filter
@@ -126,34 +78,13 @@ const Shop: React.FC = () => {
     }
 
     return filtered;
-  }, [selectedCategory, selectedQualities, selectedDiameters, selectedSizes, priceRange, sortBy]);
-
-  const toggleQuality = (quality: string) => {
-    setSelectedQualities(prev => 
-      prev.includes(quality) ? prev.filter(q => q !== quality) : [...prev, quality]
-    );
-  };
-
-  const toggleDiameter = (diameter: string) => {
-    setSelectedDiameters(prev => 
-      prev.includes(diameter) ? prev.filter(d => d !== diameter) : [...prev, diameter]
-    );
-  };
-
-  const toggleSize = (size: string) => {
-    setSelectedSizes(prev => 
-      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-    );
-  };
+  }, [selectedCategory, priceRange, sortBy, products]);
 
   const clearFilters = () => {
-    setSelectedQualities([]);
-    setSelectedDiameters([]);
-    setSelectedSizes([]);
     setPriceRange([0, 5000]);
   };
 
-  const hasActiveFilters = selectedQualities.length > 0 || selectedDiameters.length > 0 || selectedSizes.length > 0 || priceRange[0] > 0 || priceRange[1] < 5000;
+  const hasActiveFilters = priceRange[0] > 0 || priceRange[1] < 5000;
 
   const categories: { key: Category; label: string; route: string }[] = [
     { key: 'all', label: t('shop'), route: '/shop' },
@@ -177,72 +108,6 @@ const Shop: React.FC = () => {
 
   const FilterSection = () => (
     <div className="space-y-6">
-      {/* Quality Filter */}
-      {allQualities.length > 0 && (
-        <Collapsible defaultOpen>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-display text-lg">
-            {t('quality')}
-            <ChevronDown className="w-4 h-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2 space-y-2">
-            {allQualities.map(quality => (
-              <div key={quality} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`quality-${quality}`}
-                  checked={selectedQualities.includes(quality)}
-                  onCheckedChange={() => toggleQuality(quality)}
-                />
-                <Label htmlFor={`quality-${quality}`} className="cursor-pointer">{quality}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
-      {/* Diameter Filter */}
-      {allDiameters.length > 0 && (
-        <Collapsible defaultOpen>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-display text-lg">
-            {t('diameter')}
-            <ChevronDown className="w-4 h-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2 space-y-2">
-            {allDiameters.map(diameter => (
-              <div key={diameter} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`diameter-${diameter}`}
-                  checked={selectedDiameters.includes(diameter)}
-                  onCheckedChange={() => toggleDiameter(diameter)}
-                />
-                <Label htmlFor={`diameter-${diameter}`} className="cursor-pointer">{diameter}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
-      {/* Size Filter */}
-      {allSizes.length > 0 && (
-        <Collapsible defaultOpen>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-display text-lg">
-            {t('size')}
-            <ChevronDown className="w-4 h-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2 space-y-2">
-            {allSizes.map(size => (
-              <div key={size} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`size-${size}`}
-                  checked={selectedSizes.includes(size)}
-                  onCheckedChange={() => toggleSize(size)}
-                />
-                <Label htmlFor={`size-${size}`} className="cursor-pointer">{size}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
       {/* Price Filter */}
       <Collapsible defaultOpen>
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-display text-lg">
