@@ -125,8 +125,8 @@ const AdminLogin: React.FC = () => {
     }
   };
 
-  // Log unauthorized access attempt
-  const logUnauthorizedAccess = async (userEmail: string, userId?: string, attemptType = 'unauthorized_admin_access') => {
+  // Log access attempt (for both authorized and unauthorized)
+  const logAccessAttempt = async (userEmail: string, userId?: string, attemptType = 'unauthorized_admin_access') => {
     try {
       await supabase.from('admin_access_logs').insert({
         user_id: userId || null,
@@ -138,6 +138,9 @@ const AdminLogin: React.FC = () => {
       console.error('Failed to log access attempt:', error);
     }
   };
+
+  // Alias for backward compatibility
+  const logUnauthorizedAccess = logAccessAttempt;
 
   // Track if we already logged an access attempt for this session
   const [hasLoggedAttempt, setHasLoggedAttempt] = useState(false);
