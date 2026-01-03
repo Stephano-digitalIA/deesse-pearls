@@ -139,23 +139,28 @@ const AdminLogin: React.FC = () => {
     }
   };
 
+  // Track if we already logged an access attempt for this session
+  const [hasLoggedAttempt, setHasLoggedAttempt] = useState(false);
+
   useEffect(() => {
     if (!isLoading && user) {
       if (isAdmin) {
-        // Admin logged in - clear any blocks for this email
+        // Admin logged in - clear any blocks for this email and reset log tracking
         supabase
           .from('admin_access_blocks')
           .delete()
           .eq('email', (user.email || '').toLowerCase());
+        setHasLoggedAttempt(false);
         navigate('/admin');
-      } else {
-        // User is logged in but not admin - show access denied and log
+      } else if (!hasLoggedAttempt) {
+        // User is logged in but not admin - show access denied and log (only once)
         setAccessDenied(true);
+        setHasLoggedAttempt(true);
         logUnauthorizedAccess(user.email || 'unknown', user.id);
         recordFailedAttempt(user.email || 'unknown').then(setBlockStatus);
       }
     }
-  }, [user, isAdmin, isLoading, navigate]);
+  }, [user, isAdmin, isLoading, navigate, hasLoggedAttempt]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
