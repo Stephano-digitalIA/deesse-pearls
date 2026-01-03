@@ -249,9 +249,14 @@ const AccessLogsManagement: React.FC = () => {
                         </TableCell>
                         <TableCell className="font-medium">{log.email}</TableCell>
                         <TableCell>
-                          <Badge variant="destructive" className="text-xs">
+                          <Badge 
+                            variant={log.attempt_type === 'admin_login_success' ? 'default' : 'destructive'} 
+                            className="text-xs"
+                          >
                             {log.attempt_type === 'unauthorized_admin_access' 
-                              ? 'Accès refusé' 
+                              ? 'Non autorisé' 
+                              : log.attempt_type === 'admin_login_success'
+                              ? 'Connexion admin'
                               : log.attempt_type}
                           </Badge>
                         </TableCell>
