@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X, ChevronDown, Globe, Heart, User, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +29,31 @@ const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Debug logs for Android/mobile issues where hamburger menu labels remain in French.
+  // This will help confirm whether the LocaleContext updates and what translation is returned.
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const storedLang = (() => {
+      try {
+        return localStorage.getItem('deesse-language');
+      } catch {
+        return null;
+      }
+    })();
+
+    console.debug('[i18n][mobile-menu]', {
+      language,
+      storedLang,
+      homeLabel: t('home'),
+      aboutLabel: t('about'),
+      shopLabel: t('shop'),
+      commitmentsLabel: t('commitments'),
+      faqLabel: t('faq'),
+      contactLabel: t('contact'),
+    });
+  }, [isMobileMenuOpen, language, t]);
 
   const shopCategories = [
     { key: 'loosePearls', path: '/shop/perles' },
