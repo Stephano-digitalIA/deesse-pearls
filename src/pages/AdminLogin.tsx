@@ -40,38 +40,27 @@ const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if email is blocked
+  // Check if email is blocked using secure RPC function
   const checkBlockStatus = async (userEmail: string): Promise<BlockStatus> => {
     try {
       const { data, error } = await supabase
-        .from('admin_access_blocks')
-        .select('*')
-        .eq('email', userEmail.toLowerCase())
-        .maybeSingle();
+        .rpc('check_email_block_status', { check_email: userEmail.toLowerCase() });
       
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
       }
 
-      const now = new Date();
-      const blockedUntil = data.blocked_until ? new Date(data.blocked_until) : null;
-
-      if (blockedUntil && blockedUntil > now) {
+      const result = data[0];
+      
+      if (result.is_blocked && result.blocked_until) {
+        const now = new Date();
+        const blockedUntil = new Date(result.blocked_until);
         const remainingMs = blockedUntil.getTime() - now.getTime();
         const remainingMinutes = Math.ceil(remainingMs / (1000 * 60));
-        return { isBlocked: true, remainingMinutes, attemptCount: data.attempt_count };
+        return { isBlocked: true, remainingMinutes, attemptCount: result.attempt_count };
       }
 
-      // Block expired, reset if needed
-      if (blockedUntil && blockedUntil <= now) {
-        await supabase
-          .from('admin_access_blocks')
-          .delete()
-          .eq('email', userEmail.toLowerCase());
-        return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
-      }
-
-      return { isBlocked: false, remainingMinutes: 0, attemptCount: data.attempt_count };
+      return { isBlocked: false, remainingMinutes: 0, attemptCount: result.attempt_count || 0 };
     } catch (error) {
       console.error('Failed to check block status:', error);
       return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
