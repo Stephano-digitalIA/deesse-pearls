@@ -161,21 +161,27 @@ serve(async (req) => {
         });
       }
 
+      // Limit to 15 products per call to avoid timeout
+      const maxProductsPerCall = 15;
+      const productsToProcess = missingProducts.slice(0, maxProductsPerCall);
+      
+      console.log(`[batch-translate] Processing ${productsToProcess.length} of ${missingProducts.length} remaining products`);
+
       // Process in batches of 5 to avoid rate limits
       const batchSize = 5;
       const results: { success: boolean; slug: string; error?: string }[] = [];
       
-      for (let i = 0; i < missingProducts.length; i += batchSize) {
-        const batch = missingProducts.slice(i, i + batchSize);
-        console.log(`[batch-translate] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(missingProducts.length/batchSize)}`);
+      for (let i = 0; i < productsToProcess.length; i += batchSize) {
+        const batch = productsToProcess.slice(i, i + batchSize);
+        console.log(`[batch-translate] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productsToProcess.length/batchSize)}`);
         
         // Process batch in parallel
         const batchResults = await Promise.all(batch.map(translateProduct));
         results.push(...batchResults);
         
-        // Add delay between batches to avoid rate limits
-        if (i + batchSize < missingProducts.length) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        // Short delay between batches
+        if (i + batchSize < productsToProcess.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
@@ -196,10 +202,10 @@ serve(async (req) => {
     }
 
     // Direct query worked
-    const products = productsWithoutTranslations || [];
-    console.log(`[batch-translate] Found ${products.length} products without translations`);
+    const allProducts = productsWithoutTranslations || [];
+    console.log(`[batch-translate] Found ${allProducts.length} products without translations`);
 
-    if (products.length === 0) {
+    if (allProducts.length === 0) {
       return new Response(JSON.stringify({ 
         message: 'All products already have translations',
         translated: 0,
@@ -209,19 +215,25 @@ serve(async (req) => {
       });
     }
 
+    // Limit to 15 products per call to avoid timeout
+    const maxProductsPerCall = 15;
+    const productsToProcess = allProducts.slice(0, maxProductsPerCall);
+    
+    console.log(`[batch-translate] Processing ${productsToProcess.length} of ${allProducts.length} remaining products`);
+
     // Process in batches of 5
     const batchSize = 5;
     const results: { success: boolean; slug: string; error?: string }[] = [];
     
-    for (let i = 0; i < products.length; i += batchSize) {
-      const batch = products.slice(i, i + batchSize);
-      console.log(`[batch-translate] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(products.length/batchSize)}`);
+    for (let i = 0; i < productsToProcess.length; i += batchSize) {
+      const batch = productsToProcess.slice(i, i + batchSize);
+      console.log(`[batch-translate] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productsToProcess.length/batchSize)}`);
       
       const batchResults = await Promise.all(batch.map(translateProduct));
       results.push(...batchResults);
       
-      if (i + batchSize < products.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      if (i + batchSize < productsToProcess.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
