@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +38,78 @@ serve(async (req) => {
       throw new Error("Cart is empty");
     }
 
+    // Validate shippingCost is a reasonable number
+    if (typeof shippingCost !== 'number' || shippingCost < 0 || shippingCost > 1000) {
+      throw new Error("Invalid shipping cost");
+    }
+
     console.log("Creating checkout session for", items.length, "items");
+
+    // Initialize Supabase client to validate prices
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Extract product IDs from cart items
+    const productIds = items.map(item => item.id);
+
+    // Fetch real prices from database
+    const { data: products, error: dbError } = await supabase
+      .from('products')
+      .select('id, name, price, images, in_stock')
+      .in('id', productIds);
+
+    if (dbError) {
+      console.error("Database error fetching products:", dbError);
+      throw new Error("Failed to validate products");
+    }
+
+    if (!products || products.length === 0) {
+      throw new Error("No valid products found");
+    }
+
+    // Create a map of product ID to product data for quick lookup
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    // Validate each cart item against database
+    const validatedItems: Array<{
+      product: typeof products[0];
+      quantity: number;
+      variant?: string;
+      size?: string;
+      quality?: string;
+    }> = [];
+
+    for (const item of items) {
+      const product = productMap.get(item.id);
+      
+      if (!product) {
+        console.warn(`Product not found: ${item.id}`);
+        throw new Error(`Product not found: ${item.name || item.id}`);
+      }
+
+      if (!product.in_stock) {
+        throw new Error(`Product out of stock: ${product.name}`);
+      }
+
+      // Log if client price doesn't match (potential manipulation attempt)
+      if (Math.abs(product.price - item.price) > 0.01) {
+        console.warn(`Price mismatch for ${product.name}: client sent ${item.price}, DB has ${product.price}`);
+      }
+
+      // Validate quantity
+      if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 100) {
+        throw new Error(`Invalid quantity for ${product.name}`);
+      }
+
+      validatedItems.push({
+        product,
+        quantity: item.quantity,
+        variant: item.variant,
+        size: item.size,
+        quality: item.quality,
+      });
+    }
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -54,22 +126,24 @@ serve(async (req) => {
       }
     };
 
-    // Create line items for Stripe
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => {
+    // Create line items for Stripe using DATABASE prices (not client-supplied)
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = validatedItems.map((item) => {
       const description = [item.variant, item.size, item.quality].filter(Boolean).join(" • ");
       
-      // Only include images that are valid absolute URLs (Stripe requires this)
-      const validImage = item.image && isAbsoluteUrl(item.image) ? item.image : null;
+      // Get first image from product
+      const productImage = item.product.images?.[0];
+      const validImage = productImage && isAbsoluteUrl(productImage) ? productImage : null;
       
       return {
         price_data: {
           currency: "eur",
           product_data: {
-            name: item.name,
+            name: item.product.name,
             ...(description && { description }),
             ...(validImage && { images: [validImage] }),
           },
-          unit_amount: Math.round(item.price * 100), // Convert to cents
+          // Use DATABASE price, not client-supplied price
+          unit_amount: Math.round(item.product.price * 100),
         },
         quantity: item.quantity,
       };
