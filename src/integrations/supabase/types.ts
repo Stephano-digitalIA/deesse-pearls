@@ -452,6 +452,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_email_block_status: {
+        Args: { check_email: string }
+        Returns: {
+          attempt_count: number
+          blocked_until: string
+          is_blocked: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
