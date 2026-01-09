@@ -67,46 +67,26 @@ const AdminLogin: React.FC = () => {
     }
   };
 
-  // Increment attempt count and potentially block
+  // Increment attempt count and potentially block using secure RPC function
   const recordFailedAttempt = async (userEmail: string): Promise<BlockStatus> => {
     try {
-      const normalizedEmail = userEmail.toLowerCase();
-      
-      // Check existing record
-      const { data: existing } = await supabase
-        .from('admin_access_blocks')
-        .select('*')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      const { data, error } = await supabase
+        .rpc('record_failed_admin_attempt', { 
+          check_email: userEmail.toLowerCase(),
+          max_attempts: MAX_ATTEMPTS,
+          block_duration_minutes: BLOCK_DURATION_MINUTES
+        });
 
-      const newAttemptCount = (existing?.attempt_count || 0) + 1;
-      const shouldBlock = newAttemptCount >= MAX_ATTEMPTS;
-      const blockedUntil = shouldBlock 
-        ? new Date(Date.now() + BLOCK_DURATION_MINUTES * 60 * 1000).toISOString()
-        : null;
-
-      if (existing) {
-        await supabase
-          .from('admin_access_blocks')
-          .update({
-            attempt_count: newAttemptCount,
-            blocked_until: blockedUntil
-          })
-          .eq('email', normalizedEmail);
-      } else {
-        await supabase
-          .from('admin_access_blocks')
-          .insert({
-            email: normalizedEmail,
-            attempt_count: newAttemptCount,
-            blocked_until: blockedUntil
-          });
+      if (error || !data || data.length === 0) {
+        console.error('Failed to record failed attempt:', error);
+        return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
       }
 
+      const result = data[0];
       return {
-        isBlocked: shouldBlock,
-        remainingMinutes: shouldBlock ? BLOCK_DURATION_MINUTES : 0,
-        attemptCount: newAttemptCount
+        isBlocked: result.is_blocked,
+        remainingMinutes: result.remaining_minutes,
+        attemptCount: result.attempt_count
       };
     } catch (error) {
       console.error('Failed to record failed attempt:', error);
@@ -137,12 +117,9 @@ const AdminLogin: React.FC = () => {
   useEffect(() => {
     if (!isLoading && user) {
       if (isAdmin) {
-        // Admin logged in - clear any blocks and log successful access
+        // Admin logged in - clear any blocks using secure RPC function
         const adminEmail = (user.email || '').toLowerCase();
-        supabase
-          .from('admin_access_blocks')
-          .delete()
-          .eq('email', adminEmail);
+        supabase.rpc('clear_admin_block', { check_email: adminEmail });
         
         // Log successful admin access (only once per session)
         if (!hasLoggedAttempt) {

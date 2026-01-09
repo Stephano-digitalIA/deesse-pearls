@@ -497,12 +497,25 @@ export type Database = {
           is_blocked: boolean
         }[]
       }
+      clear_admin_block: { Args: { check_email: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      record_failed_admin_attempt: {
+        Args: {
+          block_duration_minutes?: number
+          check_email: string
+          max_attempts?: number
+        }
+        Returns: {
+          attempt_count: number
+          is_blocked: boolean
+          remaining_minutes: number
+        }[]
       }
       verify_admin_access: { Args: never; Returns: boolean }
     }
