@@ -60,6 +60,8 @@ const Header: React.FC = () => {
     { key: 'bracelets', path: '/shop/bracelets' },
     { key: 'necklaces', path: '/shop/colliers' },
     { key: 'rings', path: '/shop/bagues' },
+    { key: 'pendants', path: '/shop/pendentifs' },
+    { key: 'jewelrySets', path: '/shop/parures' },
     { key: 'otherJewelry', path: '/shop/autres' },
   ];
 
