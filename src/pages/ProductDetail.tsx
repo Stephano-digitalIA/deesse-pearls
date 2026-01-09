@@ -50,35 +50,8 @@ const ProductDetail: React.FC = () => {
   );
   const relatedProducts = relatedProductsData.filter((p) => p.id !== product?.id).slice(0, 4);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-gold" />
-      </div>
-    );
-  }
-
-  if (error || !product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-2xl mb-4">{ts("product.notFound")}</h1>
-          <Link to="/shop">
-            <Button>{ts("product.backToShop")}</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const favorite = isFavorite(product.id);
-
-  // Le produit retourné par useTranslatedProductBySlug contient déjà les traductions
-  const productName = product.name;
-  const translatedDescription = product.description;
-
   // Auto-réparation: si ce produit n'a pas encore de traductions en base, on les génère une fois.
-  // (Sinon, l'API retombe sur les champs FR de la table products.)
+  // IMPORTANT: un hook doit être appelé à chaque rendu, donc il est placé AVANT les returns conditionnels.
   useEffect(() => {
     if (!product?.slug || language === "fr") return;
 
@@ -108,7 +81,6 @@ const ProductDetail: React.FC = () => {
         },
       });
 
-      // Re-fetch dans la langue courante (et les autres queries liées)
       queryClient.invalidateQueries({ queryKey: ["translated-products", "slug", product.slug] });
     })().catch((e) => {
       console.error("[ProductDetail] generate-translations failed", e);
@@ -118,6 +90,34 @@ const ProductDetail: React.FC = () => {
       cancelled = true;
     };
   }, [product?.slug, product?.name, product?.description, language, queryClient]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="font-display text-2xl mb-4">{ts("product.notFound")}</h1>
+          <Link to="/shop">
+            <Button>{ts("product.backToShop")}</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const favorite = isFavorite(product.id);
+
+  // Le produit retourné par useTranslatedProductBySlug contient déjà les traductions
+  const productName = product.name;
+  const translatedDescription = product.description;
+
 
   const handleAddToCart = () => {
     const variantInfo: string[] = [];
