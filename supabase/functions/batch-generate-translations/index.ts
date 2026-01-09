@@ -135,81 +135,34 @@ serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Get all products without translations
-    const { data: productsWithoutTranslations, error: queryError } = await supabase
+    // Get all products and existing translations, then compare
+    const { data: allProducts, error: productsError } = await supabase
       .from('products')
-      .select('slug, name, description')
-      .not('slug', 'in', `(SELECT slug FROM product_translations)`);
-
-    if (queryError) {
-      // Fallback: get products and check manually
-      const { data: allProducts } = await supabase.from('products').select('slug, name, description');
-      const { data: existingTranslations } = await supabase.from('product_translations').select('slug');
-      
-      const existingSlugs = new Set((existingTranslations || []).map(t => t.slug));
-      const missingProducts = (allProducts || []).filter(p => !existingSlugs.has(p.slug));
-      
-      console.log(`[batch-translate] Found ${missingProducts.length} products without translations`);
-
-      if (missingProducts.length === 0) {
-        return new Response(JSON.stringify({ 
-          message: 'All products already have translations',
-          translated: 0,
-          failed: 0
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Limit to 15 products per call to avoid timeout
-      const maxProductsPerCall = 15;
-      const productsToProcess = missingProducts.slice(0, maxProductsPerCall);
-      
-      console.log(`[batch-translate] Processing ${productsToProcess.length} of ${missingProducts.length} remaining products`);
-
-      // Process in batches of 5 to avoid rate limits
-      const batchSize = 5;
-      const results: { success: boolean; slug: string; error?: string }[] = [];
-      
-      for (let i = 0; i < productsToProcess.length; i += batchSize) {
-        const batch = productsToProcess.slice(i, i + batchSize);
-        console.log(`[batch-translate] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productsToProcess.length/batchSize)}`);
-        
-        // Process batch in parallel
-        const batchResults = await Promise.all(batch.map(translateProduct));
-        results.push(...batchResults);
-        
-        // Short delay between batches
-        if (i + batchSize < productsToProcess.length) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      const successCount = results.filter(r => r.success).length;
-      const failedCount = results.filter(r => !r.success).length;
-      const failures = results.filter(r => !r.success);
-
-      console.log(`[batch-translate] Complete: ${successCount} succeeded, ${failedCount} failed`);
-
-      return new Response(JSON.stringify({ 
-        message: `Translation batch complete`,
-        translated: successCount,
-        failed: failedCount,
-        failures: failures.length > 0 ? failures : undefined
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      .select('slug, name, description');
+    
+    if (productsError) {
+      throw new Error(`Failed to fetch products: ${productsError.message}`);
     }
+    
+    const { data: existingTranslations, error: translationsError } = await supabase
+      .from('product_translations')
+      .select('slug');
+    
+    if (translationsError) {
+      throw new Error(`Failed to fetch translations: ${translationsError.message}`);
+    }
+    
+    const existingSlugs = new Set((existingTranslations || []).map(t => t.slug));
+    const missingProducts = (allProducts || []).filter(p => !existingSlugs.has(p.slug));
+    
+    console.log(`[batch-translate] Total products: ${allProducts?.length || 0}, translated: ${existingSlugs.size}, missing: ${missingProducts.length}`);
 
-    // Direct query worked
-    const allProducts = productsWithoutTranslations || [];
-    console.log(`[batch-translate] Found ${allProducts.length} products without translations`);
-
-    if (allProducts.length === 0) {
+    if (missingProducts.length === 0) {
       return new Response(JSON.stringify({ 
         message: 'All products already have translations',
         translated: 0,
-        failed: 0
+        failed: 0,
+        total: allProducts?.length || 0
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -217,11 +170,11 @@ serve(async (req) => {
 
     // Limit to 15 products per call to avoid timeout
     const maxProductsPerCall = 15;
-    const productsToProcess = allProducts.slice(0, maxProductsPerCall);
+    const productsToProcess = missingProducts.slice(0, maxProductsPerCall);
     
-    console.log(`[batch-translate] Processing ${productsToProcess.length} of ${allProducts.length} remaining products`);
+    console.log(`[batch-translate] Processing ${productsToProcess.length} of ${missingProducts.length} remaining products`);
 
-    // Process in batches of 5
+    // Process in batches of 5 to avoid rate limits
     const batchSize = 5;
     const results: { success: boolean; slug: string; error?: string }[] = [];
     
@@ -229,9 +182,11 @@ serve(async (req) => {
       const batch = productsToProcess.slice(i, i + batchSize);
       console.log(`[batch-translate] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productsToProcess.length/batchSize)}`);
       
+      // Process batch in parallel
       const batchResults = await Promise.all(batch.map(translateProduct));
       results.push(...batchResults);
       
+      // Short delay between batches
       if (i + batchSize < productsToProcess.length) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -247,6 +202,7 @@ serve(async (req) => {
       message: `Translation batch complete`,
       translated: successCount,
       failed: failedCount,
+      remaining: missingProducts.length - successCount,
       failures: failures.length > 0 ? failures : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
