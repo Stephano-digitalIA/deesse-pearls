@@ -1,43 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/lib/supabaseTyped';
 import { useLocale } from '@/contexts/LocaleContext';
+import { productTranslations } from '@/data/productTranslations';
 import type { Product, ProductCategory } from '@/types/supabase';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-
-const fetchTranslatedProducts = async (params: {
-  language: string;
-  category?: string;
-  slug?: string;
-  featured?: boolean;
-  badge?: string;
-  limit?: number;
-}): Promise<Product[] | Product | null> => {
-  const searchParams = new URLSearchParams();
-  searchParams.set('lang', params.language);
-  
-  if (params.category) searchParams.set('category', params.category);
-  if (params.slug) searchParams.set('slug', params.slug);
-  if (params.featured) searchParams.set('featured', 'true');
-  if (params.badge) searchParams.set('badge', params.badge);
-  if (params.limit) searchParams.set('limit', params.limit.toString());
-
-  const { data, error } = await supabase.functions.invoke('get-translated-products', {
-    body: null,
-    headers: {},
-  });
-
-  // Use fetch directly since we need query params
-  const response = await fetch(
-    `${SUPABASE_URL}/functions/v1/get-translated-products?${searchParams.toString()}`
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch translated products');
+// Helper function to translate a product using static translations with FR fallback
+const translateProduct = (product: Product, language: string): Product => {
+  // Si FR ou pas de traduction disponible, retourner le produit original
+  if (language === 'fr') {
+    return product;
   }
 
-  return response.json();
+  const translation = productTranslations[product.slug];
+  
+  if (!translation) {
+    // Pas de traduction pour ce slug → garder les valeurs FR originales
+    return product;
+  }
+
+  return {
+    ...product,
+    name: translation.name[language] || translation.name['fr'] || product.name,
+    description: translation.description[language] || translation.description['fr'] || product.description,
+  };
 };
 
 // Fetch all products with translations
@@ -47,8 +32,17 @@ export const useTranslatedProducts = () => {
   return useQuery({
     queryKey: ['translated-products', language],
     queryFn: async (): Promise<Product[]> => {
-      const data = await fetchTranslatedProducts({ language });
-      return data as Product[];
+      const { data, error } = await supabaseTyped
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+
+      return (data || []).map(p => translateProduct(p, language));
     },
   });
 };
@@ -60,8 +54,18 @@ export const useTranslatedProductsByCategory = (category: ProductCategory) => {
   return useQuery({
     queryKey: ['translated-products', 'category', category, language],
     queryFn: async (): Promise<Product[]> => {
-      const data = await fetchTranslatedProducts({ language, category });
-      return data as Product[];
+      const { data, error } = await supabaseTyped
+        .from('products')
+        .select('*')
+        .eq('category', category)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products by category:', error);
+        throw error;
+      }
+
+      return (data || []).map(p => translateProduct(p, language));
     },
     enabled: !!category,
   });
@@ -74,8 +78,18 @@ export const useTranslatedProductBySlug = (slug: string) => {
   return useQuery({
     queryKey: ['translated-products', 'slug', slug, language],
     queryFn: async (): Promise<Product | null> => {
-      const data = await fetchTranslatedProducts({ language, slug });
-      return data as Product | null;
+      const { data, error } = await supabaseTyped
+        .from('products')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching product:', error);
+        throw error;
+      }
+
+      return data ? translateProduct(data, language) : null;
     },
     enabled: !!slug,
   });
@@ -88,8 +102,18 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
   return useQuery({
     queryKey: ['translated-products', 'featured', limit, language],
     queryFn: async (): Promise<Product[]> => {
-      const data = await fetchTranslatedProducts({ language, featured: true, limit });
-      return data as Product[];
+      const { data, error } = await supabaseTyped
+        .from('products')
+        .select('*')
+        .not('badge', 'is', null)
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching featured products:', error);
+        throw error;
+      }
+
+      return (data || []).map(p => translateProduct(p, language));
     },
   });
 };
@@ -101,8 +125,18 @@ export const useTranslatedNewArrivals = () => {
   return useQuery({
     queryKey: ['translated-products', 'new', language],
     queryFn: async (): Promise<Product[]> => {
-      const data = await fetchTranslatedProducts({ language, badge: 'new' });
-      return data as Product[];
+      const { data, error } = await supabaseTyped
+        .from('products')
+        .select('*')
+        .eq('badge', 'new')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching new arrivals:', error);
+        throw error;
+      }
+
+      return (data || []).map(p => translateProduct(p, language));
     },
   });
 };
@@ -114,8 +148,18 @@ export const useTranslatedBestSellers = () => {
   return useQuery({
     queryKey: ['translated-products', 'bestseller', language],
     queryFn: async (): Promise<Product[]> => {
-      const data = await fetchTranslatedProducts({ language, badge: 'bestseller' });
-      return data as Product[];
+      const { data, error } = await supabaseTyped
+        .from('products')
+        .select('*')
+        .eq('badge', 'bestseller')
+        .order('rating', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching bestsellers:', error);
+        throw error;
+      }
+
+      return (data || []).map(p => translateProduct(p, language));
     },
   });
 };
