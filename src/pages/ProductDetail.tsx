@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import { useTranslatedProductBySlug, useTranslatedProductsByCategory } from "@/hooks/useTranslatedProducts";
 import { useReviews } from "@/hooks/useReviews";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { ProductCategory } from "@/types/supabase";
 import ProductCard from "@/components/ProductCard";
 import ReviewForm, { reviewTranslations } from "@/components/ReviewForm";
@@ -75,6 +76,48 @@ const ProductDetail: React.FC = () => {
   // Le produit retourné par useTranslatedProductBySlug contient déjà les traductions
   const productName = product.name;
   const translatedDescription = product.description;
+
+  // Auto-réparation: si ce produit n'a pas encore de traductions en base, on les génère une fois.
+  // (Sinon, l'API retombe sur les champs FR de la table products.)
+  useEffect(() => {
+    if (!product?.slug || language === "fr") return;
+
+    let cancelled = false;
+
+    (async () => {
+      const { data: existing } = await supabase
+        .from("product_translations")
+        .select("slug")
+        .eq("slug", product.slug)
+        .maybeSingle();
+
+      if (cancelled || existing) return;
+
+      const { data: baseProduct } = await supabase
+        .from("products")
+        .select("name, description")
+        .eq("slug", product.slug)
+        .maybeSingle();
+
+      await supabase.functions.invoke("generate-translations", {
+        body: {
+          slug: product.slug,
+          // Toujours partir de la source FR (table products) pour générer correctement
+          name: baseProduct?.name ?? product.name,
+          description: baseProduct?.description ?? product.description,
+        },
+      });
+
+      // Re-fetch dans la langue courante (et les autres queries liées)
+      queryClient.invalidateQueries({ queryKey: ["translated-products", "slug", product.slug] });
+    })().catch((e) => {
+      console.error("[ProductDetail] generate-translations failed", e);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.slug, product?.name, product?.description, language, queryClient]);
 
   const handleAddToCart = () => {
     const variantInfo: string[] = [];
