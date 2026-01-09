@@ -1,40 +1,54 @@
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useLocale } from '@/contexts/LocaleContext';
-import { products, Product as StaticProduct } from '@/data/products';
-import { productTranslations, getProductTranslation } from '@/data/productTranslations';
 import type { Product, ProductCategory } from '@/types/supabase';
 
-// Convertit un produit statique en format Product compatible avec le reste de l'app
-const convertToProduct = (p: StaticProduct, language: string): Product => {
-  const translatedName = getProductTranslation(p.slug, 'name', language) || p.name;
-  const translatedDescription = getProductTranslation(p.slug, 'description', language) || p.description;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-  return {
-    id: p.id,
-    slug: p.slug,
-    category: p.category,
-    name: translatedName,
-    description: translatedDescription,
-    price: p.price,
-    images: p.images,
-    badge: p.badge || null,
-    rating: p.rating,
-    reviews: p.reviews,
-    variants: p.variants || null,
-    in_stock: p.inStock,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+const fetchTranslatedProducts = async (params: {
+  language: string;
+  category?: string;
+  slug?: string;
+  featured?: boolean;
+  badge?: string;
+  limit?: number;
+}): Promise<Product[] | Product | null> => {
+  const searchParams = new URLSearchParams();
+  searchParams.set('lang', params.language);
+  
+  if (params.category) searchParams.set('category', params.category);
+  if (params.slug) searchParams.set('slug', params.slug);
+  if (params.featured) searchParams.set('featured', 'true');
+  if (params.badge) searchParams.set('badge', params.badge);
+  if (params.limit) searchParams.set('limit', params.limit.toString());
+
+  const { data, error } = await supabase.functions.invoke('get-translated-products', {
+    body: null,
+    headers: {},
+  });
+
+  // Use fetch directly since we need query params
+  const response = await fetch(
+    `${SUPABASE_URL}/functions/v1/get-translated-products?${searchParams.toString()}`
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to fetch translated products');
+  }
+
+  return response.json();
 };
 
 // Fetch all products with translations
 export const useTranslatedProducts = () => {
   const { language } = useLocale();
-
+  
   return useQuery({
     queryKey: ['translated-products', language],
     queryFn: async (): Promise<Product[]> => {
-      return products.map((p) => convertToProduct(p, language));
+      const data = await fetchTranslatedProducts({ language });
+      return data as Product[];
     },
   });
 };
@@ -42,13 +56,12 @@ export const useTranslatedProducts = () => {
 // Fetch products by category with translations
 export const useTranslatedProductsByCategory = (category: ProductCategory) => {
   const { language } = useLocale();
-
+  
   return useQuery({
     queryKey: ['translated-products', 'category', category, language],
     queryFn: async (): Promise<Product[]> => {
-      return products
-        .filter((p) => p.category === category)
-        .map((p) => convertToProduct(p, language));
+      const data = await fetchTranslatedProducts({ language, category });
+      return data as Product[];
     },
     enabled: !!category,
   });
@@ -57,13 +70,12 @@ export const useTranslatedProductsByCategory = (category: ProductCategory) => {
 // Fetch single product by slug with translations
 export const useTranslatedProductBySlug = (slug: string) => {
   const { language } = useLocale();
-
+  
   return useQuery({
     queryKey: ['translated-products', 'slug', slug, language],
     queryFn: async (): Promise<Product | null> => {
-      const product = products.find((p) => p.slug === slug);
-      if (!product) return null;
-      return convertToProduct(product, language);
+      const data = await fetchTranslatedProducts({ language, slug });
+      return data as Product | null;
     },
     enabled: !!slug,
   });
@@ -72,14 +84,12 @@ export const useTranslatedProductBySlug = (slug: string) => {
 // Fetch featured products with translations
 export const useTranslatedFeaturedProducts = (limit = 4) => {
   const { language } = useLocale();
-
+  
   return useQuery({
     queryKey: ['translated-products', 'featured', limit, language],
     queryFn: async (): Promise<Product[]> => {
-      return products
-        .filter((p) => p.badge === 'new' || p.badge === 'bestseller')
-        .slice(0, limit)
-        .map((p) => convertToProduct(p, language));
+      const data = await fetchTranslatedProducts({ language, featured: true, limit });
+      return data as Product[];
     },
   });
 };
@@ -87,13 +97,12 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
 // Fetch new arrivals with translations
 export const useTranslatedNewArrivals = () => {
   const { language } = useLocale();
-
+  
   return useQuery({
     queryKey: ['translated-products', 'new', language],
     queryFn: async (): Promise<Product[]> => {
-      return products
-        .filter((p) => p.badge === 'new')
-        .map((p) => convertToProduct(p, language));
+      const data = await fetchTranslatedProducts({ language, badge: 'new' });
+      return data as Product[];
     },
   });
 };
@@ -101,13 +110,12 @@ export const useTranslatedNewArrivals = () => {
 // Fetch bestsellers with translations
 export const useTranslatedBestSellers = () => {
   const { language } = useLocale();
-
+  
   return useQuery({
     queryKey: ['translated-products', 'bestseller', language],
     queryFn: async (): Promise<Product[]> => {
-      return products
-        .filter((p) => p.badge === 'bestseller')
-        .map((p) => convertToProduct(p, language));
+      const data = await fetchTranslatedProducts({ language, badge: 'bestseller' });
+      return data as Product[];
     },
   });
 };
