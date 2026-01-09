@@ -14,11 +14,11 @@ export const useReviews = (productId: string) => {
   return useQuery({
     queryKey: ['reviews', productId],
     queryFn: async () => {
+      // Use public_reviews view to avoid exposing author_email
       const { data, error } = await supabase
-        .from('reviews')
+        .from('public_reviews')
         .select('id, product_id, author_name, rating, comment, created_at')
         .eq('product_id', productId)
-        .eq('is_approved', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
