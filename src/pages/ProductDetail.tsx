@@ -72,8 +72,9 @@ const ProductDetail: React.FC = () => {
 
   const favorite = isFavorite(product.id);
 
-  const productName = getProductTranslation(product.slug, "name", language) || product.name;
-  const translatedDescription = getProductTranslation(product.slug, "description", language) || product.description;
+  // Le produit retourné par useTranslatedProductBySlug contient déjà les traductions
+  const productName = product.name;
+  const translatedDescription = product.description;
 
   const handleAddToCart = () => {
     const variantInfo: string[] = [];
