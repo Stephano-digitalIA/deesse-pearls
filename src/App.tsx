@@ -46,7 +46,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 {/* Admin routes - without header/footer - require secret URL extension */}
-                <Route path="/admin/:secretKey/login" element={<AdminLogin />} />
+                <Route path="/admin/:secretKey/connexion" element={<AdminLogin />} />
                 <Route path="/admin/:secretKey" element={<AdminDashboard />} />
                 
                 {/* Public routes - with header/footer */}

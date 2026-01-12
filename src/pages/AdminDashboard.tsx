@@ -182,7 +182,7 @@ const AdminDashboard: React.FC = () => {
       if (!isValidSecret) return;
       
       if (!user) {
-        navigate(`/admin/${secretKey}/login`);
+        navigate(`/admin/${secretKey}/connexion`);
         return;
       }
       
@@ -190,7 +190,7 @@ const AdminDashboard: React.FC = () => {
       const { data: isAdminVerified, error } = await supabase.rpc('verify_admin_access');
       
       if (error || !isAdminVerified) {
-        navigate(`/admin/${secretKey}/login`);
+        navigate(`/admin/${secretKey}/connexion`);
       }
     };
     
