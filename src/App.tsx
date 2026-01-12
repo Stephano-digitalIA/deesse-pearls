@@ -45,9 +45,9 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                {/* Admin routes - without header/footer */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminDashboard />} />
+                {/* Admin routes - without header/footer - require secret URL extension */}
+                <Route path="/admin/:secretKey/login" element={<AdminLogin />} />
+                <Route path="/admin/:secretKey" element={<AdminDashboard />} />
                 
                 {/* Public routes - with header/footer */}
                 <Route path="/*" element={
