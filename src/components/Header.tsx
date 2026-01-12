@@ -305,14 +305,7 @@ const Header: React.FC = () => {
                         {t('myAccount')}
                       </Link>
                     </DropdownMenuItem>
-                    {isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin" className="cursor-pointer">
-                          <User className="w-4 h-4 mr-2" />
-                          {t('administration')}
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
+                    {/* Admin link removed - admin access only via secret URL */}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => signOut()} 

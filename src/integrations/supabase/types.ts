@@ -71,6 +71,30 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customization_requests: {
         Row: {
           admin_notes: string | null
@@ -518,6 +542,10 @@ export type Database = {
         }[]
       }
       verify_admin_access: { Args: never; Returns: boolean }
+      verify_admin_url_secret: {
+        Args: { secret_key: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

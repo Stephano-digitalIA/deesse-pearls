@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
@@ -72,6 +72,7 @@ const emptyProduct: Omit<ProductInsert, 'id'> = {
 };
 
 const AdminDashboard: React.FC = () => {
+  const { secretKey } = useParams<{ secretKey: string }>();
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const { data: products, isLoading: productsLoading, error } = useProducts();
   const navigate = useNavigate();
@@ -86,7 +87,28 @@ const AdminDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isValidSecret, setIsValidSecret] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Verify the secret URL key
+  useEffect(() => {
+    const verifySecret = async () => {
+      if (!secretKey) {
+        setIsValidSecret(false);
+        return;
+      }
+      
+      const { data, error } = await supabase.rpc('verify_admin_url_secret', { secret_key: secretKey });
+      
+      if (error || !data) {
+        setIsValidSecret(false);
+      } else {
+        setIsValidSecret(true);
+      }
+    };
+    
+    verifySecret();
+  }, [secretKey]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -152,12 +174,15 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Server-side admin verification
-  React.useEffect(() => {
+  useEffect(() => {
     const verifyAdminAccess = async () => {
-      if (authLoading) return;
+      if (authLoading || isValidSecret === null) return;
+      
+      // If secret is invalid, don't redirect - show 404
+      if (!isValidSecret) return;
       
       if (!user) {
-        navigate('/admin/login');
+        navigate(`/admin/${secretKey}/login`);
         return;
       }
       
@@ -165,12 +190,12 @@ const AdminDashboard: React.FC = () => {
       const { data: isAdminVerified, error } = await supabase.rpc('verify_admin_access');
       
       if (error || !isAdminVerified) {
-        navigate('/admin/login');
+        navigate(`/admin/${secretKey}/login`);
       }
     };
     
     verifyAdminAccess();
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, secretKey, isValidSecret]);
 
   const handleLogout = async () => {
     await signOut();
@@ -340,10 +365,27 @@ const AdminDashboard: React.FC = () => {
     product.slug.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (authLoading || productsLoading) {
+  // Show loading while verifying secret
+  if (authLoading || productsLoading || isValidSecret === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Invalid secret key - show 404-like page
+  if (!isValidSecret) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="text-4xl font-display font-bold mb-4">404</h1>
+          <p className="text-muted-foreground mb-6">Page introuvable</p>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            <Home className="w-4 h-4 mr-2" />
+            Retour à l'accueil
+          </Button>
+        </div>
       </div>
     );
   }

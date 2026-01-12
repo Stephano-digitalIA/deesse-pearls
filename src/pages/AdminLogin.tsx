@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ interface BlockStatus {
 }
 
 const AdminLogin: React.FC = () => {
+  const { secretKey } = useParams<{ secretKey: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,10 +36,31 @@ const AdminLogin: React.FC = () => {
   const [activeTab, setActiveTab] = useState('login');
   const [accessDenied, setAccessDenied] = useState(false);
   const [blockStatus, setBlockStatus] = useState<BlockStatus | null>(null);
+  const [isValidSecret, setIsValidSecret] = useState<boolean | null>(null);
   
   const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Verify the secret URL key
+  useEffect(() => {
+    const verifySecret = async () => {
+      if (!secretKey) {
+        setIsValidSecret(false);
+        return;
+      }
+      
+      const { data, error } = await supabase.rpc('verify_admin_url_secret', { secret_key: secretKey });
+      
+      if (error || !data) {
+        setIsValidSecret(false);
+      } else {
+        setIsValidSecret(true);
+      }
+    };
+    
+    verifySecret();
+  }, [secretKey]);
 
   // Check if email is blocked using secure RPC function
   const checkBlockStatus = async (userEmail: string): Promise<BlockStatus> => {
@@ -127,7 +149,7 @@ const AdminLogin: React.FC = () => {
           logAccessAttempt(user.email || 'unknown', user.id, 'admin_login_success');
         }
         
-        navigate('/admin');
+        navigate(`/admin/${secretKey}`);
       } else if (!hasLoggedAttempt) {
         // User is logged in but not admin - show access denied and log (only once)
         setAccessDenied(true);
@@ -233,10 +255,34 @@ const AdminLogin: React.FC = () => {
     setIsSubmitting(false);
   };
 
-  if (isLoading) {
+  if (isLoading || isValidSecret === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Invalid secret key - show 404-like page
+  if (!isValidSecret) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Page introuvable</CardTitle>
+            <CardDescription>
+              Cette page n'existe pas ou l'URL est incorrecte.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="justify-center">
+            <Link to="/">
+              <Button variant="ghost">
+                <Home className="w-4 h-4 mr-2" />
+                Retour à l'accueil
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
