@@ -1,4 +1,4 @@
-project_id = "udmqiaegydcdusjlwrke"
+project_id = "bxcgonhulcubycqsxppa"
 
 [functions.get-translated-products]
 verify_jwt = false
