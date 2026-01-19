@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
-import { supabaseTyped } from '@/lib/supabaseTyped';
 import { Product, ProductInsert, ProductCategory, ProductBadge } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -277,7 +276,7 @@ const AdminDashboard: React.FC = () => {
 
     try {
       if (editingProduct) {
-        const { error } = await supabaseTyped
+        const { error } = await supabase
           .from('products')
           .update(productData)
           .eq('id', editingProduct.id);
@@ -299,7 +298,7 @@ const AdminDashboard: React.FC = () => {
           description: "Le produit a été mis à jour avec succès.",
         });
       } else {
-        const { error } = await supabaseTyped
+        const { error } = await supabase
           .from('products')
           .insert([productData]);
 
@@ -336,7 +335,7 @@ const AdminDashboard: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabaseTyped
+      const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', id);

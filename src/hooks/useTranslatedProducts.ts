@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabaseTyped } from '@/lib/supabaseTyped';
+import { supabase } from '@/integrations/supabase/client';
 import { useLocale } from '@/contexts/LocaleContext';
 import { productTranslations } from '@/data/productTranslations';
 import type { Product, ProductCategory } from '@/types/supabase';
@@ -46,7 +46,7 @@ const translateProduct = (
 
 // Fetch database translations (standalone function, not a hook)
 const fetchDbTranslations = async (): Promise<Map<string, DbTranslation>> => {
-  const { data, error } = await supabaseTyped
+  const { data, error } = await supabase
     .from('product_translations')
     .select('slug, name_translations, description_translations');
 
@@ -70,7 +70,7 @@ export const useTranslatedProducts = () => {
     queryKey: ['translated-products', language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, dbTranslationsMap] = await Promise.all([
-        supabaseTyped
+        supabase
           .from('products')
           .select('*')
           .order('created_at', { ascending: false }),
@@ -95,7 +95,7 @@ export const useTranslatedProductsByCategory = (category: ProductCategory) => {
     queryKey: ['translated-products', 'category', category, language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, dbTranslationsMap] = await Promise.all([
-        supabaseTyped
+        supabase
           .from('products')
           .select('*')
           .eq('category', category)
@@ -122,7 +122,7 @@ export const useTranslatedProductBySlug = (slug: string) => {
     queryKey: ['translated-products', 'slug', slug, language],
     queryFn: async (): Promise<Product | null> => {
       const [productResult, dbTranslationsMap] = await Promise.all([
-        supabaseTyped
+        supabase
           .from('products')
           .select('*')
           .eq('slug', slug)
@@ -149,7 +149,7 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
     queryKey: ['translated-products', 'featured', limit, language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, dbTranslationsMap] = await Promise.all([
-        supabaseTyped
+        supabase
           .from('products')
           .select('*')
           .not('badge', 'is', null)
@@ -175,7 +175,7 @@ export const useTranslatedNewArrivals = () => {
     queryKey: ['translated-products', 'new', language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, dbTranslationsMap] = await Promise.all([
-        supabaseTyped
+        supabase
           .from('products')
           .select('*')
           .eq('badge', 'new')
@@ -201,7 +201,7 @@ export const useTranslatedBestSellers = () => {
     queryKey: ['translated-products', 'bestseller', language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, dbTranslationsMap] = await Promise.all([
-        supabaseTyped
+        supabase
           .from('products')
           .select('*')
           .eq('badge', 'bestseller')

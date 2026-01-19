@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabaseTyped } from '@/lib/supabaseTyped';
+import { supabase } from '@/integrations/supabase/client';
 import type { Product, ProductCategory } from '@/types/supabase';
 
 // Fetch all products
@@ -7,7 +7,7 @@ export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabaseTyped
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
@@ -27,7 +27,7 @@ export const useProductsByCategory = (category: ProductCategory) => {
   return useQuery({
     queryKey: ['products', 'category', category],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabaseTyped
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('category', category)
@@ -49,7 +49,7 @@ export const useProductBySlug = (slug: string) => {
   return useQuery({
     queryKey: ['products', 'slug', slug],
     queryFn: async (): Promise<Product | null> => {
-      const { data, error } = await supabaseTyped
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('slug', slug)
@@ -71,7 +71,7 @@ export const useFeaturedProducts = (limit = 4) => {
   return useQuery({
     queryKey: ['products', 'featured', limit],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabaseTyped
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .not('badge', 'is', null)
@@ -92,7 +92,7 @@ export const useNewArrivals = () => {
   return useQuery({
     queryKey: ['products', 'new'],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabaseTyped
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('badge', 'new')
@@ -113,7 +113,7 @@ export const useBestSellers = () => {
   return useQuery({
     queryKey: ['products', 'bestseller'],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabaseTyped
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('badge', 'bestseller')
@@ -134,7 +134,7 @@ export const useSearchProducts = (searchTerm: string) => {
   return useQuery({
     queryKey: ['products', 'search', searchTerm],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabaseTyped
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)

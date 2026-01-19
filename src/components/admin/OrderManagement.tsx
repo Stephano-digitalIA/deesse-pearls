@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabaseTyped } from '@/lib/supabaseTyped';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order, OrderItem, OrderHistory, OrderStatus, ShippingAddress } from '@/types/supabase';
