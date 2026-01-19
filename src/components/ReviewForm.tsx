@@ -205,9 +205,9 @@ const sanitizeText = (text: string): string => {
 };
 
 const reviewSchema = z.object({
-  author_name: z.string().trim().min(2).max(50).transform(sanitizeText),
-  author_email: z.string().trim().email().max(255),
-  comment: z.string().trim().min(10).max(1000).transform(sanitizeText),
+  user_name: z.string().trim().min(2).max(50).transform(sanitizeText),
+  user_email: z.string().trim().email().max(255),
+  content: z.string().trim().min(10).max(1000).transform(sanitizeText),
   rating: z.number().min(1).max(5),
 });
 
@@ -246,9 +246,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
     setErrors({});
 
     const formData = {
-      author_name: name,
-      author_email: email,
-      comment,
+      user_name: name,
+      user_email: email,
+      content: comment,
       rating,
     };
 
@@ -258,11 +258,11 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
       const newErrors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
         const field = err.path[0] as string;
-        if (field === 'author_name') {
+        if (field === 'user_name') {
           newErrors.name = t('review.validationName');
-        } else if (field === 'author_email') {
+        } else if (field === 'user_email') {
           newErrors.email = t('review.validationEmail');
-        } else if (field === 'comment') {
+        } else if (field === 'content') {
           newErrors.comment = t('review.validationComment');
         } else if (field === 'rating') {
           newErrors.rating = t('review.selectRating');
@@ -286,10 +286,11 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
         .from('reviews')
         .insert({
           product_id: productId,
-          author_name: name.trim(),
-          author_email: email.trim(),
+          user_name: name.trim(),
+          user_email: email.trim(),
           rating,
-          comment: comment.trim(),
+          content: comment.trim(),
+          user_id: user?.id || null,
         });
 
       if (error) throw error;

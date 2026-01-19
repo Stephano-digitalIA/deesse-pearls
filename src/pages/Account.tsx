@@ -13,29 +13,32 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, MapPin, Package, LogOut, Save } from 'lucide-react';
 import OrderCard from '@/components/OrderCard';
 import { z } from 'zod';
+import type { Json } from '@/types/supabase';
 
 // Validation schema for profile
 const profileSchema = z.object({
   first_name: z.string().max(50, 'First name too long').optional().nullable(),
   last_name: z.string().max(50, 'Last name too long').optional().nullable(),
   phone: z.string().regex(/^[+0-9\s()-]{0,20}$/, 'Invalid phone format').optional().nullable().or(z.literal('')),
-  address_line1: z.string().max(200, 'Address too long').optional().nullable(),
-  address_line2: z.string().max(200, 'Address too long').optional().nullable(),
-  city: z.string().max(100, 'City name too long').optional().nullable(),
-  postal_code: z.string().max(10, 'Postal code too long').optional().nullable(),
-  country: z.string().max(100, 'Country name too long').optional().nullable(),
 });
+
 interface Profile {
   id: string;
-  user_id: string;
+  email: string | null;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
-  address_line1: string | null;
-  address_line2: string | null;
-  city: string | null;
-  postal_code: string | null;
-  country: string | null;
+  address: Json | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AddressData {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
 }
 
 interface OrderItem {
@@ -44,23 +47,16 @@ interface OrderItem {
   product_image: string | null;
   quantity: number;
   unit_price: number;
-  total_price: number;
 }
 
 interface Order {
   id: string;
-  order_number: string;
   status: string;
   total: number;
-  subtotal: number;
-  shipping_cost: number;
   created_at: string;
-  shipping_address: {
-    line1?: string;
-    city?: string;
-    postal_code?: string;
-    country?: string;
-  };
+  shipping_address: Json | null;
+  customer_name: string | null;
+  customer_email: string | null;
   order_items: OrderItem[];
 }
 
@@ -105,7 +101,7 @@ const Account: React.FC = () => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (error) {
@@ -115,11 +111,16 @@ const Account: React.FC = () => {
       setFirstName(data.first_name || '');
       setLastName(data.last_name || '');
       setPhone(data.phone || '');
-      setAddressLine1(data.address_line1 || '');
-      setAddressLine2(data.address_line2 || '');
-      setCity(data.city || '');
-      setPostalCode(data.postal_code || '');
-      setCountry(data.country || 'France');
+      
+      // Parse address JSON
+      const addressData = data.address as AddressData | null;
+      if (addressData) {
+        setAddressLine1(addressData.line1 || '');
+        setAddressLine2(addressData.line2 || '');
+        setCity(addressData.city || '');
+        setPostalCode(addressData.postal_code || '');
+        setCountry(addressData.country || 'France');
+      }
     }
     setIsLoadingData(false);
   };
@@ -131,20 +132,18 @@ const Account: React.FC = () => {
       .from('orders')
       .select(`
         id,
-        order_number,
         status,
         total,
-        subtotal,
-        shipping_cost,
         created_at,
         shipping_address,
+        customer_name,
+        customer_email,
         order_items (
           id,
           product_name,
           product_image,
           quantity,
-          unit_price,
-          total_price
+          unit_price
         )
       `)
       .eq('user_id', user.id)
@@ -166,11 +165,6 @@ const Account: React.FC = () => {
       first_name: firstName || null,
       last_name: lastName || null,
       phone: phone || null,
-      address_line1: addressLine1 || null,
-      address_line2: addressLine2 || null,
-      city: city || null,
-      postal_code: postalCode || null,
-      country: country || null,
     };
 
     const validationResult = profileSchema.safeParse(profileData);
@@ -186,10 +180,22 @@ const Account: React.FC = () => {
 
     setIsSaving(true);
 
+    // Build address JSON
+    const addressData: AddressData = {
+      line1: addressLine1 || undefined,
+      line2: addressLine2 || undefined,
+      city: city || undefined,
+      postal_code: postalCode || undefined,
+      country: country || undefined,
+    };
+
     const { error } = await supabase
       .from('profiles')
-      .update(profileData)
-      .eq('user_id', user.id);
+      .update({
+        ...profileData,
+        address: addressData as Json,
+      })
+      .eq('id', user.id);
 
     setIsSaving(false);
 

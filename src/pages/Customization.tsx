@@ -18,13 +18,10 @@ const Customization: React.FC = () => {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    jewelryType: '',
-    pearlType: '',
-    metalType: '',
-    budget: '',
+    requestType: '',
+    budgetRange: '',
     description: '',
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
     phone: '',
   });
@@ -34,17 +31,14 @@ const Customization: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Save to database
+      // Save to database using actual schema fields
       const { error: dbError } = await supabase
         .from('customization_requests')
         .insert({
-          jewelry_type: formData.jewelryType,
-          pearl_type: formData.pearlType,
-          metal_type: formData.metalType,
-          budget: formData.budget,
-          description: formData.description || null,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
+          request_type: formData.requestType,
+          budget_range: formData.budgetRange || null,
+          description: formData.description,
+          name: formData.name,
           email: formData.email,
           phone: formData.phone || null,
         });
@@ -74,7 +68,7 @@ const Customization: React.FC = () => {
     }
   };
 
-  const jewelryTypes = [
+  const requestTypes = [
     { value: 'ring', label: pageT.ring },
     { value: 'necklace', label: pageT.necklace },
     { value: 'bracelet', label: pageT.bracelet },
@@ -83,318 +77,243 @@ const Customization: React.FC = () => {
     { value: 'other', label: pageT.other },
   ];
 
-  const pearlTypes = [
-    { value: 'round', label: pageT.pearlRound },
-    { value: 'drop', label: pageT.pearlDrop },
-    { value: 'baroque', label: pageT.pearlBaroque },
-    { value: 'button', label: pageT.pearlButton },
-    { value: 'multiple', label: pageT.pearlMultiple },
+  const budgetRanges = [
+    { value: '500-1000', label: '500€ - 1000€' },
+    { value: '1000-2500', label: '1000€ - 2500€' },
+    { value: '2500-5000', label: '2500€ - 5000€' },
+    { value: '5000+', label: '5000€+' },
   ];
 
-  const metalTypes = [
-    { value: 'gold-18k', label: pageT.goldYellow },
-    { value: 'white-gold', label: pageT.goldWhite },
-    { value: 'rose-gold', label: pageT.goldRose },
-    { value: 'platinum', label: pageT.platinum },
-  ];
+  const renderStep1 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="text-xl font-display mb-4">{pageT.step1Title}</h2>
+        <p className="text-muted-foreground mb-6">{pageT.step1Desc}</p>
+      </div>
+      
+      <div className="space-y-4">
+        <Label>{pageT.jewelryTypeLabel}</Label>
+        <RadioGroup
+          value={formData.requestType}
+          onValueChange={(value) => setFormData({ ...formData, requestType: value })}
+          className="grid grid-cols-2 md:grid-cols-3 gap-3"
+        >
+          {requestTypes.map((type) => (
+            <div key={type.value} className="flex items-center space-x-2">
+              <RadioGroupItem value={type.value} id={type.value} />
+              <Label htmlFor={type.value} className="cursor-pointer">{type.label}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
 
-  const budgets = [
-    { value: '500-1000', label: pageT.budget1 },
-    { value: '1000-2000', label: pageT.budget2 },
-    { value: '2000-5000', label: pageT.budget3 },
-    { value: '5000+', label: pageT.budget4 },
-  ];
+      <Button
+        onClick={() => setStep(2)}
+        disabled={!formData.requestType}
+        className="w-full md:w-auto"
+      >
+        {pageT.next}
+      </Button>
+    </motion.div>
+  );
+
+  const renderStep2 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="text-xl font-display mb-4">{pageT.step2Title}</h2>
+        <p className="text-muted-foreground mb-6">{pageT.step2Desc}</p>
+      </div>
+
+      <div className="space-y-4">
+        <Label>{pageT.budgetLabel}</Label>
+        <RadioGroup
+          value={formData.budgetRange}
+          onValueChange={(value) => setFormData({ ...formData, budgetRange: value })}
+          className="grid grid-cols-2 gap-3"
+        >
+          {budgetRanges.map((budget) => (
+            <div key={budget.value} className="flex items-center space-x-2">
+              <RadioGroupItem value={budget.value} id={budget.value} />
+              <Label htmlFor={budget.value} className="cursor-pointer">{budget.label}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">{pageT.descriptionLabel}</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder={pageT.descriptionPlaceholder}
+          rows={4}
+          className="resize-none"
+        />
+      </div>
+
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => setStep(1)}>
+          {pageT.previous}
+        </Button>
+        <Button
+          onClick={() => setStep(3)}
+          disabled={!formData.description}
+        >
+          {pageT.next}
+        </Button>
+      </div>
+    </motion.div>
+  );
+
+  const renderStep3 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="text-xl font-display mb-4">{pageT.step3Title}</h2>
+        <p className="text-muted-foreground mb-6">{pageT.step3Desc}</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">{pageT.nameLabel}</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder={pageT.namePlaceholder}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email">{pageT.emailLabel}</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder={pageT.emailPlaceholder}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="phone">{pageT.phoneLabel}</Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder={pageT.phonePlaceholder}
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={() => setStep(2)}>
+            {pageT.previous}
+          </Button>
+          <Button type="submit" disabled={isSubmitting || !formData.name || !formData.email}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {pageT.sending}
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4 mr-2" />
+                {pageT.submit}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </motion.div>
+  );
+
+  const renderSuccess = () => (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="text-center py-12"
+    >
+      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <CheckCircle className="w-8 h-8 text-green-600" />
+      </div>
+      <h2 className="text-2xl font-display mb-4">{pageT.successTitle}</h2>
+      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+        {pageT.successDesc}
+      </p>
+      <Button onClick={() => {
+        setStep(1);
+        setFormData({
+          requestType: '',
+          budgetRange: '',
+          description: '',
+          name: '',
+          email: '',
+          phone: '',
+        });
+      }}>
+        {pageT.newRequest}
+      </Button>
+    </motion.div>
+  );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-deep-black via-lagoon-dark to-deep-black py-24 overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-10 right-20 w-72 h-72 bg-gold/30 rounded-full blur-3xl" />
-        </div>
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-3 mb-4"
-          >
+    <div className="min-h-screen py-12 px-4 bg-gradient-pearl">
+      <div className="container mx-auto max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <Sparkles className="w-8 h-8 text-gold" />
-            <h1 className="font-display text-4xl md:text-5xl text-pearl">
-              {t('customCreation')}
-            </h1>
-          </motion.div>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-pearl/70 max-w-2xl mx-auto"
-          >
-            {t('dreamJewelry')} - {pageT.heroSubtitle}
-          </motion.p>
-          <div className="w-20 h-1 bg-gold mx-auto mt-6" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-display font-semibold mb-4">
+            {pageT.title}
+          </h1>
+          <p className="text-muted-foreground max-w-lg mx-auto">
+            {pageT.subtitle}
+          </p>
+        </motion.div>
+
+        {/* Progress indicator */}
+        {step < 4 && (
+          <div className="flex items-center justify-center gap-2 mb-8">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  s <= step ? 'bg-gold' : 'bg-muted'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="bg-card rounded-xl p-6 md:p-8 shadow-elegant">
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+          {step === 4 && renderSuccess()}
         </div>
-      </section>
-
-      <section className="py-16">
-        <div className="container mx-auto px-4 max-w-3xl">
-          {/* Progress Steps */}
-          {step < 4 && (
-            <div className="flex items-center justify-center mb-12">
-              {[1, 2, 3].map((s) => (
-                <React.Fragment key={s}>
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                      s <= step ? 'bg-gold text-deep-black' : 'bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    {s < step ? <CheckCircle className="w-5 h-5" /> : s}
-                  </div>
-                  {s < 3 && (
-                    <div className={`w-20 h-1 mx-2 ${s < step ? 'bg-gold' : 'bg-secondary'}`} />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-
-          {/* Step 1: Jewelry Type */}
-          {step === 1 && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-card p-8 rounded-lg border border-border"
-            >
-              <h2 className="font-display text-2xl mb-6">{pageT.step1Title}</h2>
-              <RadioGroup
-                value={formData.jewelryType}
-                onValueChange={(value) => setFormData({ ...formData, jewelryType: value })}
-                className="grid grid-cols-2 md:grid-cols-3 gap-4"
-              >
-                {jewelryTypes.map((type) => (
-                  <Label
-                    key={type.value}
-                    htmlFor={type.value}
-                    className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      formData.jewelryType === type.value
-                        ? 'border-gold bg-gold/10'
-                        : 'border-border hover:border-gold/50'
-                    }`}
-                  >
-                    <RadioGroupItem value={type.value} id={type.value} className="sr-only" />
-                    {type.label}
-                  </Label>
-                ))}
-              </RadioGroup>
-
-              <div className="mt-8">
-                <h3 className="font-display text-xl mb-4">{pageT.pearlTypeTitle}</h3>
-                <RadioGroup
-                  value={formData.pearlType}
-                  onValueChange={(value) => setFormData({ ...formData, pearlType: value })}
-                  className="space-y-3"
-                >
-                  {pearlTypes.map((type) => (
-                    <Label
-                      key={type.value}
-                      htmlFor={`pearl-${type.value}`}
-                      className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.pearlType === type.value
-                          ? 'border-gold bg-gold/10'
-                          : 'border-border hover:border-gold/50'
-                      }`}
-                    >
-                      <RadioGroupItem value={type.value} id={`pearl-${type.value}`} className="mr-3" />
-                      {type.label}
-                    </Label>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <Button
-                onClick={() => setStep(2)}
-                disabled={!formData.jewelryType || !formData.pearlType}
-                className="w-full mt-8 bg-gold hover:bg-gold-light text-deep-black"
-              >
-                {pageT.continue}
-              </Button>
-            </motion.div>
-          )}
-
-          {/* Step 2: Metal & Budget */}
-          {step === 2 && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-card p-8 rounded-lg border border-border"
-            >
-              <h2 className="font-display text-2xl mb-6">{pageT.step2Title}</h2>
-              
-              <div className="mb-8">
-                <h3 className="font-display text-xl mb-4">{pageT.metalTypeTitle}</h3>
-                <RadioGroup
-                  value={formData.metalType}
-                  onValueChange={(value) => setFormData({ ...formData, metalType: value })}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  {metalTypes.map((type) => (
-                    <Label
-                      key={type.value}
-                      htmlFor={`metal-${type.value}`}
-                      className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.metalType === type.value
-                          ? 'border-gold bg-gold/10'
-                          : 'border-border hover:border-gold/50'
-                      }`}
-                    >
-                      <RadioGroupItem value={type.value} id={`metal-${type.value}`} className="sr-only" />
-                      {type.label}
-                    </Label>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <div className="mb-8">
-                <h3 className="font-display text-xl mb-4">{pageT.budgetTitle}</h3>
-                <RadioGroup
-                  value={formData.budget}
-                  onValueChange={(value) => setFormData({ ...formData, budget: value })}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  {budgets.map((budget) => (
-                    <Label
-                      key={budget.value}
-                      htmlFor={`budget-${budget.value}`}
-                      className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.budget === budget.value
-                          ? 'border-gold bg-gold/10'
-                          : 'border-border hover:border-gold/50'
-                      }`}
-                    >
-                      <RadioGroupItem value={budget.value} id={`budget-${budget.value}`} className="sr-only" />
-                      {budget.label}
-                    </Label>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <div>
-                <Label htmlFor="description">{pageT.descriptionLabel}</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder={pageT.descriptionPlaceholder}
-                  rows={4}
-                  className="mt-2"
-                />
-              </div>
-
-              <div className="flex gap-4 mt-8">
-                <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
-                  {pageT.back}
-                </Button>
-                <Button
-                  onClick={() => setStep(3)}
-                  disabled={!formData.metalType || !formData.budget}
-                  className="flex-1 bg-gold hover:bg-gold-light text-deep-black"
-                >
-                  {pageT.continue}
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 3: Contact Info */}
-          {step === 3 && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-card p-8 rounded-lg border border-border"
-            >
-              <h2 className="font-display text-2xl mb-6">{pageT.step3Title}</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="firstName">{t('firstName')} *</Label>
-                    <Input
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      required
-                      className="mt-2"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName">{t('lastName')} *</Label>
-                    <Input
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      required
-                      className="mt-2"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="email">{t('email')} *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">{t('phone')}</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="mt-2"
-                  />
-                </div>
-
-                <div className="flex gap-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(2)} className="flex-1" disabled={isSubmitting}>
-                    {pageT.back}
-                  </Button>
-                  <Button type="submit" className="flex-1 bg-gold hover:bg-gold-light text-deep-black" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4 mr-2" />
-                    )}
-                    {pageT.sendRequest}
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          )}
-
-          {/* Step 4: Success */}
-          {step === 4 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-16"
-            >
-              <div className="w-20 h-20 bg-gold/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-gold" />
-              </div>
-              <h2 className="font-display text-3xl mb-4">{pageT.successTitle}</h2>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                {pageT.successMessage}
-              </p>
-              <Button onClick={() => setStep(1)} variant="outline" className="border-gold text-gold hover:bg-gold hover:text-deep-black">
-                {pageT.newRequest}
-              </Button>
-            </motion.div>
-          )}
-        </div>
-      </section>
+      </div>
     </div>
   );
 };

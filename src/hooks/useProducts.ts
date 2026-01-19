@@ -1,6 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Product, ProductCategory } from '@/types/supabase';
+import type { Tables } from '@/integrations/supabase/types';
+
+// Helper to transform Supabase product row to our Product type
+const transformProduct = (row: Tables<'products'>): Product => ({
+  ...row,
+  badge: row.badge as Product['badge'],
+  category: row.category as ProductCategory,
+  variants: row.variants,
+});
 
 // Fetch all products
 export const useProducts = () => {
@@ -17,7 +26,7 @@ export const useProducts = () => {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(transformProduct);
     },
   });
 };
@@ -38,7 +47,7 @@ export const useProductsByCategory = (category: ProductCategory) => {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(transformProduct);
     },
     enabled: !!category,
   });
@@ -60,7 +69,7 @@ export const useProductBySlug = (slug: string) => {
         throw error;
       }
 
-      return data;
+      return data ? transformProduct(data) : null;
     },
     enabled: !!slug,
   });
@@ -82,7 +91,7 @@ export const useFeaturedProducts = (limit = 4) => {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(transformProduct);
     },
   });
 };
@@ -103,7 +112,7 @@ export const useNewArrivals = () => {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(transformProduct);
     },
   });
 };
@@ -124,7 +133,7 @@ export const useBestSellers = () => {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(transformProduct);
     },
   });
 };
@@ -145,7 +154,7 @@ export const useSearchProducts = (searchTerm: string) => {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(transformProduct);
     },
     enabled: searchTerm.length >= 2,
   });
