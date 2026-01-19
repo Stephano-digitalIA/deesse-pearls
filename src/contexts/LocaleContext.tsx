@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 
 export type Language = 'fr' | 'en' | 'de' | 'es' | 'pt' | 'it' | 'nl' | 'ja' | 'ko';
 export type Currency = 'EUR' | 'USD';
@@ -21,6 +21,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Bracelets',
     necklaces: 'Colliers',
     rings: 'Bagues',
+    earrings: "Boucles d'oreilles",
     pendants: 'Pendentifs',
     jewelrySets: 'Parures',
     otherJewelry: 'Autres Bijoux',
@@ -206,6 +207,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Bracelets',
     necklaces: 'Necklaces',
     rings: 'Rings',
+    earrings: 'Earrings',
     pendants: 'Pendants',
     jewelrySets: 'Jewelry Sets',
     otherJewelry: 'Other Jewelry',
@@ -391,6 +393,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Armbänder',
     necklaces: 'Halsketten',
     rings: 'Ringe',
+    earrings: 'Ohrringe',
     pendants: 'Anhänger',
     jewelrySets: 'Schmucksets',
     otherJewelry: 'Anderer Schmuck',
@@ -573,6 +576,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Pulseras',
     necklaces: 'Collares',
     rings: 'Anillos',
+    earrings: 'Pendientes',
     pendants: 'Colgantes',
     jewelrySets: 'Conjuntos de Joyas',
     otherJewelry: 'Otras Joyas',
@@ -755,6 +759,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Pulseiras',
     necklaces: 'Colares',
     rings: 'Anéis',
+    earrings: 'Brincos',
     pendants: 'Pingentes',
     jewelrySets: 'Conjuntos de Joias',
     otherJewelry: 'Outras Joias',
@@ -937,6 +942,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Bracciali',
     necklaces: 'Collane',
     rings: 'Anelli',
+    earrings: 'Orecchini',
     pendants: 'Ciondoli',
     jewelrySets: 'Parure',
     otherJewelry: 'Altri Gioielli',
@@ -1119,6 +1125,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Armbanden',
     necklaces: 'Kettingen',
     rings: 'Ringen',
+    earrings: 'Oorbellen',
     pendants: 'Hangers',
     jewelrySets: 'Sieradensets',
     otherJewelry: 'Andere Sieraden',
@@ -1301,6 +1308,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'ブレスレット',
     necklaces: 'ネックレス',
     rings: 'リング',
+    earrings: 'イヤリング',
     pendants: 'ペンダント',
     jewelrySets: 'ジュエリーセット',
     otherJewelry: 'その他のジュエリー',
@@ -1483,6 +1491,7 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: '브레이슬릿',
     necklaces: '목걸이',
     rings: '반지',
+    earrings: '귀걸이',
     pendants: '펜던트',
     jewelrySets: '주얼리 세트',
     otherJewelry: '기타 주얼리',
@@ -1709,16 +1718,16 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   });
 
   // Custom setLanguage that also persists immediately
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     safeSetItem('deesse-language', lang);
     setLanguageState(lang);
-  };
+  }, []);
 
   // Custom setCurrency that also persists immediately
-  const setCurrency = (curr: Currency) => {
+  const setCurrency = useCallback((curr: Currency) => {
     safeSetItem('deesse-currency', curr);
     setCurrencyState(curr);
-  };
+  }, []);
 
   // Sync with localStorage on mount (for cases where state was initialized before localStorage was ready)
   useEffect(() => {
@@ -1732,21 +1741,30 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, []);
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     return translations[language]?.[key] || translations.fr[key] || key;
-  };
+  }, [language]);
 
-  const formatPrice = (price: number): string => {
+  const formatPrice = useCallback((price: number): string => {
     const rate = currency === 'USD' ? 1.08 : 1;
     const converted = price * rate;
     return new Intl.NumberFormat(language === 'en' ? 'en-US' : language, {
       style: 'currency',
       currency: currency,
     }).format(converted);
-  };
+  }, [language, currency]);
+
+  const contextValue = useMemo(() => ({
+    language,
+    currency,
+    setLanguage,
+    setCurrency,
+    t,
+    formatPrice,
+  }), [language, currency, setLanguage, setCurrency, t, formatPrice]);
 
   return (
-    <LocaleContext.Provider value={{ language, currency, setLanguage, setCurrency, t, formatPrice }}>
+    <LocaleContext.Provider value={contextValue}>
       {children}
     </LocaleContext.Provider>
   );

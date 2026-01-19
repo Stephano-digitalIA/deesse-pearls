@@ -23,13 +23,14 @@ import {
 } from '@/components/ui/collapsible';
 import { shopProductTranslations } from '@/data/shopProductTranslations';
 
-type Category = 'all' | 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'pendentifs' | 'parures' | 'other';
+type Category = 'all' | 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'earrings' | 'pendentifs' | 'parures' | 'other';
 
 const categoryRouteMap: Record<string, Category> = {
   'perles': 'pearls',
   'bracelets': 'bracelets',
   'colliers': 'necklaces',
   'bagues': 'rings',
+  'boucles-oreilles': 'earrings',
   'pendentifs': 'pendentifs',
   'parures': 'parures',
   'autres': 'other',
@@ -50,6 +51,14 @@ const Shop: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [sortBy, setSortBy] = useState<string>('default');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Mettre à jour la catégorie quand l'URL change
+  useEffect(() => {
+    const newCategory: Category = categoryParam
+      ? categoryRouteMap[categoryParam] || 'all'
+      : 'all';
+    setSelectedCategory(newCategory);
+  }, [categoryParam]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -94,6 +103,7 @@ const Shop: React.FC = () => {
     { key: 'bracelets', label: t('bracelets'), route: '/shop/bracelets' },
     { key: 'necklaces', label: t('necklaces'), route: '/shop/colliers' },
     { key: 'rings', label: t('rings'), route: '/shop/bagues' },
+    { key: 'earrings', label: t('earrings'), route: '/shop/boucles-oreilles' },
     { key: 'pendentifs', label: t('pendants'), route: '/shop/pendentifs' },
     { key: 'parures', label: t('jewelrySets'), route: '/shop/parures' },
     { key: 'other', label: t('otherJewelry'), route: '/shop/autres' },
@@ -105,6 +115,7 @@ const Shop: React.FC = () => {
       case 'bracelets': return t('bracelets');
       case 'necklaces': return t('necklaces');
       case 'rings': return t('rings');
+      case 'earrings': return t('earrings');
       case 'other': return t('otherJewelry');
       default: return t('shop');
     }
