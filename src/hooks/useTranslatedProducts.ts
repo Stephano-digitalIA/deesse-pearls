@@ -2,13 +2,23 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocale } from '@/contexts/LocaleContext';
 import { productTranslations } from '@/data/productTranslations';
-import type { Product, ProductCategory } from '@/types/supabase';
+import type { Product, ProductCategory, Json } from '@/types/supabase';
+import type { Tables } from '@/integrations/supabase/types';
 
 interface DbTranslation {
-  slug: string;
-  name_translations: Record<string, string>;
-  description_translations: Record<string, string>;
+  product_id: string;
+  locale: string;
+  name: string;
+  description: string;
 }
+
+// Helper to transform Supabase product row to our Product type
+const transformProduct = (row: Tables<'products'>): Product => ({
+  ...row,
+  badge: row.badge as Product['badge'],
+  category: row.category as ProductCategory,
+  variants: row.variants,
+});
 
 // Helper function to translate a product using fallback chain:
 // 1. Static translations (productTranslations.ts)
@@ -33,11 +43,10 @@ const translateProduct = (
   }
 
   // 2. Vérifier les traductions en base de données
-  const dbTranslation = dbTranslationsMap.get(product.slug);
+  const key = `${product.id}-${language}`;
+  const dbTranslation = dbTranslationsMap.get(key);
   if (dbTranslation) {
-    const name = dbTranslation.name_translations[language] || dbTranslation.name_translations['fr'] || product.name;
-    const description = dbTranslation.description_translations[language] || dbTranslation.description_translations['fr'] || product.description;
-    return { ...product, name, description };
+    return { ...product, name: dbTranslation.name, description: dbTranslation.description };
   }
 
   // 3. Retourner le produit original (français)
@@ -45,10 +54,11 @@ const translateProduct = (
 };
 
 // Fetch database translations (standalone function, not a hook)
-const fetchDbTranslations = async (): Promise<Map<string, DbTranslation>> => {
+const fetchDbTranslations = async (language: string): Promise<Map<string, DbTranslation>> => {
   const { data, error } = await supabase
     .from('product_translations')
-    .select('slug, name_translations, description_translations');
+    .select('product_id, locale, name, description')
+    .eq('locale', language);
 
   if (error) {
     console.error('Error fetching translations:', error);
@@ -56,8 +66,8 @@ const fetchDbTranslations = async (): Promise<Map<string, DbTranslation>> => {
   }
 
   const map = new Map<string, DbTranslation>();
-  (data || []).forEach((t: DbTranslation) => {
-    map.set(t.slug, t);
+  (data || []).forEach((t) => {
+    map.set(`${t.product_id}-${t.locale}`, t);
   });
   return map;
 };
@@ -74,7 +84,7 @@ export const useTranslatedProducts = () => {
           .from('products')
           .select('*')
           .order('created_at', { ascending: false }),
-        fetchDbTranslations()
+        fetchDbTranslations(language)
       ]);
 
       if (productsResult.error) {
@@ -82,7 +92,9 @@ export const useTranslatedProducts = () => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
+      return (productsResult.data || []).map(row => 
+        translateProduct(transformProduct(row), language, dbTranslationsMap)
+      );
     },
   });
 };
@@ -100,7 +112,7 @@ export const useTranslatedProductsByCategory = (category: ProductCategory) => {
           .select('*')
           .eq('category', category)
           .order('created_at', { ascending: false }),
-        fetchDbTranslations()
+        fetchDbTranslations(language)
       ]);
 
       if (productsResult.error) {
@@ -108,7 +120,9 @@ export const useTranslatedProductsByCategory = (category: ProductCategory) => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
+      return (productsResult.data || []).map(row => 
+        translateProduct(transformProduct(row), language, dbTranslationsMap)
+      );
     },
     enabled: !!category,
   });
@@ -127,7 +141,7 @@ export const useTranslatedProductBySlug = (slug: string) => {
           .select('*')
           .eq('slug', slug)
           .maybeSingle(),
-        fetchDbTranslations()
+        fetchDbTranslations(language)
       ]);
 
       if (productResult.error) {
@@ -135,7 +149,9 @@ export const useTranslatedProductBySlug = (slug: string) => {
         throw productResult.error;
       }
 
-      return productResult.data ? translateProduct(productResult.data, language, dbTranslationsMap) : null;
+      return productResult.data 
+        ? translateProduct(transformProduct(productResult.data), language, dbTranslationsMap) 
+        : null;
     },
     enabled: !!slug,
   });
@@ -154,7 +170,7 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
           .select('*')
           .not('badge', 'is', null)
           .limit(limit),
-        fetchDbTranslations()
+        fetchDbTranslations(language)
       ]);
 
       if (productsResult.error) {
@@ -162,7 +178,9 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
+      return (productsResult.data || []).map(row => 
+        translateProduct(transformProduct(row), language, dbTranslationsMap)
+      );
     },
   });
 };
@@ -180,7 +198,7 @@ export const useTranslatedNewArrivals = () => {
           .select('*')
           .eq('badge', 'new')
           .order('created_at', { ascending: false }),
-        fetchDbTranslations()
+        fetchDbTranslations(language)
       ]);
 
       if (productsResult.error) {
@@ -188,7 +206,9 @@ export const useTranslatedNewArrivals = () => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
+      return (productsResult.data || []).map(row => 
+        translateProduct(transformProduct(row), language, dbTranslationsMap)
+      );
     },
   });
 };
@@ -206,7 +226,7 @@ export const useTranslatedBestSellers = () => {
           .select('*')
           .eq('badge', 'bestseller')
           .order('rating', { ascending: false }),
-        fetchDbTranslations()
+        fetchDbTranslations(language)
       ]);
 
       if (productsResult.error) {
@@ -214,7 +234,9 @@ export const useTranslatedBestSellers = () => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
+      return (productsResult.data || []).map(row => 
+        translateProduct(transformProduct(row), language, dbTranslationsMap)
+      );
     },
   });
 };

@@ -11,23 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Search, Loader2, Eye, Trash2, Mail, Phone } from 'lucide-react';
-
-interface CustomizationRequest {
-  id: string;
-  jewelry_type: string;
-  pearl_type: string;
-  metal_type: string;
-  budget: string;
-  description: string | null;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string | null;
-  status: string;
-  admin_notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import type { CustomizationRequest } from '@/types/supabase';
 
 const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pending: { label: 'En attente', variant: 'secondary' },
@@ -35,30 +19,6 @@ const statusLabels: Record<string, { label: string; variant: 'default' | 'second
   in_progress: { label: 'En cours', variant: 'default' },
   completed: { label: 'Terminé', variant: 'outline' },
   cancelled: { label: 'Annulé', variant: 'destructive' },
-};
-
-const jewelryLabels: Record<string, string> = {
-  ring: 'Bague',
-  necklace: 'Collier',
-  bracelet: 'Bracelet',
-  earrings: 'Boucles d\'oreilles',
-  pendant: 'Pendentif',
-  other: 'Autre',
-};
-
-const pearlLabels: Record<string, string> = {
-  round: 'Ronde',
-  drop: 'Goutte',
-  baroque: 'Baroque',
-  button: 'Bouton',
-  multiple: 'Plusieurs types',
-};
-
-const metalLabels: Record<string, string> = {
-  'gold-18k': 'Or jaune 18k',
-  'white-gold': 'Or blanc',
-  'rose-gold': 'Or rose',
-  platinum: 'Platine',
 };
 
 const CustomizationManagement: React.FC = () => {
@@ -122,7 +82,7 @@ const CustomizationManagement: React.FC = () => {
   });
 
   const filteredRequests = requests?.filter(req =>
-    `${req.first_name} ${req.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    req.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     req.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -186,13 +146,13 @@ const CustomizationManagement: React.FC = () => {
                     {new Date(request.created_at).toLocaleDateString('fr-FR')}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{request.first_name} {request.last_name}</div>
+                    <div className="font-medium">{request.name}</div>
                     <div className="text-sm text-muted-foreground">{request.email}</div>
                   </TableCell>
                   <TableCell>
-                    {jewelryLabels[request.jewelry_type] || request.jewelry_type}
+                    {request.request_type}
                   </TableCell>
-                  <TableCell>{request.budget}</TableCell>
+                  <TableCell>{request.budget_range || '-'}</TableCell>
                   <TableCell>
                     <Badge variant={statusLabels[request.status]?.variant || 'secondary'}>
                       {statusLabels[request.status]?.label || request.status}
@@ -263,7 +223,7 @@ const CustomizationManagement: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Nom:</span>
-                    <p className="font-medium">{selectedRequest.first_name} {selectedRequest.last_name}</p>
+                    <p className="font-medium">{selectedRequest.name}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Email:</span>
@@ -291,20 +251,12 @@ const CustomizationManagement: React.FC = () => {
                 <h3 className="font-semibold">Détails de la personnalisation</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Type de bijou:</span>
-                    <p className="font-medium">{jewelryLabels[selectedRequest.jewelry_type] || selectedRequest.jewelry_type}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Type de perle:</span>
-                    <p className="font-medium">{pearlLabels[selectedRequest.pearl_type] || selectedRequest.pearl_type}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Métal:</span>
-                    <p className="font-medium">{metalLabels[selectedRequest.metal_type] || selectedRequest.metal_type}</p>
+                    <span className="text-muted-foreground">Type de demande:</span>
+                    <p className="font-medium">{selectedRequest.request_type}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Budget:</span>
-                    <p className="font-medium">{selectedRequest.budget}</p>
+                    <p className="font-medium">{selectedRequest.budget_range || '-'}</p>
                   </div>
                 </div>
                 {selectedRequest.description && (

@@ -17,18 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
-interface Review {
-  id: string;
-  product_id: string;
-  author_name: string;
-  author_email: string;
-  rating: number;
-  comment: string;
-  is_approved: boolean;
-  created_at: string;
-  products?: { name: string } | null;
-}
+import type { Review } from '@/types/supabase';
 
 const ReviewManagement: React.FC = () => {
   const queryClient = useQueryClient();
@@ -154,13 +143,13 @@ const ReviewManagement: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      {review.author_name}
+                      {review.user_name}
                       <Badge variant={review.is_approved ? 'default' : 'secondary'}>
                         {review.is_approved ? 'Approuvé' : 'En attente'}
                       </Badge>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {review.author_email} • {new Date(review.created_at).toLocaleDateString('fr-FR')}
+                      {review.user_email} • {new Date(review.created_at).toLocaleDateString('fr-FR')}
                     </p>
                     {review.products && (
                       <p className="text-sm text-gold mt-1">
@@ -179,7 +168,7 @@ const ReviewManagement: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-foreground mb-4">{review.comment}</p>
+                <p className="text-foreground mb-4">{review.content}</p>
                 <div className="flex gap-2">
                   {!review.is_approved && (
                     <Button

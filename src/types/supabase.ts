@@ -15,101 +15,33 @@ export interface ProductVariants {
   diameters?: string[];
 }
 
-export interface Database {
-  public: {
-    Tables: {
-      products: {
-        Row: {
-          id: string;
-          slug: string;
-          category: ProductCategory;
-          name: string;
-          description: string;
-          price: number;
-          images: string[];
-          badge: ProductBadge;
-          rating: number;
-          reviews: number;
-          variants: ProductVariants | null;
-          in_stock: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          slug: string;
-          category: ProductCategory;
-          name: string;
-          description: string;
-          price: number;
-          images?: string[];
-          badge?: ProductBadge;
-          rating?: number;
-          reviews?: number;
-          variants?: ProductVariants | null;
-          in_stock?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          slug?: string;
-          category?: ProductCategory;
-          name?: string;
-          description?: string;
-          price?: number;
-          images?: string[];
-          badge?: ProductBadge;
-          rating?: number;
-          reviews?: number;
-          variants?: ProductVariants | null;
-          in_stock?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      user_roles: {
-        Row: {
-          id: string;
-          user_id: string;
-          role: 'admin' | 'moderator' | 'user';
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          role: 'admin' | 'moderator' | 'user';
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          role?: 'admin' | 'moderator' | 'user';
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: {
-      has_role: {
-        Args: { _user_id: string; _role: 'admin' | 'moderator' | 'user' };
-        Returns: boolean;
-      };
-    };
-    Enums: {
-      product_category: ProductCategory;
-      product_badge: ProductBadge;
-      app_role: 'admin' | 'moderator' | 'user';
-    };
-  };
+// Product type matching Supabase schema
+export interface Product {
+  id: string;
+  slug: string;
+  category: ProductCategory;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  badge: ProductBadge;
+  rating: number;
+  reviews: number;
+  variants: ProductVariants | Json | null;
+  in_stock: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-// Type helper for the products table
-export type Product = Database['public']['Tables']['products']['Row'];
-export type ProductInsert = Database['public']['Tables']['products']['Insert'];
-export type ProductUpdate = Database['public']['Tables']['products']['Update'];
+export type ProductInsert = Partial<Product> & {
+  slug: string;
+  category: ProductCategory;
+  name: string;
+  description: string;
+  price: number;
+};
+
+export type ProductUpdate = Partial<Product>;
 
 // Order types
 export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
@@ -123,18 +55,18 @@ export interface ShippingAddress {
 
 export interface Order {
   id: string;
-  order_number: string;
-  customer_email: string;
-  customer_name: string;
-  customer_phone: string | null;
-  shipping_address: ShippingAddress;
-  status: OrderStatus;
-  subtotal: number;
-  shipping_cost: number;
+  user_id: string | null;
   total: number;
-  notes: string | null;
+  shipping_address: Json | null;
+  billing_address: Json | null;
   created_at: string;
   updated_at: string;
+  status: string;
+  stripe_session_id: string | null;
+  stripe_payment_intent: string | null;
+  customer_email: string | null;
+  customer_name: string | null;
+  notes: string | null;
 }
 
 export interface OrderItem {
@@ -145,16 +77,87 @@ export interface OrderItem {
   product_image: string | null;
   quantity: number;
   unit_price: number;
-  total_price: number;
+  variant: Json | null;
   created_at: string;
 }
 
 export interface OrderHistory {
   id: string;
   order_id: string;
-  old_status: OrderStatus | null;
-  new_status: OrderStatus;
+  status: string;
   changed_by: string | null;
-  note: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+// Review type matching Supabase schema
+export interface Review {
+  id: string;
+  product_id: string;
+  user_id: string | null;
+  user_name: string;
+  user_email: string | null;
+  rating: number;
+  title: string | null;
+  content: string | null;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+  products?: { name: string; slug?: string } | null;
+}
+
+// Customization request matching Supabase schema
+export interface CustomizationRequest {
+  id: string;
+  user_id: string | null;
+  name: string;
+  email: string;
+  phone: string | null;
+  request_type: string;
+  description: string;
+  budget_range: string | null;
+  images: string[] | null;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Access log matching Supabase schema
+export interface AccessLog {
+  id: string;
+  user_id: string | null;
+  action: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  success: boolean;
+  created_at: string;
+}
+
+// Access block matching Supabase schema
+export interface AccessBlock {
+  id: string;
+  ip_address: string;
+  reason: string | null;
+  blocked_at: string;
+  expires_at: string | null;
+}
+
+// User profile matching Supabase schema
+export interface UserProfile {
+  id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  address: Json | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: 'admin' | 'moderator' | 'user';
   created_at: string;
 }

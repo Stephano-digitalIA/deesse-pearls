@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -18,25 +17,9 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-interface UserProfile {
-  id: string;
-  user_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  phone: string | null;
-  city: string | null;
-  country: string | null;
-  created_at: string;
-}
-
-interface UserRole {
-  user_id: string;
-  role: 'admin' | 'moderator' | 'user';
-}
+import type { UserProfile, UserRole } from '@/types/supabase';
 
 interface UserWithRole extends UserProfile {
-  email?: string;
   roles: string[];
 }
 
@@ -69,7 +52,7 @@ const UserManagement: React.FC = () => {
       try {
         const { data: session } = await supabase.auth.getSession();
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-emails`,
+          `https://fnhnlastwctnhiejajtg.supabase.co/functions/v1/get-user-emails`,
           {
             headers: {
               Authorization: `Bearer ${session?.session?.access_token}`,
@@ -87,16 +70,16 @@ const UserManagement: React.FC = () => {
 
       // Map roles to users
       const rolesMap = new Map<string, string[]>();
-      (roles || []).forEach((r: UserRole) => {
+      (roles || []).forEach((r: { user_id: string; role: string }) => {
         const existing = rolesMap.get(r.user_id) || [];
         rolesMap.set(r.user_id, [...existing, r.role]);
       });
 
-      // Combine data
+      // Combine data - use profile.id as user_id since profiles.id references auth.users.id
       const usersWithRoles: UserWithRole[] = (profiles || []).map((profile: UserProfile) => ({
         ...profile,
-        email: emailsMap[profile.user_id] || undefined,
-        roles: rolesMap.get(profile.user_id) || ['user'],
+        email: emailsMap[profile.id] || profile.email || undefined,
+        roles: rolesMap.get(profile.id) || ['user'],
       }));
 
       setUsers(usersWithRoles);
@@ -119,7 +102,6 @@ const UserManagement: React.FC = () => {
     const searchLower = searchTerm.toLowerCase();
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
     return fullName.includes(searchLower) || 
-           user.city?.toLowerCase().includes(searchLower) ||
            user.phone?.includes(searchTerm) ||
            user.email?.toLowerCase().includes(searchLower);
   });
@@ -190,7 +172,6 @@ const UserManagement: React.FC = () => {
                 <TableRow>
                   <TableHead>Utilisateur</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Localisation</TableHead>
                   <TableHead>Rôle</TableHead>
                   <TableHead>Inscription</TableHead>
                 </TableRow>
@@ -213,7 +194,7 @@ const UserManagement: React.FC = () => {
                               : 'Non renseigné'}
                           </p>
                           <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                            ID: {user.user_id.slice(0, 8)}...
+                            ID: {user.id.slice(0, 8)}...
                           </p>
                         </div>
                       </div>
@@ -233,15 +214,6 @@ const UserManagement: React.FC = () => {
                           <p className="text-sm text-muted-foreground">—</p>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {user.city || user.country ? (
-                        <p className="text-sm">
-                          {[user.city, user.country].filter(Boolean).join(', ')}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">—</p>
-                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
