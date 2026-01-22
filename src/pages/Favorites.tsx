@@ -22,7 +22,7 @@ const Favorites: React.FC = () => {
       id: product.id,
       name: product.name,
       price: product.price,
-      image: product.images[0],
+      image: product.image,
     });
     toast.success(`${product.name} ${t('addedToCart')}`);
   };
@@ -103,7 +103,7 @@ const Favorites: React.FC = () => {
                   <Link to={`/product/${product.slug}`}>
                     <div className="relative aspect-square overflow-hidden">
                       <img
-                        src={resolveImagePath(product.images[0])}
+                        src={resolveImagePath(product.image)}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />

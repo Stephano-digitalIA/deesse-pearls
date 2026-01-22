@@ -160,7 +160,7 @@ const Index: React.FC = () => {
             {t("customCreationAvailable")}
           </motion.p>
           <motion.div variants={scaleIn}>
-            <Link to="/customization">
+            <Link to="/contact">
               <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black font-semibold">
                 {t("requestCustomization")}
               </Button>

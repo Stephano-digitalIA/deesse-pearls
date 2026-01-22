@@ -1,24 +1,25 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocale } from '@/contexts/LocaleContext';
 import { productTranslations } from '@/data/productTranslations';
-import type { Product, ProductCategory, Json } from '@/types/supabase';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Product, ProductCategory } from '@/types/supabase';
 
-interface DbTranslation {
-  product_id: string;
-  locale: string;
+// Cache configuration - data stays fresh for 5 minutes
+const STALE_TIME = 5 * 60 * 1000;
+const GC_TIME = 10 * 60 * 1000;
+
+interface DbTranslationRow {
+  slug: string;
+  lang: string;
   name: string;
   description: string;
 }
 
-// Helper to transform Supabase product row to our Product type
-const transformProduct = (row: Tables<'products'>): Product => ({
-  ...row,
-  badge: row.badge as Product['badge'],
-  category: row.category as ProductCategory,
-  variants: row.variants,
-});
+interface DbTranslation {
+  slug: string;
+  name_translations: Record<string, string>;
+  description_translations: Record<string, string>;
+}
 
 // Helper function to translate a product using fallback chain:
 // 1. Static translations (productTranslations.ts)
@@ -43,10 +44,11 @@ const translateProduct = (
   }
 
   // 2. Vérifier les traductions en base de données
-  const key = `${product.id}-${language}`;
-  const dbTranslation = dbTranslationsMap.get(key);
+  const dbTranslation = dbTranslationsMap.get(product.slug);
   if (dbTranslation) {
-    return { ...product, name: dbTranslation.name, description: dbTranslation.description };
+    const name = dbTranslation.name_translations[language] || dbTranslation.name_translations['fr'] || product.name;
+    const description = dbTranslation.description_translations[language] || dbTranslation.description_translations['fr'] || product.description;
+    return { ...product, name, description };
   }
 
   // 3. Retourner le produit original (français)
@@ -54,11 +56,11 @@ const translateProduct = (
 };
 
 // Fetch database translations (standalone function, not a hook)
-const fetchDbTranslations = async (language: string): Promise<Map<string, DbTranslation>> => {
+// Aggregates rows by slug into a single object with translations per language
+const fetchDbTranslations = async (): Promise<Map<string, DbTranslation>> => {
   const { data, error } = await supabase
     .from('product_translations')
-    .select('product_id, locale, name, description')
-    .eq('locale', language);
+    .select('slug, lang, name, description');
 
   if (error) {
     console.error('Error fetching translations:', error);
@@ -66,16 +68,28 @@ const fetchDbTranslations = async (language: string): Promise<Map<string, DbTran
   }
 
   const map = new Map<string, DbTranslation>();
-  (data || []).forEach((t) => {
-    map.set(`${t.product_id}-${t.locale}`, t);
+
+  // Aggregate rows by slug
+  (data || []).forEach((row: DbTranslationRow) => {
+    if (!map.has(row.slug)) {
+      map.set(row.slug, {
+        slug: row.slug,
+        name_translations: {},
+        description_translations: {},
+      });
+    }
+    const entry = map.get(row.slug)!;
+    entry.name_translations[row.lang] = row.name;
+    entry.description_translations[row.lang] = row.description;
   });
+
   return map;
 };
 
 // Fetch all products with translations
 export const useTranslatedProducts = () => {
   const { language } = useLocale();
-  
+
   return useQuery({
     queryKey: ['translated-products', language],
     queryFn: async (): Promise<Product[]> => {
@@ -84,7 +98,7 @@ export const useTranslatedProducts = () => {
           .from('products')
           .select('*')
           .order('created_at', { ascending: false }),
-        fetchDbTranslations(language)
+        fetchDbTranslations()
       ]);
 
       if (productsResult.error) {
@@ -92,17 +106,17 @@ export const useTranslatedProducts = () => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(row => 
-        translateProduct(transformProduct(row), language, dbTranslationsMap)
-      );
+      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
     },
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 };
 
 // Fetch products by category with translations
 export const useTranslatedProductsByCategory = (category: ProductCategory) => {
   const { language } = useLocale();
-  
+
   return useQuery({
     queryKey: ['translated-products', 'category', category, language],
     queryFn: async (): Promise<Product[]> => {
@@ -112,7 +126,7 @@ export const useTranslatedProductsByCategory = (category: ProductCategory) => {
           .select('*')
           .eq('category', category)
           .order('created_at', { ascending: false }),
-        fetchDbTranslations(language)
+        fetchDbTranslations()
       ]);
 
       if (productsResult.error) {
@@ -120,18 +134,19 @@ export const useTranslatedProductsByCategory = (category: ProductCategory) => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(row => 
-        translateProduct(transformProduct(row), language, dbTranslationsMap)
-      );
+      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
     },
     enabled: !!category,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 };
 
 // Fetch single product by slug with translations
 export const useTranslatedProductBySlug = (slug: string) => {
   const { language } = useLocale();
-  
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ['translated-products', 'slug', slug, language],
     queryFn: async (): Promise<Product | null> => {
@@ -141,7 +156,7 @@ export const useTranslatedProductBySlug = (slug: string) => {
           .select('*')
           .eq('slug', slug)
           .maybeSingle(),
-        fetchDbTranslations(language)
+        fetchDbTranslations()
       ]);
 
       if (productResult.error) {
@@ -149,12 +164,43 @@ export const useTranslatedProductBySlug = (slug: string) => {
         throw productResult.error;
       }
 
-      return productResult.data 
-        ? translateProduct(transformProduct(productResult.data), language, dbTranslationsMap) 
-        : null;
+      return productResult.data ? translateProduct(productResult.data, language, dbTranslationsMap) : null;
     },
     enabled: !!slug,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    // Use cached products list as initial data for instant display
+    initialData: () => {
+      const cachedProducts = queryClient.getQueryData<Product[]>(['translated-products', language]);
+      return cachedProducts?.find(p => p.slug === slug) || undefined;
+    },
   });
+};
+
+// Prefetch a product by slug (call on hover for instant navigation)
+export const usePrefetchProduct = () => {
+  const { language } = useLocale();
+  const queryClient = useQueryClient();
+
+  return (slug: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['translated-products', 'slug', slug, language],
+      queryFn: async (): Promise<Product | null> => {
+        const [productResult, dbTranslationsMap] = await Promise.all([
+          supabase
+            .from('products')
+            .select('*')
+            .eq('slug', slug)
+            .maybeSingle(),
+          fetchDbTranslations()
+        ]);
+
+        if (productResult.error) return null;
+        return productResult.data ? translateProduct(productResult.data, language, dbTranslationsMap) : null;
+      },
+      staleTime: STALE_TIME,
+    });
+  };
 };
 
 // Fetch featured products with translations
@@ -170,7 +216,7 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
           .select('*')
           .not('badge', 'is', null)
           .limit(limit),
-        fetchDbTranslations(language)
+        fetchDbTranslations()
       ]);
 
       if (productsResult.error) {
@@ -178,9 +224,7 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(row => 
-        translateProduct(transformProduct(row), language, dbTranslationsMap)
-      );
+      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
     },
   });
 };
@@ -198,7 +242,7 @@ export const useTranslatedNewArrivals = () => {
           .select('*')
           .eq('badge', 'new')
           .order('created_at', { ascending: false }),
-        fetchDbTranslations(language)
+        fetchDbTranslations()
       ]);
 
       if (productsResult.error) {
@@ -206,9 +250,7 @@ export const useTranslatedNewArrivals = () => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(row => 
-        translateProduct(transformProduct(row), language, dbTranslationsMap)
-      );
+      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
     },
   });
 };
@@ -226,7 +268,7 @@ export const useTranslatedBestSellers = () => {
           .select('*')
           .eq('badge', 'bestseller')
           .order('rating', { ascending: false }),
-        fetchDbTranslations(language)
+        fetchDbTranslations()
       ]);
 
       if (productsResult.error) {
@@ -234,9 +276,7 @@ export const useTranslatedBestSellers = () => {
         throw productsResult.error;
       }
 
-      return (productsResult.data || []).map(row => 
-        translateProduct(transformProduct(row), language, dbTranslationsMap)
-      );
+      return (productsResult.data || []).map(p => translateProduct(p, language, dbTranslationsMap));
     },
   });
 };

@@ -2,60 +2,124 @@ import React, { useState } from 'react';
 import { X, Plus, Minus, ShoppingBag, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { resolveImagePath } from '@/lib/utils';
 
 const CartDrawer: React.FC = () => {
-  const { items, removeItem, updateQuantity, subtotal, shippingCost, total, isCartOpen, setIsCartOpen } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, shippingCost, total, isCartOpen, setIsCartOpen, clearCart } = useCart();
+  const { user } = useAuth();
   const { t, formatPrice } = useLocale();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaypalLoading, setIsPaypalLoading] = useState(false);
 
   const handleCheckout = async () => {
-    if (isLoading) return;
+    if (isLoading || items.length === 0) return;
 
-    // Open a blank tab/window immediately to avoid popup blockers
-    const popup = window.open('about:blank', '_blank');
+    // Check if user is logged in
+    if (!user) {
+      toast.error(t('pleaseLoginToCheckout') || 'Veuillez vous connecter pour passer commande');
+      setIsCartOpen(false);
+      navigate('/auth');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      if (!popup) {
-        throw new Error('POPUP_BLOCKED');
-      }
+      const checkoutData = {
+        items: items.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image ? `${window.location.origin}${item.image}` : null,
+          variant: item.variant,
+        })),
+        customerEmail: user.email,
+        successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/payment-cancelled`,
+      };
+
+      console.log('Checkout data:', checkoutData);
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          items,
-          shippingCost,
-        },
+        body: checkoutData,
       });
 
-      if (error) throw error;
-      if (!data?.url) throw new Error('NO_CHECKOUT_URL');
+      console.log('Checkout response:', { data, error });
 
-      popup.location.href = data.url;
-      setIsCartOpen(false);
-    } catch (error) {
-      console.error('Checkout error:', error);
-
-      // Cleanup if we opened a blank tab
-      try {
-        popup?.close();
-      } catch {
-        // ignore
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+      if (!data?.url) {
+        console.error('No checkout URL in response:', data);
+        throw new Error('NO_CHECKOUT_URL');
       }
 
-      const message =
-        error instanceof Error && error.message === 'POPUP_BLOCKED'
-          ? "Le navigateur a bloqué l'ouverture. Autorisez les popups puis réessayez."
-          : t('checkoutError') || 'Une erreur est survenue lors du paiement';
-
-      toast.error(message);
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      console.error('Error details:', error?.message, error?.context, error?.details);
+      toast.error(t('checkoutError') || 'Une erreur est survenue lors du paiement');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePaypalCheckout = async () => {
+    if (isPaypalLoading || items.length === 0) return;
+
+    // Check if user is logged in
+    if (!user) {
+      toast.error(t('pleaseLoginToCheckout') || 'Veuillez vous connecter pour passer commande');
+      setIsCartOpen(false);
+      navigate('/auth');
+      return;
+    }
+
+    setIsPaypalLoading(true);
+    try {
+      const checkoutData = {
+        items: items.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image ? `${window.location.origin}${item.image}` : null,
+          variant: item.variant,
+        })),
+        customerEmail: user.email,
+        successUrl: `${window.location.origin}/payment-success?paypal=true`,
+        cancelUrl: `${window.location.origin}/payment-cancelled`,
+      };
+
+      const { data, error } = await supabase.functions.invoke('create-paypal-checkout', {
+        body: checkoutData,
+      });
+
+      if (error) {
+        console.error('PayPal function error:', error);
+        throw error;
+      }
+      if (!data?.url) {
+        console.error('No PayPal URL in response:', data);
+        throw new Error('NO_PAYPAL_URL');
+      }
+
+      // Redirect to PayPal Checkout
+      window.location.href = data.url;
+    } catch (error: any) {
+      console.error('PayPal checkout error:', error);
+      toast.error(t('checkoutError') || 'Une erreur est survenue lors du paiement');
+    } finally {
+      setIsPaypalLoading(false);
     }
   };
 
@@ -179,21 +243,43 @@ const CartDrawer: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Checkout button */}
-                <Button 
-                  onClick={handleCheckout}
-                  disabled={isLoading}
-                  className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {t('processing') || 'Traitement...'}
-                    </>
-                  ) : (
-                    t('checkout')
-                  )}
-                </Button>
+                {/* Checkout buttons */}
+                <div className="space-y-2">
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={isLoading || isPaypalLoading}
+                    className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {t('processing') || 'Traitement...'}
+                      </>
+                    ) : (
+                      t('checkout')
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={handlePaypalCheckout}
+                    disabled={isLoading || isPaypalLoading}
+                    className="w-full bg-[#0070ba] hover:bg-[#005ea6] text-white font-semibold"
+                  >
+                    {isPaypalLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {t('processing') || 'Traitement...'}
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.64h6.304c2.098 0 3.744.44 4.893 1.307 1.178.888 1.753 2.18 1.71 3.839-.097 3.777-2.62 5.863-7.094 5.863H9.347l-.96 6.048a.64.64 0 0 1-.633.54h-.678v.66zm9.354-14.876c-.06.436-.147.87-.26 1.298-.896 3.413-3.178 4.966-6.78 4.966H8.068l-1.026 6.497h2.377l.82-5.18a.77.77 0 0 1 .757-.64h.91c3.428 0 6.08-1.574 6.859-4.852.324-1.364.21-2.519-.335-3.089z"/>
+                        </svg>
+                        PayPal
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </motion.div>

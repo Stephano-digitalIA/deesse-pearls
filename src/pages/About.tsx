@@ -125,7 +125,7 @@ const About: React.FC = () => {
                 {t('discoverCollection')}
               </Button>
             </Link>
-            <Link to="/customization">
+            <Link to="/contact">
               <Button size="lg" variant="outline" className="border-gold text-gold hover:bg-gold hover:text-deep-black">
                 {t('customCreation')}
               </Button>

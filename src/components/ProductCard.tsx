@@ -6,6 +6,7 @@ import type { Product } from '@/types/supabase';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { usePrefetchProduct } from '@/hooks/useTranslatedProducts';
 import { Button } from '@/components/ui/button';
 import { getProductTranslation } from '@/data/productTranslations';
 import { resolveImagePath } from '@/lib/utils';
@@ -17,8 +18,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { t, formatPrice, language } = useLocale();
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const prefetchProduct = usePrefetchProduct();
 
   const productName = getProductTranslation(product.slug, 'name', language) || product.name;
+
+  // Prefetch product data on hover for instant navigation
+  const handleMouseEnter = () => {
+    prefetchProduct(product.slug);
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -27,7 +34,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       id: product.id,
       name: productName,
       price: product.price,
-      image: product.images[0],
+      image: product.image,
     });
   };
 
@@ -41,11 +48,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <motion.div
       whileHover={{ y: -5 }}
       className="group"
+      onMouseEnter={handleMouseEnter}
     >
       <Link to={`/product/${product.slug}`} className="block">
         <div className="relative aspect-square overflow-hidden rounded-lg bg-muted mb-3 sm:mb-4">
           <img
-            src={resolveImagePath(product.images[0])}
+            src={resolveImagePath(product.image)}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />

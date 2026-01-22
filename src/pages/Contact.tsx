@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { aboutContactTranslations } from '@/data/aboutContactTranslations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +13,9 @@ import { toast } from 'sonner';
 
 const Contact: React.FC = () => {
   const { t, language } = useLocale();
+  const { user } = useAuth();
   const pageT = aboutContactTranslations[language] || aboutContactTranslations.fr;
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -23,21 +26,101 @@ const Contact: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pre-fill form with user profile data
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) return;
+
+      // First, use user metadata for instant display
+      const metadata = user.user_metadata || {};
+      const metaFirstName = metadata.first_name || metadata.given_name || metadata.name?.split(' ')[0] || '';
+      const metaLastName = metadata.last_name || metadata.family_name || metadata.name?.split(' ').slice(1).join(' ') || '';
+
+      setFormData(prev => ({
+        ...prev,
+        firstName: prev.firstName || metaFirstName,
+        lastName: prev.lastName || metaLastName,
+        email: prev.email || user.email || '',
+      }));
+
+      // Then, load full profile from Supabase
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, email, phone')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profile) {
+        setFormData(prev => ({
+          ...prev,
+          firstName: profile.first_name || prev.firstName,
+          lastName: profile.last_name || prev.lastName,
+          email: profile.email || prev.email,
+          phone: profile.phone || prev.phone,
+        }));
+      }
+    };
+
+    loadUserProfile();
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast.success(pageT.messageSent);
-    setFormData({ firstName: '', lastName: '', email: '', phone: '', subject: '', message: '' });
+
+    try {
+      console.log('1. Saving to DB...');
+
+      // Save to Supabase
+      const { error: dbError } = await supabase
+        .from('contact_messages')
+        .insert({
+          user_id: user?.id || null,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone || null,
+          subject: formData.subject,
+          message: formData.message,
+        });
+
+      console.log('2. DB result:', dbError ? dbError : 'OK');
+
+      console.log('3. Calling Edge Function...');
+
+      // Send email notification via Edge Function
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-contact-email', {
+        body: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          subject: formData.subject,
+          message: formData.message,
+        },
+      });
+
+      console.log('4. Edge Function result:', { emailData, emailError });
+
+      if (emailError) {
+        console.error('Email Error:', emailError);
+        toast.error(pageT.messageError || 'Une erreur est survenue');
+      } else {
+        toast.success(pageT.messageSent);
+        setFormData(prev => ({ ...prev, subject: '', message: '' }));
+      }
+    } catch (error) {
+      console.error('5. Catch Error:', error);
+      toast.error(pageT.messageError || 'Une erreur est survenue');
+    }
+
     setIsSubmitting(false);
+    console.log('6. Done');
   };
 
   const contactInfo = [
     { icon: Mail, label: pageT.emailLabel, value: 'contact@deesse-pearls.com', href: 'mailto:contact@deesse-pearls.com' },
-    { icon: Phone, label: pageT.phoneLabel, value: '+689 40 XX XX XX', href: 'tel:+68940000000' },
+    { icon: Phone, label: pageT.phoneLabel, value: '+689 87 78 39 47', href: 'tel:+68987783947' },
     { icon: MapPin, label: pageT.addressLabel, value: pageT.addressValue, href: '#' },
     { icon: Clock, label: pageT.hoursLabel, value: pageT.hoursValue, href: '#' },
   ];

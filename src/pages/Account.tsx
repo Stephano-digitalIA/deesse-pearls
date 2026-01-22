@@ -13,32 +13,29 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, MapPin, Package, LogOut, Save } from 'lucide-react';
 import OrderCard from '@/components/OrderCard';
 import { z } from 'zod';
-import type { Json } from '@/types/supabase';
 
 // Validation schema for profile
 const profileSchema = z.object({
   first_name: z.string().max(50, 'First name too long').optional().nullable(),
   last_name: z.string().max(50, 'Last name too long').optional().nullable(),
   phone: z.string().regex(/^[+0-9\s()-]{0,20}$/, 'Invalid phone format').optional().nullable().or(z.literal('')),
+  address_line1: z.string().max(200, 'Address too long').optional().nullable(),
+  address_line2: z.string().max(200, 'Address too long').optional().nullable(),
+  city: z.string().max(100, 'City name too long').optional().nullable(),
+  postal_code: z.string().max(10, 'Postal code too long').optional().nullable(),
+  country: z.string().max(100, 'Country name too long').optional().nullable(),
 });
-
 interface Profile {
   id: string;
-  email: string | null;
+  user_id: string;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
-  address: Json | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface AddressData {
-  line1?: string;
-  line2?: string;
-  city?: string;
-  postal_code?: string;
-  country?: string;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
 }
 
 interface OrderItem {
@@ -47,16 +44,23 @@ interface OrderItem {
   product_image: string | null;
   quantity: number;
   unit_price: number;
+  total_price: number;
 }
 
 interface Order {
   id: string;
+  order_number: string;
   status: string;
   total: number;
+  subtotal: number;
+  shipping_cost: number;
   created_at: string;
-  shipping_address: Json | null;
-  customer_name: string | null;
-  customer_email: string | null;
+  shipping_address: {
+    line1?: string;
+    city?: string;
+    postal_code?: string;
+    country?: string;
+  };
   order_items: OrderItem[];
 }
 
@@ -71,15 +75,31 @@ const Account: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Form state
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Pre-fill form with user metadata immediately (before Supabase profile loads)
+  const userMetadata = user?.user_metadata || {};
+  const initialFirstName = userMetadata.first_name || userMetadata.given_name || userMetadata.name?.split(' ')[0] || '';
+  const initialLastName = userMetadata.last_name || userMetadata.family_name || userMetadata.name?.split(' ').slice(1).join(' ') || '';
+
+  // Form state - initialized with user metadata for instant display
+  const [firstName, setFirstName] = useState(initialFirstName);
+  const [lastName, setLastName] = useState(initialLastName);
   const [phone, setPhone] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [country, setCountry] = useState('France');
+
+  // Update form when user metadata changes (e.g., after OAuth login)
+  useEffect(() => {
+    if (user?.user_metadata) {
+      const meta = user.user_metadata;
+      const metaFirstName = meta.first_name || meta.given_name || meta.name?.split(' ')[0] || '';
+      const metaLastName = meta.last_name || meta.family_name || meta.name?.split(' ').slice(1).join(' ') || '';
+      if (metaFirstName && !firstName) setFirstName(metaFirstName);
+      if (metaLastName && !lastName) setLastName(metaLastName);
+    }
+  }, [user?.user_metadata]);
 
   useEffect(() => {
     // Avoid bouncing back to /auth while OAuth session is still being persisted.
@@ -88,10 +108,10 @@ const Account: React.FC = () => {
     }
   }, [user, session, isLoading, navigate]);
 
+  // Fetch profile and orders in parallel
   useEffect(() => {
     if (user) {
-      fetchProfile();
-      fetchOrders();
+      Promise.all([fetchProfile(), fetchOrders()]);
     }
   }, [user]);
 
@@ -101,26 +121,22 @@ const Account: React.FC = () => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (error) {
       console.error('Error fetching profile:', error);
     } else if (data) {
       setProfile(data);
-      setFirstName(data.first_name || '');
-      setLastName(data.last_name || '');
-      setPhone(data.phone || '');
-      
-      // Parse address JSON
-      const addressData = data.address as AddressData | null;
-      if (addressData) {
-        setAddressLine1(addressData.line1 || '');
-        setAddressLine2(addressData.line2 || '');
-        setCity(addressData.city || '');
-        setPostalCode(addressData.postal_code || '');
-        setCountry(addressData.country || 'France');
-      }
+      // Only update fields if Supabase has values (keep user metadata as fallback)
+      if (data.first_name) setFirstName(data.first_name);
+      if (data.last_name) setLastName(data.last_name);
+      if (data.phone) setPhone(data.phone);
+      if (data.address_line1) setAddressLine1(data.address_line1);
+      if (data.address_line2) setAddressLine2(data.address_line2);
+      if (data.city) setCity(data.city);
+      if (data.postal_code) setPostalCode(data.postal_code);
+      if (data.country) setCountry(data.country);
     }
     setIsLoadingData(false);
   };
@@ -132,18 +148,20 @@ const Account: React.FC = () => {
       .from('orders')
       .select(`
         id,
+        order_number,
         status,
         total,
+        subtotal,
+        shipping_cost,
         created_at,
         shipping_address,
-        customer_name,
-        customer_email,
         order_items (
           id,
           product_name,
           product_image,
           quantity,
-          unit_price
+          unit_price,
+          total_price
         )
       `)
       .eq('user_id', user.id)
@@ -165,6 +183,11 @@ const Account: React.FC = () => {
       first_name: firstName || null,
       last_name: lastName || null,
       phone: phone || null,
+      address_line1: addressLine1 || null,
+      address_line2: addressLine2 || null,
+      city: city || null,
+      postal_code: postalCode || null,
+      country: country || null,
     };
 
     const validationResult = profileSchema.safeParse(profileData);
@@ -178,39 +201,33 @@ const Account: React.FC = () => {
       return;
     }
 
-    setIsSaving(true);
+    // Optimistic update: show success immediately
+    toast({
+      title: t('profileUpdated'),
+      description: t('infoSaved'),
+    });
 
-    // Build address JSON
-    const addressData: AddressData = {
-      line1: addressLine1 || undefined,
-      line2: addressLine2 || undefined,
-      city: city || undefined,
-      postal_code: postalCode || undefined,
-      country: country || undefined,
-    };
-
-    const { error } = await supabase
+    // Save in background (non-blocking)
+    supabase
       .from('profiles')
-      .update({
+      .upsert({
+        user_id: user.id,
         ...profileData,
-        address: addressData as Json,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
       })
-      .eq('id', user.id);
-
-    setIsSaving(false);
-
-    if (error) {
-      toast({
-        title: t('error'),
-        description: t('cannotSaveProfile'),
-        variant: "destructive",
+      .then(({ error }) => {
+        if (error) {
+          console.error('Error saving profile:', error);
+          // Show error toast only if save failed (reverting optimistic update)
+          toast({
+            title: t('error'),
+            description: t('cannotSaveProfile'),
+            variant: "destructive",
+          });
+        }
       });
-    } else {
-      toast({
-        title: t('profileUpdated'),
-        description: t('infoSaved'),
-      });
-    }
   };
 
   const handleSignOut = async () => {
@@ -291,15 +308,12 @@ const Account: React.FC = () => {
 
         {/* Header with logout */}
         <div className="flex justify-between items-center mb-8">
-          <div>
+          <div className="flex items-center gap-3">
             <h2 className="font-display text-xl md:text-2xl font-semibold">
               {t('myAccount')}
             </h2>
             {isLoadingData && (
-              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {t('loadingProfile')}
-              </p>
+              <Loader2 className="w-4 h-4 animate-spin text-gold" />
             )}
           </div>
           <Button

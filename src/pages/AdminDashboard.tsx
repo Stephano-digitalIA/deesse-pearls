@@ -62,7 +62,7 @@ const emptyProduct: Omit<ProductInsert, 'id'> = {
   name: '',
   description: '',
   price: 0,
-  images: [],
+  image: '',
   badge: null,
   rating: 0,
   reviews: 0,
@@ -216,14 +216,14 @@ const AdminDashboard: React.FC = () => {
       name: product.name,
       description: product.description,
       price: product.price,
-      images: product.images,
+      image: product.image,
       badge: product.badge,
       rating: product.rating,
       reviews: product.reviews,
       variants: product.variants,
       in_stock: product.in_stock,
     });
-    setImageUrl(product.images[0] || '');
+    setImageUrl(product.image || '');
     setIsDialogOpen(true);
   };
 
@@ -269,7 +269,7 @@ const AdminDashboard: React.FC = () => {
       name: formData.name,
       description: formData.description,
       price: formData.price,
-      images: imageUrl ? [imageUrl] : [],
+      image: imageUrl || '',
       badge: formData.badge,
       in_stock: formData.in_stock,
     };
@@ -675,9 +675,9 @@ const AdminDashboard: React.FC = () => {
                         <TableRow key={product.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              {product.images[0] && (
+                              {product.image && (
                                 <img
-                                  src={resolveImagePath(product.images[0])}
+                                  src={resolveImagePath(product.image)}
                                   alt={product.name}
                                   className="w-10 h-10 object-cover rounded"
                                 />

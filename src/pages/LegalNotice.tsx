@@ -20,27 +20,27 @@ const LegalNotice: React.FC = () => {
             <div className="grid gap-4 text-sm">
               <div className="flex flex-col sm:flex-row sm:gap-4">
                 <span className="font-semibold min-w-48">{t('companyName')} :</span>
-                <span>{t('companyNameValue')}</span>
+                <span>DEESSE PEARLS</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:gap-4">
                 <span className="font-semibold min-w-48">{t('registeredOffice')} :</span>
-                <span>{t('registeredOfficeValue')}</span>
+                <span>Résidence Te Maru Ata, Polynésie française</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:gap-4">
-                <span className="font-semibold min-w-48">{t('registrationNumber')} :</span>
-                <span>{t('registrationNumberValue')}</span>
+                <span className="font-semibold min-w-48">{t('tahitiNumber')} :</span>
+                <span>407585</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:gap-4">
-                <span className="font-semibold min-w-48">{t('vatNumber')} :</span>
-                <span>{t('vatNumberValue')}</span>
+                <span className="font-semibold min-w-48">RCS :</span>
+                <span>44963A</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:gap-4">
-                <span className="font-semibold min-w-48">{t('shareCapital')} :</span>
-                <span>{t('shareCapitalValue')}</span>
+                <span className="font-semibold min-w-48">{t('director')} :</span>
+                <span>Ondine CHUNG</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:gap-4">
-                <span className="font-semibold min-w-48">{t('publicationDirector')} :</span>
-                <span>{t('publicationDirectorValue')}</span>
+                <span className="font-semibold min-w-48">{t('phone')} :</span>
+                <span>87 78 39 47</span>
               </div>
             </div>
           </section>

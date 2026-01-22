@@ -22,6 +22,7 @@ import FAQ from "./pages/FAQ";
 import LegalNotice from "./pages/LegalNotice";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfSale from "./pages/TermsOfSale";
+import Delivery from "./pages/Delivery";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -74,6 +75,7 @@ const App = () => (
                         <Route path="/legal" element={<LegalNotice />} />
                         <Route path="/privacy" element={<PrivacyPolicy />} />
                         <Route path="/terms" element={<TermsOfSale />} />
+                        <Route path="/delivery" element={<Delivery />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </main>

@@ -2,8 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Instagram, Facebook } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 
 const Footer: React.FC = () => {
   const { t } = useLocale();
@@ -33,7 +31,7 @@ const Footer: React.FC = () => {
 
       {/* Main footer */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <h2 className="font-display text-2xl">
@@ -77,6 +75,21 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/shop/earrings" className="text-pearl/70 hover:text-gold transition-colors">
+                  {t('earrings')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop/pendants" className="text-pearl/70 hover:text-gold transition-colors">
+                  {t('pendants')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop/sets" className="text-pearl/70 hover:text-gold transition-colors">
+                  {t('jewelrySets')}
+                </Link>
+              </li>
+              <li>
                 <Link to="/shop/other" className="text-pearl/70 hover:text-gold transition-colors">
                   {t('otherJewelry')}
                 </Link>
@@ -99,33 +112,23 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/size-guide" className="text-pearl/70 hover:text-gold transition-colors">
-                  {t('sizeGuide')}
+                <Link to="/delivery" className="text-pearl/70 hover:text-gold transition-colors">
+                  {t('deliveryReturns')}
                 </Link>
               </li>
               <li>
-                <Link to="/delivery" className="text-pearl/70 hover:text-gold transition-colors">
-                  {t('deliveryReturns')}
+                <Link to="/commitments" className="text-pearl/70 hover:text-gold transition-colors">
+                  {t('ourCommitments')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="text-pearl/70 hover:text-gold transition-colors">
+                  {t('about')}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Newsletter */}
-          <div>
-            <h3 className="font-display text-lg mb-4 text-gold">{t('newsletter')}</h3>
-            <p className="text-pearl/70 text-sm mb-4">{t('subscribeNewsletter')}</p>
-            <form className="flex flex-col sm:flex-row gap-2">
-              <Input
-                type="email"
-                placeholder={t('email')}
-                className="bg-pearl/10 border-pearl/20 text-pearl placeholder:text-pearl/50 flex-1"
-              />
-              <Button variant="default" className="bg-gold hover:bg-gold-dark text-deep-black w-full sm:w-auto">
-                {t('subscribe')}
-              </Button>
-            </form>
-          </div>
         </div>
       </div>
 

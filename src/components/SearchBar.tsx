@@ -113,7 +113,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onClose }) => {
                 >
                   <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
                     <img
-                      src={resolveImagePath(product.images[0])}
+                      src={resolveImagePath(product.image)}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
