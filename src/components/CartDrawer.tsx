@@ -16,7 +16,6 @@ const CartDrawer: React.FC = () => {
   const { t, formatPrice } = useLocale();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isPaypalLoading, setIsPaypalLoading] = useState(false);
 
   const handleCheckout = async () => {
     if (isLoading || items.length === 0) return;
@@ -39,70 +38,21 @@ const CartDrawer: React.FC = () => {
           quantity: item.quantity,
           image: item.image ? `${window.location.origin}${item.image}` : null,
           variant: item.variant,
+          size: item.size,
+          quality: item.quality,
         })),
         customerEmail: user.email,
-        successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/payment-cancelled`,
+        customerName: user.user_metadata?.full_name || user.email,
+        shippingCost: shippingCost,
       };
 
-      console.log('Checkout data:', checkoutData);
+      console.log('PayPal checkout data:', checkoutData);
 
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error } = await supabase.functions.invoke('create-paypal-order', {
         body: checkoutData,
       });
 
-      console.log('Checkout response:', { data, error });
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw error;
-      }
-      if (!data?.url) {
-        console.error('No checkout URL in response:', data);
-        throw new Error('NO_CHECKOUT_URL');
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = data.url;
-    } catch (error: any) {
-      console.error('Checkout error:', error);
-      console.error('Error details:', error?.message, error?.context, error?.details);
-      toast.error(t('checkoutError') || 'Une erreur est survenue lors du paiement');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePaypalCheckout = async () => {
-    if (isPaypalLoading || items.length === 0) return;
-
-    // Check if user is logged in
-    if (!user) {
-      toast.error(t('pleaseLoginToCheckout') || 'Veuillez vous connecter pour passer commande');
-      setIsCartOpen(false);
-      navigate('/auth');
-      return;
-    }
-
-    setIsPaypalLoading(true);
-    try {
-      const checkoutData = {
-        items: items.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image ? `${window.location.origin}${item.image}` : null,
-          variant: item.variant,
-        })),
-        customerEmail: user.email,
-        successUrl: `${window.location.origin}/payment-success?paypal=true`,
-        cancelUrl: `${window.location.origin}/payment-cancelled`,
-      };
-
-      const { data, error } = await supabase.functions.invoke('create-paypal-checkout', {
-        body: checkoutData,
-      });
+      console.log('PayPal response:', { data, error });
 
       if (error) {
         console.error('PayPal function error:', error);
@@ -117,9 +67,10 @@ const CartDrawer: React.FC = () => {
       window.location.href = data.url;
     } catch (error: any) {
       console.error('PayPal checkout error:', error);
+      console.error('Error details:', error?.message, error?.context, error?.details);
       toast.error(t('checkoutError') || 'Une erreur est survenue lors du paiement');
     } finally {
-      setIsPaypalLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -226,7 +177,7 @@ const CartDrawer: React.FC = () => {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-border p-4 space-y-4">
+              <div className="border-t border-border p-4 pb-10 space-y-4">
                 {/* Totals */}
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -243,43 +194,25 @@ const CartDrawer: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Checkout buttons */}
-                <div className="space-y-2">
-                  <Button
-                    onClick={handleCheckout}
-                    disabled={isLoading || isPaypalLoading}
-                    className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        {t('processing') || 'Traitement...'}
-                      </>
-                    ) : (
-                      t('checkout')
-                    )}
-                  </Button>
-
-                  <Button
-                    onClick={handlePaypalCheckout}
-                    disabled={isLoading || isPaypalLoading}
-                    className="w-full bg-[#0070ba] hover:bg-[#005ea6] text-white font-semibold"
-                  >
-                    {isPaypalLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        {t('processing') || 'Traitement...'}
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.64h6.304c2.098 0 3.744.44 4.893 1.307 1.178.888 1.753 2.18 1.71 3.839-.097 3.777-2.62 5.863-7.094 5.863H9.347l-.96 6.048a.64.64 0 0 1-.633.54h-.678v.66zm9.354-14.876c-.06.436-.147.87-.26 1.298-.896 3.413-3.178 4.966-6.78 4.966H8.068l-1.026 6.497h2.377l.82-5.18a.77.77 0 0 1 .757-.64h.91c3.428 0 6.08-1.574 6.859-4.852.324-1.364.21-2.519-.335-3.089z"/>
-                        </svg>
-                        PayPal
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {/* PayPal Checkout Button - Official Branding */}
+                <button
+                  onClick={handleCheckout}
+                  disabled={isLoading}
+                  className="w-full h-[45px] bg-[#FFC439] hover:bg-[#f0b72f] disabled:opacity-50 disabled:cursor-not-allowed rounded-[4px] flex items-center justify-center transition-colors"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-[#003087]" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="101" height="24" viewBox="0 0 101 24">
+                      <path fill="#003087" d="M12.237 2.8h-7.8c-.5 0-1 .4-1.1.9L1.137 17.8c-.1.5.3.9.8.9h3.7c.5 0 1-.4 1.1-.9l.6-3.8c.1-.5.5-.9 1.1-.9h2.5c5.1 0 8.1-2.5 8.8-7.4.3-2.1 0-3.8-1-5-1.1-1.3-3.1-1.9-5.5-1.9zm.9 7.3c-.4 2.8-2.6 2.8-4.6 2.8h-1.2l.8-5.2c.1-.3.3-.5.6-.5h.5c1.4 0 2.7 0 3.4.8.4.5.5 1.2.5 2.1z"/>
+                      <path fill="#003087" d="M35.437 10h-3.7c-.3 0-.6.2-.6.5l-.2 1-.3-.4c-.8-1.2-2.6-1.6-4.4-1.6-4.1 0-7.6 3.1-8.3 7.5-.4 2.2.1 4.3 1.4 5.7 1.2 1.3 2.9 1.9 4.9 1.9 3.5 0 5.4-2.2 5.4-2.2l-.2 1c-.1.5.3.9.8.9h3.4c.5 0 1-.4 1.1-.9l2-12.5c.1-.4-.4-.9-.8-.9zm-5.4 7.2c-.4 2.1-2 3.6-4.2 3.6-1.1 0-2-.3-2.5-1-.5-.7-.7-1.6-.5-2.7.3-2.1 2.1-3.6 4.1-3.6 1.1 0 1.9.4 2.5 1 .6.8.8 1.7.6 2.7z"/>
+                      <path fill="#003087" d="M55.337 10h-3.7c-.4 0-.7.2-.9.5l-5.2 7.6-2.2-7.3c-.1-.5-.6-.8-1.1-.8h-3.6c-.5 0-.9.5-.7 1l4.1 12.1-3.9 5.4c-.4.5 0 1.2.6 1.2h3.7c.4 0 .7-.2.9-.5l12.5-18c.4-.5 0-1.2-.5-1.2z"/>
+                      <path fill="#009cde" d="M67.737 2.8h-7.8c-.5 0-1 .4-1.1.9l-2.2 14.1c-.1.5.3.9.8.9h4c.4 0 .7-.3.8-.7l.6-4c.1-.5.5-.9 1.1-.9h2.5c5.1 0 8.1-2.5 8.8-7.4.3-2.1 0-3.8-1-5-1.2-1.2-3.2-1.9-5.5-1.9zm.9 7.3c-.4 2.8-2.6 2.8-4.6 2.8h-1.2l.8-5.2c.1-.3.3-.5.6-.5h.5c1.4 0 2.7 0 3.4.8.4.5.6 1.2.5 2.1z"/>
+                      <path fill="#009cde" d="M90.937 10h-3.7c-.3 0-.6.2-.6.5l-.2 1-.3-.4c-.8-1.2-2.6-1.6-4.4-1.6-4.1 0-7.6 3.1-8.3 7.5-.4 2.2.1 4.3 1.4 5.7 1.2 1.3 2.9 1.9 4.9 1.9 3.5 0 5.4-2.2 5.4-2.2l-.2 1c-.1.5.3.9.8.9h3.4c.5 0 1-.4 1.1-.9l2-12.5c.1-.4-.3-.9-.8-.9zm-5.3 7.2c-.4 2.1-2 3.6-4.2 3.6-1.1 0-2-.3-2.5-1-.5-.7-.7-1.6-.5-2.7.3-2.1 2.1-3.6 4.1-3.6 1.1 0 1.9.4 2.5 1 .6.8.8 1.7.6 2.7z"/>
+                      <path fill="#009cde" d="M95.337 3.3l-2.3 14.3c-.1.5.3.9.8.9h3.2c.5 0 1-.4 1.1-.9l2.2-14.1c.1-.5-.3-.9-.8-.9h-3.5c-.3-.1-.5.2-.7.7z"/>
+                    </svg>
+                  )}
+                </button>
               </div>
             )}
           </motion.div>

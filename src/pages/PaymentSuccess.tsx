@@ -37,7 +37,7 @@ interface OrderDetails {
 
 const PaymentSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const paypalToken = searchParams.get('token');
   const { clearCart } = useCart();
   const { t } = useLocale();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
@@ -50,29 +50,56 @@ const PaymentSuccess: React.FC = () => {
   }, [clearCart]);
 
   useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!sessionId) {
+    const capturePayPalPayment = async () => {
+      if (!paypalToken) {
         setIsLoading(false);
         return;
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke('get-checkout-session', {
-          body: { sessionId },
+        console.log('Capturing PayPal payment:', paypalToken);
+
+        const { data, error } = await supabase.functions.invoke('capture-paypal-payment', {
+          body: { orderId: paypalToken },
         });
 
         if (error) throw error;
-        setOrderDetails(data);
+
+        if (data?.order) {
+          const order = data.order;
+          setOrderDetails({
+            id: order.id,
+            customerEmail: order.customer_email,
+            customerName: order.customer_name,
+            amountTotal: order.total,
+            currency: 'EUR',
+            paymentStatus: 'paid',
+            shippingAddress: order.shipping_address ? {
+              line1: order.shipping_address.line1,
+              line2: order.shipping_address.line2,
+              city: order.shipping_address.city,
+              postalCode: order.shipping_address.postal_code,
+              country: order.shipping_address.country,
+            } : null,
+            items: order.order_items?.map((item: any) => ({
+              name: item.product_name,
+              quantity: item.quantity,
+              unitAmount: item.unit_price,
+              total: item.total_price,
+            })) || [],
+            createdAt: order.created_at,
+          });
+        }
       } catch (err) {
-        console.error('Error fetching order details:', err);
-        setError('Impossible de charger les détails de la commande');
+        console.error('Error capturing PayPal payment:', err);
+        setError('Impossible de finaliser le paiement');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchOrderDetails();
-  }, [sessionId]);
+    capturePayPalPayment();
+  }, [paypalToken]);
 
   // Send confirmation email when order details are loaded
   useEffect(() => {
@@ -173,9 +200,9 @@ const PaymentSuccess: React.FC = () => {
         ) : error ? (
           <div className="text-center text-muted-foreground py-8">
             <p>{error}</p>
-            {sessionId && (
+            {paypalToken && (
               <p className="text-sm mt-2">
-                Référence: <span className="font-mono">{sessionId.slice(-8).toUpperCase()}</span>
+                Référence PayPal: <span className="font-mono">{paypalToken.slice(-8).toUpperCase()}</span>
               </p>
             )}
           </div>
