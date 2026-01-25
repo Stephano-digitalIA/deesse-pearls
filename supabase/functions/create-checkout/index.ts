@@ -32,28 +32,6 @@ serve(async (req) => {
   }
 
   try {
-    // Rate limiting using Deno KV
-    const kv = await Deno.openKv();
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                     req.headers.get('x-real-ip') || 
-                     'unknown';
-    const rateLimitKey = ['ratelimit', 'checkout', clientIp];
-    const rateLimitResult = await kv.get<number>(rateLimitKey);
-    const currentCount = rateLimitResult.value || 0;
-    const rateLimit = 10; // 10 checkout attempts per window
-    const rateLimitWindow = 600000; // 10 minutes in ms
-
-    if (currentCount >= rateLimit) {
-      console.warn(`Rate limit exceeded for IP: ${clientIp}`);
-      return new Response(JSON.stringify({ error: 'Too many checkout attempts. Please try again later.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 429,
-      });
-    }
-
-    // Increment rate limit counter
-    await kv.set(rateLimitKey, currentCount + 1, { expireIn: rateLimitWindow });
-
     const { items, customerEmail, customerName, shippingCost } = await req.json() as CheckoutRequest;
 
     if (!items || items.length === 0) {
@@ -65,7 +43,7 @@ serve(async (req) => {
       throw new Error("Invalid shipping cost");
     }
 
-    console.log("Creating checkout session for", items.length, "items from IP:", clientIp);
+    console.log("Creating checkout session for", items.length, "items");
 
     // Initialize Supabase client to validate prices
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";

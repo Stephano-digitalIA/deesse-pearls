@@ -3,14 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  getProfileByUserId,
+  upsertProfile,
+  getOrdersByUserId,
+  Profile as LocalProfile,
+  Order as LocalOrder,
+} from '@/lib/localStorage';
+import { saveShippingAddress } from '@/hooks/useUserProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, MapPin, Package, LogOut, Save } from 'lucide-react';
+import { getCountriesWithPriority, normalizeCountryToCode, getCountryName, Language, PRIORITY_COUNTRY_CODES, shippingTranslations } from '@/data/shippingTranslations';
 import OrderCard from '@/components/OrderCard';
 import { z } from 'zod';
 
@@ -25,29 +34,7 @@ const profileSchema = z.object({
   postal_code: z.string().max(10, 'Postal code too long').optional().nullable(),
   country: z.string().max(100, 'Country name too long').optional().nullable(),
 });
-interface Profile {
-  id: string;
-  user_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  phone: string | null;
-  address_line1: string | null;
-  address_line2: string | null;
-  city: string | null;
-  postal_code: string | null;
-  country: string | null;
-}
-
-interface OrderItem {
-  id: string;
-  product_name: string;
-  product_image: string | null;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
-
-interface Order {
+interface OrderForDisplay {
   id: string;
   order_number: string;
   status: string;
@@ -61,7 +48,14 @@ interface Order {
     postal_code?: string;
     country?: string;
   };
-  order_items: OrderItem[];
+  order_items: {
+    id: string;
+    product_name: string;
+    product_image: string | null;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }[];
 }
 
 const Account: React.FC = () => {
@@ -70,36 +64,20 @@ const Account: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [profile, setProfile] = useState<LocalProfile | null>(null);
+  const [orders, setOrders] = useState<OrderForDisplay[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Pre-fill form with user metadata immediately (before Supabase profile loads)
-  const userMetadata = user?.user_metadata || {};
-  const initialFirstName = userMetadata.first_name || userMetadata.given_name || userMetadata.name?.split(' ')[0] || '';
-  const initialLastName = userMetadata.last_name || userMetadata.family_name || userMetadata.name?.split(' ').slice(1).join(' ') || '';
-
-  // Form state - initialized with user metadata for instant display
-  const [firstName, setFirstName] = useState(initialFirstName);
-  const [lastName, setLastName] = useState(initialLastName);
+  // Form state
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('France');
-
-  // Update form when user metadata changes (e.g., after OAuth login)
-  useEffect(() => {
-    if (user?.user_metadata) {
-      const meta = user.user_metadata;
-      const metaFirstName = meta.first_name || meta.given_name || meta.name?.split(' ')[0] || '';
-      const metaLastName = meta.last_name || meta.family_name || meta.name?.split(' ').slice(1).join(' ') || '';
-      if (metaFirstName && !firstName) setFirstName(metaFirstName);
-      if (metaLastName && !lastName) setLastName(metaLastName);
-    }
-  }, [user?.user_metadata]);
+  const [country, setCountry] = useState('FR'); // Use country code
 
   useEffect(() => {
     // Avoid bouncing back to /auth while OAuth session is still being persisted.
@@ -108,70 +86,64 @@ const Account: React.FC = () => {
     }
   }, [user, session, isLoading, navigate]);
 
-  // Fetch profile and orders in parallel
   useEffect(() => {
     if (user) {
-      Promise.all([fetchProfile(), fetchOrders()]);
+      fetchProfile();
+      fetchOrders();
     }
   }, [user]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const localProfile = getProfileByUserId(user.id);
 
-    if (error) {
-      console.error('Error fetching profile:', error);
-    } else if (data) {
-      setProfile(data);
-      // Only update fields if Supabase has values (keep user metadata as fallback)
-      if (data.first_name) setFirstName(data.first_name);
-      if (data.last_name) setLastName(data.last_name);
-      if (data.phone) setPhone(data.phone);
-      if (data.address_line1) setAddressLine1(data.address_line1);
-      if (data.address_line2) setAddressLine2(data.address_line2);
-      if (data.city) setCity(data.city);
-      if (data.postal_code) setPostalCode(data.postal_code);
-      if (data.country) setCountry(data.country);
+    if (localProfile) {
+      setProfile(localProfile);
+      setFirstName(localProfile.firstName || '');
+      setLastName(localProfile.lastName || '');
+      setPhone(localProfile.phone || '');
+      setAddressLine1(localProfile.addressLine1 || '');
+      setAddressLine2(localProfile.addressLine2 || '');
+      setCity(localProfile.city || '');
+      setPostalCode(localProfile.postalCode || '');
+      setCountry(normalizeCountryToCode(localProfile.country || ''));
+    } else {
+      // Initialize from user metadata if no profile exists
+      setFirstName(user.user_metadata?.first_name || '');
+      setLastName(user.user_metadata?.last_name || '');
     }
     setIsLoadingData(false);
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        id,
-        order_number,
-        status,
-        total,
-        subtotal,
-        shipping_cost,
-        created_at,
-        shipping_address,
-        order_items (
-          id,
-          product_name,
-          product_image,
-          quantity,
-          unit_price,
-          total_price
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    const localOrders = getOrdersByUserId(user.id);
 
-    if (error) {
-      console.error('Error fetching orders:', error);
-    } else {
-      setOrders((data as Order[]) || []);
-    }
+    // Convert localStorage orders to display format
+    const displayOrders: OrderForDisplay[] = localOrders.map(order => ({
+      id: order.id,
+      order_number: order.orderNumber,
+      status: order.status,
+      total: order.total,
+      subtotal: order.subtotal,
+      shipping_cost: order.shippingCost,
+      created_at: order.createdAt,
+      shipping_address: {
+        line1: order.shippingAddress,
+      },
+      order_items: order.items.map(item => ({
+        id: item.productId,
+        product_name: item.productName,
+        product_image: item.productImage,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        total_price: item.totalPrice,
+      })),
+    }));
+
+    setOrders(displayOrders);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -201,33 +173,48 @@ const Account: React.FC = () => {
       return;
     }
 
-    // Optimistic update: show success immediately
-    toast({
-      title: t('profileUpdated'),
-      description: t('infoSaved'),
-    });
+    setIsSaving(true);
 
-    // Save in background (non-blocking)
-    supabase
-      .from('profiles')
-      .upsert({
-        user_id: user.id,
-        ...profileData,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      })
-      .then(({ error }) => {
-        if (error) {
-          console.error('Error saving profile:', error);
-          // Show error toast only if save failed (reverting optimistic update)
-          toast({
-            title: t('error'),
-            description: t('cannotSaveProfile'),
-            variant: "destructive",
-          });
-        }
+    try {
+      // Save to localStorage (profile)
+      upsertProfile({
+        userId: user.id,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        phone: phone || undefined,
+        addressLine1: addressLine1 || undefined,
+        addressLine2: addressLine2 || undefined,
+        city: city || undefined,
+        postalCode: postalCode || undefined,
+        country: country || undefined,
       });
+
+      // Also save to shipping address storage (for checkout sync)
+      saveShippingAddress({
+        firstName: firstName || '',
+        lastName: lastName || '',
+        email: user.email || '',
+        phone: phone || '',
+        addressLine1: addressLine1 || '',
+        addressLine2: addressLine2 || '',
+        city: city || '',
+        postalCode: postalCode || '',
+        country: country || '',
+      });
+
+      toast({
+        title: t('profileUpdated'),
+        description: t('infoSaved'),
+      });
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: t('cannotSaveProfile'),
+        variant: "destructive",
+      });
+    }
+
+    setIsSaving(false);
   };
 
   const handleSignOut = async () => {
@@ -308,12 +295,15 @@ const Account: React.FC = () => {
 
         {/* Header with logout */}
         <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
+          <div>
             <h2 className="font-display text-xl md:text-2xl font-semibold">
               {t('myAccount')}
             </h2>
             {isLoadingData && (
-              <Loader2 className="w-4 h-4 animate-spin text-gold" />
+              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t('loadingProfile')}
+              </p>
             )}
           </div>
           <Button
@@ -428,12 +418,27 @@ const Account: React.FC = () => {
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="country">{t('country')}</Label>
-                    <Input
-                      id="country"
+                    <Select
                       value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      placeholder="France"
-                    />
+                      onValueChange={setCountry}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={shippingTranslations[language as Language]?.selectCountry || 'Select a country'}>
+                          {country ? getCountryName(country, language as Language) : (shippingTranslations[language as Language]?.selectCountry || 'Select a country')}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getCountriesWithPriority(language as Language).map((c, index) => (
+                          <SelectItem
+                            key={c.code}
+                            value={c.code}
+                            className={c.isPriority && index === PRIORITY_COUNTRY_CODES.length - 1 ? 'border-b border-border mb-1' : ''}
+                          >
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Order, OrderItem, OrderHistory, OrderStatus, ShippingAddress } from '@/types/supabase';
+import { getOrders, updateOrder, Order } from '@/lib/localStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,23 +8,22 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Search, 
-  Eye, 
-  Package, 
-  Clock, 
-  CheckCircle, 
-  Truck, 
+import {
+  Search,
+  Eye,
+  Package,
+  Clock,
+  CheckCircle,
+  Truck,
   XCircle,
   Loader2,
-  History
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { resolveImagePath } from '@/lib/utils';
+
+type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { label: 'En attente', color: 'bg-yellow-500', icon: <Clock className="w-4 h-4" /> },
@@ -37,84 +34,28 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; icon: Re
 };
 
 const OrderManagement: React.FC = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [statusNote, setStatusNote] = useState('');
 
-  // Fetch orders
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async (): Promise<Order[]> => {
-      const { data, error } = await (supabase.from('orders') as any)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      return getOrders();
     },
-  });
-
-  // Fetch order items for selected order
-  const { data: orderItems } = useQuery({
-    queryKey: ['order-items', selectedOrder?.id],
-    queryFn: async (): Promise<OrderItem[]> => {
-      if (!selectedOrder) return [];
-      const { data, error } = await (supabase.from('order_items') as any)
-        .select('*')
-        .eq('order_id', selectedOrder.id);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedOrder,
-  });
-
-  // Fetch order history
-  const { data: orderHistory } = useQuery({
-    queryKey: ['order-history', selectedOrder?.id],
-    queryFn: async (): Promise<OrderHistory[]> => {
-      if (!selectedOrder) return [];
-      const { data, error } = await (supabase.from('order_history') as any)
-        .select('*')
-        .eq('order_id', selectedOrder.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedOrder,
   });
 
   const handleStatusChange = async (newStatus: OrderStatus) => {
-    if (!selectedOrder || !user) return;
-    
+    if (!selectedOrder) return;
+
     setIsUpdating(true);
     try {
-      // Update order status
-      const { error: updateError } = await (supabase.from('orders') as any)
-        .update({ status: newStatus })
-        .eq('id', selectedOrder.id);
-
-      if (updateError) throw updateError;
-
-      // Add history entry
-      const { error: historyError } = await (supabase.from('order_history') as any)
-        .insert([{
-          order_id: selectedOrder.id,
-          old_status: selectedOrder.status,
-          new_status: newStatus,
-          changed_by: user.id,
-          note: statusNote || null,
-        }]);
-
-      if (historyError) throw historyError;
+      updateOrder(selectedOrder.id, { status: newStatus });
 
       toast({
         title: "Statut mis à jour",
@@ -122,9 +63,8 @@ const OrderManagement: React.FC = () => {
       });
 
       setSelectedOrder({ ...selectedOrder, status: newStatus });
-      setStatusNote('');
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['order-history', selectedOrder.id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     } catch (err: any) {
       toast({
         title: "Erreur",
@@ -137,13 +77,13 @@ const OrderManagement: React.FC = () => {
   };
 
   const filteredOrders = orders?.filter(order => {
-    const matchesSearch = 
-      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer_email.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const matchesSearch =
+      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -217,16 +157,16 @@ const OrderManagement: React.FC = () => {
                   filteredOrders?.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-sm">
-                        {order.order_number}
+                        {order.orderNumber}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{order.customer_name}</p>
-                          <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                          <p className="font-medium">{order.customerName}</p>
+                          <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(order.created_at), 'dd MMM yyyy', { locale: fr })}
+                        {format(new Date(order.createdAt), 'dd MMM yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
                         <Badge className={`${statusConfig[order.status].color} text-white`}>
@@ -263,7 +203,7 @@ const OrderManagement: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="w-5 h-5" />
-              Commande {selectedOrder?.order_number}
+              Commande {selectedOrder?.orderNumber}
             </DialogTitle>
           </DialogHeader>
 
@@ -281,9 +221,9 @@ const OrderManagement: React.FC = () => {
                   </Badge>
                 </div>
                 <div className="flex-1 min-w-[200px]">
-                  <Label className="text-sm text-muted-foreground">Changer le statut</Label>
-                  <Select 
-                    value={selectedOrder.status} 
+                  <p className="text-sm text-muted-foreground mb-1">Changer le statut</p>
+                  <Select
+                    value={selectedOrder.status}
                     onValueChange={(v) => handleStatusChange(v as OrderStatus)}
                     disabled={isUpdating}
                   >
@@ -299,31 +239,21 @@ const OrderManagement: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="w-full">
-                  <Textarea
-                    placeholder="Note pour ce changement de statut (optionnel)"
-                    value={statusNote}
-                    onChange={(e) => setStatusNote(e.target.value)}
-                    className="h-16"
-                  />
-                </div>
               </div>
 
               {/* Customer Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">Client</h3>
-                  <p>{selectedOrder.customer_name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedOrder.customer_email}</p>
-                  {selectedOrder.customer_phone && (
-                    <p className="text-sm text-muted-foreground">{selectedOrder.customer_phone}</p>
+                  <p>{selectedOrder.customerName}</p>
+                  <p className="text-sm text-muted-foreground">{selectedOrder.customerEmail}</p>
+                  {selectedOrder.customerPhone && (
+                    <p className="text-sm text-muted-foreground">{selectedOrder.customerPhone}</p>
                   )}
                 </div>
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">Adresse de livraison</h3>
-                  <p>{(selectedOrder.shipping_address as ShippingAddress).street}</p>
-                  <p>{(selectedOrder.shipping_address as ShippingAddress).postal_code} {(selectedOrder.shipping_address as ShippingAddress).city}</p>
-                  <p>{(selectedOrder.shipping_address as ShippingAddress).country}</p>
+                  <p className="text-sm whitespace-pre-line">{selectedOrder.shippingAddress}</p>
                 </div>
               </div>
 
@@ -342,23 +272,23 @@ const OrderManagement: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orderItems?.map((item) => (
-                      <TableRow key={item.id}>
+                    {selectedOrder.items.map((item, index) => (
+                      <TableRow key={index}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            {item.product_image && (
+                            {item.productImage && (
                               <img
-                                src={resolveImagePath(item.product_image)}
-                                alt={item.product_name}
+                                src={resolveImagePath(item.productImage)}
+                                alt={item.productName}
                                 className="w-10 h-10 object-cover rounded"
                               />
                             )}
-                            <span>{item.product_name}</span>
+                            <span>{item.productName}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="text-right">{item.unit_price.toFixed(2)} €</TableCell>
-                        <TableCell className="text-right font-medium">{item.total_price.toFixed(2)} €</TableCell>
+                        <TableCell className="text-right">{item.unitPrice.toFixed(2)} €</TableCell>
+                        <TableCell className="text-right font-medium">{item.totalPrice.toFixed(2)} €</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -370,57 +300,12 @@ const OrderManagement: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Livraison</span>
-                    <span>{selectedOrder.shipping_cost.toFixed(2)} €</span>
+                    <span>{selectedOrder.shippingCost.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-lg pt-2 border-t">
                     <span>Total</span>
                     <span>{selectedOrder.total.toFixed(2)} €</span>
                   </div>
-                </div>
-              </div>
-
-              {/* Order History */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="p-4 bg-muted/50 border-b flex items-center gap-2">
-                  <History className="w-4 h-4" />
-                  <h3 className="font-semibold">Historique</h3>
-                </div>
-                <div className="p-4 space-y-3">
-                  {orderHistory?.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Aucun historique disponible
-                    </p>
-                  ) : (
-                    orderHistory?.map((entry) => (
-                      <div key={entry.id} className="flex items-start gap-3 text-sm">
-                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                        <div className="flex-1">
-                          <p>
-                            {entry.old_status ? (
-                              <>
-                                Statut changé de{' '}
-                                <Badge variant="outline" className="text-xs">
-                                  {statusConfig[entry.old_status].label}
-                                </Badge>
-                                {' '}à{' '}
-                              </>
-                            ) : (
-                              'Statut initial : '
-                            )}
-                            <Badge variant="outline" className="text-xs">
-                              {statusConfig[entry.new_status].label}
-                            </Badge>
-                          </p>
-                          {entry.note && (
-                            <p className="text-muted-foreground mt-1">{entry.note}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(entry.created_at), 'dd MMM yyyy à HH:mm', { locale: fr })}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
                 </div>
               </div>
 

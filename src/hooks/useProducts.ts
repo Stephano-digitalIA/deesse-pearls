@@ -1,161 +1,117 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Product, ProductCategory } from '@/types/supabase';
-import type { Tables } from '@/integrations/supabase/types';
+// src/hooks/useProducts.ts
+// Hook pour gérer les produits (version localStorage sans Supabase)
 
-// Helper to transform Supabase product row to our Product type
-const transformProduct = (row: Tables<'products'>): Product => ({
-  ...row,
-  badge: row.badge as Product['badge'],
-  category: row.category as ProductCategory,
-  variants: row.variants,
-});
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { products as initialProducts, Product, ProductTranslation } from '@/data/products';
 
-// Fetch all products
+// Clé localStorage pour les produits
+const PRODUCTS_STORAGE_KEY = 'deesse_products';
+
+// Récupérer les produits depuis localStorage ou utiliser les produits initiaux
+const getStoredProducts = (): Product[] => {
+  const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return initialProducts;
+    }
+  }
+  return initialProducts;
+};
+
+// Sauvegarder les produits dans localStorage
+const saveProducts = (products: Product[]): void => {
+  localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+};
+
+// Export des types
+export type { Product, ProductTranslation };
+
+// Hook pour récupérer tous les produits
 export const useProducts = () => {
   return useQuery({
-    queryKey: ['products'],
+    queryKey: ['admin-products'],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching products:', error);
-        throw error;
-      }
-
-      return (data || []).map(transformProduct);
+      return getStoredProducts();
     },
   });
 };
 
-// Fetch products by category
-export const useProductsByCategory = (category: ProductCategory) => {
+// Hook pour récupérer un produit par ID
+export const useProduct = (id: string) => {
   return useQuery({
-    queryKey: ['products', 'category', category],
-    queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', category)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching products by category:', error);
-        throw error;
-      }
-
-      return (data || []).map(transformProduct);
-    },
-    enabled: !!category,
-  });
-};
-
-// Fetch single product by slug
-export const useProductBySlug = (slug: string) => {
-  return useQuery({
-    queryKey: ['products', 'slug', slug],
+    queryKey: ['admin-product', id],
     queryFn: async (): Promise<Product | null> => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching product:', error);
-        throw error;
-      }
-
-      return data ? transformProduct(data) : null;
+      const products = getStoredProducts();
+      return products.find(p => p.id === id) || null;
     },
-    enabled: !!slug,
+    enabled: !!id,
   });
 };
 
-// Fetch featured products (new or bestseller)
-export const useFeaturedProducts = (limit = 4) => {
-  return useQuery({
-    queryKey: ['products', 'featured', limit],
-    queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .not('badge', 'is', null)
-        .limit(limit);
+// Hook pour créer un produit
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient();
 
-      if (error) {
-        console.error('Error fetching featured products:', error);
-        throw error;
-      }
-
-      return (data || []).map(transformProduct);
+  return useMutation({
+    mutationFn: async (newProduct: Omit<Product, 'id'>): Promise<Product> => {
+      const products = getStoredProducts();
+      const product: Product = {
+        ...newProduct,
+        id: `${Date.now()}`,
+      };
+      products.push(product);
+      saveProducts(products);
+      return product;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['translated-products'] });
     },
   });
 };
 
-// Fetch new arrivals
-export const useNewArrivals = () => {
-  return useQuery({
-    queryKey: ['products', 'new'],
-    queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('badge', 'new')
-        .order('created_at', { ascending: false });
+// Hook pour mettre à jour un produit
+export const useUpdateProduct = () => {
+  const queryClient = useQueryClient();
 
-      if (error) {
-        console.error('Error fetching new arrivals:', error);
-        throw error;
-      }
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Product> }): Promise<Product | null> => {
+      const products = getStoredProducts();
+      const index = products.findIndex(p => p.id === id);
+      if (index === -1) return null;
 
-      return (data || []).map(transformProduct);
+      products[index] = { ...products[index], ...updates };
+      saveProducts(products);
+      return products[index];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['translated-products'] });
     },
   });
 };
 
-// Fetch bestsellers
-export const useBestSellers = () => {
-  return useQuery({
-    queryKey: ['products', 'bestseller'],
-    queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('badge', 'bestseller')
-        .order('rating', { ascending: false });
+// Hook pour supprimer un produit
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
 
-      if (error) {
-        console.error('Error fetching bestsellers:', error);
-        throw error;
-      }
+  return useMutation({
+    mutationFn: async (id: string): Promise<boolean> => {
+      const products = getStoredProducts();
+      const filtered = products.filter(p => p.id !== id);
+      if (filtered.length === products.length) return false;
 
-      return (data || []).map(transformProduct);
+      saveProducts(filtered);
+      return true;
     },
-  });
-};
-
-// Search products
-export const useSearchProducts = (searchTerm: string) => {
-  return useQuery({
-    queryKey: ['products', 'search', searchTerm],
-    queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
-        .order('rating', { ascending: false });
-
-      if (error) {
-        console.error('Error searching products:', error);
-        throw error;
-      }
-
-      return (data || []).map(transformProduct);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['translated-products'] });
     },
-    enabled: searchTerm.length >= 2,
   });
 };

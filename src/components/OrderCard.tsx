@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Package, MapPin, FileText, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Package, MapPin } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { resolveImagePath } from '@/lib/utils';
 
 interface OrderItem {
@@ -51,53 +48,6 @@ const OrderCard: React.FC<OrderCardProps> = ({
   t,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const { toast } = useToast();
-
-  const handleDownloadInvoice = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsDownloading(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-invoice', {
-        body: { orderId: order.id },
-      });
-
-      if (error) throw error;
-
-      // Convert base64 to blob and download
-      const byteCharacters = atob(data.pdf);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'application/pdf' });
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = data.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: t('invoiceDownloaded') || 'Facture téléchargée',
-        description: data.filename,
-      });
-    } catch (error: any) {
-      console.error('Error downloading invoice:', error);
-      toast({
-        title: t('error') || 'Erreur',
-        description: t('invoiceError') || 'Impossible de télécharger la facture',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   return (
     <div className="border border-border rounded-lg overflow-hidden transition-all hover:border-gold/30">
@@ -217,30 +167,6 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   </div>
                 </>
               )}
-
-              {/* Download Invoice Button */}
-              <Separator />
-              <div className="pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadInvoice}
-                  disabled={isDownloading}
-                  className="w-full sm:w-auto"
-                >
-                  {isDownloading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {t('generating') || 'Génération...'}
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 mr-2" />
-                      {t('downloadInvoice') || 'Télécharger la facture'}
-                    </>
-                  )}
-                </Button>
-              </div>
             </div>
           </motion.div>
         )}

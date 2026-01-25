@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProducts } from '@/hooks/useProducts';
-import { supabase } from '@/integrations/supabase/client';
-import { Product, ProductInsert, ProductCategory, ProductBadge } from '@/types/supabase';
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, Product, ProductTranslation } from '@/hooks/useProducts';
+import { verifyAdminSecret } from '@/lib/localStorage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,32 +14,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  LogOut, 
-  Package, 
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  LogOut,
+  Package,
   Loader2,
   Search,
-  Upload,
   X,
   ImageIcon,
   ShoppingCart,
   MessageSquare,
   Users,
   Home,
-  ShieldAlert,
+  Globe,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderManagement from '@/components/admin/OrderManagement';
 import ReviewManagement from '@/components/admin/ReviewManagement';
 import UserManagement from '@/components/admin/UserManagement';
-import AccessLogsManagement from '@/components/admin/AccessLogsManagement';
 import AdminStats from '@/components/admin/AdminStats';
 import { resolveImagePath } from '@/lib/utils';
 
+type ProductCategory = 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'other';
+type ProductBadge = 'new' | 'bestseller';
 
 const categories: { value: ProductCategory; label: string }[] = [
   { value: 'pearls', label: 'Perles' },
@@ -56,145 +56,112 @@ const badges: { value: ProductBadge | 'none'; label: string }[] = [
   { value: 'bestseller', label: 'Bestseller' },
 ];
 
-const emptyProduct: Omit<ProductInsert, 'id'> = {
+const translationLanguages = [
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'pt', label: 'Português', flag: '🇵🇹' },
+  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
+  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+] as const;
+
+type TranslationCode = typeof translationLanguages[number]['code'];
+
+interface ProductFormData {
+  slug: string;
+  category: ProductCategory;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  badge: ProductBadge | null;
+  rating: number;
+  reviews: number;
+  variants: null;
+  in_stock: boolean;
+  translations: {
+    [key in TranslationCode]?: {
+      name: string;
+      description: string;
+    };
+  };
+}
+
+const emptyTranslations = {
+  en: { name: '', description: '' },
+  de: { name: '', description: '' },
+  es: { name: '', description: '' },
+  pt: { name: '', description: '' },
+  it: { name: '', description: '' },
+  nl: { name: '', description: '' },
+  ja: { name: '', description: '' },
+  ko: { name: '', description: '' },
+};
+
+const emptyProduct: ProductFormData = {
   slug: '',
   category: 'pearls',
   name: '',
   description: '',
   price: 0,
-  image: '',
+  images: [],
   badge: null,
   rating: 0,
   reviews: 0,
   variants: null,
   in_stock: true,
+  translations: { ...emptyTranslations },
 };
 
 const AdminDashboard: React.FC = () => {
   const { secretKey } = useParams<{ secretKey: string }>();
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const { data: products, isLoading: productsLoading, error } = useProducts();
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProductMutation = useDeleteProduct();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState<Omit<ProductInsert, 'id'>>(emptyProduct);
+  const [formData, setFormData] = useState<ProductFormData>(emptyProduct);
   const [imageUrl, setImageUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [isValidSecret, setIsValidSecret] = useState<boolean | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [showTranslations, setShowTranslations] = useState(false);
+  const [activeTranslationTab, setActiveTranslationTab] = useState<TranslationCode>('en');
+
   // Verify the secret URL key
   useEffect(() => {
-    const verifySecret = async () => {
-      if (!secretKey) {
-        setIsValidSecret(false);
-        return;
-      }
-      
-      const { data, error } = await supabase.rpc('verify_admin_url_secret', { secret_key: secretKey });
-      
-      if (error || !data) {
-        setIsValidSecret(false);
-      } else {
-        setIsValidSecret(true);
-      }
-    };
-    
-    verifySecret();
+    if (!secretKey) {
+      setIsValidSecret(false);
+      return;
+    }
+
+    const isValid = verifyAdminSecret(secretKey);
+    setIsValidSecret(isValid);
   }, [secretKey]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner une image valide",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Erreur",
-        description: "L'image ne doit pas dépasser 5 Mo",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `products/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      setImageUrl(publicUrl);
-      toast({
-        title: "Image téléchargée",
-        description: "L'image a été téléchargée avec succès",
-      });
-    } catch (err: any) {
-      toast({
-        title: "Erreur d'upload",
-        description: err.message || "Impossible de télécharger l'image",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const removeImage = () => {
-    setImageUrl('');
-  };
-
-  // Server-side admin verification
+  // Verify admin access
   useEffect(() => {
-    const verifyAdminAccess = async () => {
-      if (authLoading || isValidSecret === null) return;
-      
-      // If secret is invalid, don't redirect - show 404
-      if (!isValidSecret) return;
-      
-      if (!user) {
-        navigate(`/admin/${secretKey}/connexion`);
-        return;
-      }
-      
-      // Verify admin access server-side using RPC
-      const { data: isAdminVerified, error } = await supabase.rpc('verify_admin_access');
-      
-      if (error || !isAdminVerified) {
-        navigate(`/admin/${secretKey}/connexion`);
-      }
-    };
-    
-    verifyAdminAccess();
-  }, [user, authLoading, navigate, secretKey, isValidSecret]);
+    if (authLoading || isValidSecret === null) return;
+
+    if (!isValidSecret) return;
+
+    if (!user) {
+      navigate(`/admin/${secretKey}/connexion`);
+      return;
+    }
+
+    if (!isAdmin) {
+      navigate(`/admin/${secretKey}/connexion`);
+    }
+  }, [user, authLoading, navigate, secretKey, isValidSecret, isAdmin]);
 
   const handleLogout = async () => {
     await signOut();
@@ -205,25 +172,43 @@ const AdminDashboard: React.FC = () => {
     setEditingProduct(null);
     setFormData(emptyProduct);
     setImageUrl('');
+    setShowTranslations(false);
+    setActiveTranslationTab('en');
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (product: Product) => {
     setEditingProduct(product);
+    // Merge existing translations with empty structure
+    const mergedTranslations = { ...emptyTranslations };
+    if (product.translations) {
+      Object.keys(product.translations).forEach((lang) => {
+        const key = lang as TranslationCode;
+        if (product.translations?.[key]) {
+          mergedTranslations[key] = {
+            name: product.translations[key]?.name || '',
+            description: product.translations[key]?.description || '',
+          };
+        }
+      });
+    }
     setFormData({
       slug: product.slug,
       category: product.category,
       name: product.name,
       description: product.description,
       price: product.price,
-      image: product.image,
-      badge: product.badge,
+      images: product.images,
+      badge: product.badge || null,
       rating: product.rating,
       reviews: product.reviews,
       variants: product.variants,
       in_stock: product.in_stock,
+      translations: mergedTranslations,
     });
-    setImageUrl(product.image || '');
+    setImageUrl(product.images[0] || '');
+    setShowTranslations(false);
+    setActiveTranslationTab('en');
     setIsDialogOpen(true);
   };
 
@@ -236,61 +221,43 @@ const AdminDashboard: React.FC = () => {
       .replace(/(^-|-$)/g, '');
   };
 
-  const generateTranslations = async (name: string, description: string, slug: string) => {
-    try {
-      console.log('[AdminDashboard] Generating translations for:', slug);
-      
-      const { data, error } = await supabase.functions.invoke('generate-translations', {
-        body: { name, description, slug }
-      });
-
-      if (error) {
-        console.error('[AdminDashboard] Translation error:', error);
-        return null;
-      }
-
-      console.log('[AdminDashboard] Translations generated:', data);
-      return data;
-    } catch (err) {
-      console.error('[AdminDashboard] Translation fetch error:', err);
-      return null;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     const slug = formData.slug || generateSlug(formData.name);
-    
+
+    // Filter out empty translations
+    const cleanTranslations: typeof formData.translations = {};
+    Object.entries(formData.translations).forEach(([lang, trans]) => {
+      if (trans && (trans.name.trim() || trans.description.trim())) {
+        cleanTranslations[lang as TranslationCode] = {
+          name: trans.name.trim(),
+          description: trans.description.trim(),
+        };
+      }
+    });
+
     const productData = {
       slug,
       category: formData.category,
       name: formData.name,
       description: formData.description,
       price: formData.price,
-      image: imageUrl || '',
+      images: imageUrl ? [imageUrl] : [],
       badge: formData.badge,
+      rating: formData.rating || 0,
+      reviews: formData.reviews || 0,
+      variants: formData.variants,
       in_stock: formData.in_stock,
+      translations: Object.keys(cleanTranslations).length > 0 ? cleanTranslations : undefined,
     };
 
     try {
       if (editingProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', editingProduct.id);
-
-        if (error) throw error;
-
-        // Generate translations in background
-        generateTranslations(formData.name, formData.description, slug).then((result) => {
-          if (result) {
-            toast({
-              title: "Traductions générées",
-              description: "Les traductions multilingues ont été mises à jour.",
-            });
-          }
+        await updateProduct.mutateAsync({
+          id: editingProduct.id,
+          updates: productData,
         });
 
         toast({
@@ -298,21 +265,7 @@ const AdminDashboard: React.FC = () => {
           description: "Le produit a été mis à jour avec succès.",
         });
       } else {
-        const { error } = await supabase
-          .from('products')
-          .insert([productData]);
-
-        if (error) throw error;
-
-        // Generate translations in background
-        generateTranslations(formData.name, formData.description, slug).then((result) => {
-          if (result) {
-            toast({
-              title: "Traductions générées",
-              description: "Les traductions multilingues ont été créées.",
-            });
-          }
-        });
+        await createProduct.mutateAsync(productData);
 
         toast({
           title: "Produit créé",
@@ -320,7 +273,6 @@ const AdminDashboard: React.FC = () => {
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsDialogOpen(false);
     } catch (err: any) {
       toast({
@@ -335,19 +287,12 @@ const AdminDashboard: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await deleteProductMutation.mutateAsync(id);
 
       toast({
         title: "Produit supprimé",
         description: "Le produit a été supprimé avec succès.",
       });
-
-      queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (err: any) {
       toast({
         title: "Erreur",
@@ -428,7 +373,7 @@ const AdminDashboard: React.FC = () => {
         <AdminStats />
 
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full max-w-3xl grid-cols-5">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Produits</span>
@@ -444,10 +389,6 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4" />
-              <span className="hidden sm:inline">Sécurité</span>
             </TabsTrigger>
           </TabsList>
 
@@ -569,14 +510,7 @@ const AdminDashboard: React.FC = () => {
 
                         <div className="space-y-2">
                           <Label>Image du produit</Label>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
-                          
+
                           {imageUrl ? (
                             <div className="relative w-full h-48 border border-border rounded-lg overflow-hidden bg-muted">
                               <img
@@ -589,41 +523,25 @@ const AdminDashboard: React.FC = () => {
                                 variant="destructive"
                                 size="icon"
                                 className="absolute top-2 right-2"
-                                onClick={removeImage}
+                                onClick={() => setImageUrl('')}
                               >
                                 <X className="w-4 h-4" />
                               </Button>
                             </div>
                           ) : (
-                            <div
-                              onClick={() => fileInputRef.current?.click()}
-                              className="w-full h-48 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
-                            >
-                              {isUploading ? (
-                                <>
-                                  <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-                                  <p className="mt-2 text-sm text-muted-foreground">Téléchargement...</p>
-                                </>
-                              ) : (
-                                <>
-                                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                  <p className="mt-2 text-sm text-muted-foreground">Cliquez pour ajouter une image</p>
-                                  <p className="text-xs text-muted-foreground/70">PNG, JPG jusqu'à 5 Mo</p>
-                                </>
-                              )}
+                            <div className="w-full h-48 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center bg-muted/50">
+                              <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                              <p className="mt-2 text-sm text-muted-foreground">Entrez une URL d'image ci-dessous</p>
                             </div>
                           )}
-                          
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>ou</span>
-                            <Input
-                              type="text"
-                              value={imageUrl}
-                              onChange={(e) => setImageUrl(e.target.value)}
-                              placeholder="Chemin ou URL d'image"
-                              className="flex-1 h-8 text-xs"
-                            />
-                          </div>
+
+                          <Input
+                            type="text"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="URL ou chemin de l'image"
+                            className="mt-2"
+                          />
                         </div>
 
                         <div className="flex items-center space-x-2">
@@ -633,6 +551,101 @@ const AdminDashboard: React.FC = () => {
                             onCheckedChange={(checked) => setFormData({ ...formData, in_stock: checked })}
                           />
                           <Label htmlFor="in_stock">En stock</Label>
+                        </div>
+
+                        {/* Translations Section */}
+                        <div className="border border-border rounded-lg overflow-hidden">
+                          <button
+                            type="button"
+                            className="w-full flex items-center justify-between p-4 bg-muted/50 hover:bg-muted transition-colors"
+                            onClick={() => setShowTranslations(!showTranslations)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Globe className="w-4 h-4 text-primary" />
+                              <span className="font-medium">Traductions</span>
+                              <span className="text-xs text-muted-foreground">(8 langues)</span>
+                            </div>
+                            {showTranslations ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          {showTranslations && (
+                            <div className="p-4 space-y-4">
+                              <p className="text-sm text-muted-foreground">
+                                Le francais (FR) est la langue par defaut. Ajoutez les traductions pour les autres langues.
+                              </p>
+
+                              {/* Language Tabs */}
+                              <div className="flex flex-wrap gap-2">
+                                {translationLanguages.map((lang) => (
+                                  <button
+                                    key={lang.code}
+                                    type="button"
+                                    className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                                      activeTranslationTab === lang.code
+                                        ? 'bg-primary text-primary-foreground border-primary'
+                                        : 'bg-background border-border hover:bg-muted'
+                                    }`}
+                                    onClick={() => setActiveTranslationTab(lang.code)}
+                                  >
+                                    <span className="mr-1">{lang.flag}</span>
+                                    {lang.label}
+                                    {formData.translations[lang.code]?.name && (
+                                      <span className="ml-1 text-xs opacity-70">*</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Translation Fields */}
+                              <div className="space-y-3 pt-2">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`trans-name-${activeTranslationTab}`}>
+                                    Nom ({translationLanguages.find(l => l.code === activeTranslationTab)?.label})
+                                  </Label>
+                                  <Input
+                                    id={`trans-name-${activeTranslationTab}`}
+                                    value={formData.translations[activeTranslationTab]?.name || ''}
+                                    onChange={(e) => setFormData({
+                                      ...formData,
+                                      translations: {
+                                        ...formData.translations,
+                                        [activeTranslationTab]: {
+                                          ...formData.translations[activeTranslationTab],
+                                          name: e.target.value,
+                                        },
+                                      },
+                                    })}
+                                    placeholder={formData.name || 'Nom du produit...'}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`trans-desc-${activeTranslationTab}`}>
+                                    Description ({translationLanguages.find(l => l.code === activeTranslationTab)?.label})
+                                  </Label>
+                                  <Textarea
+                                    id={`trans-desc-${activeTranslationTab}`}
+                                    value={formData.translations[activeTranslationTab]?.description || ''}
+                                    onChange={(e) => setFormData({
+                                      ...formData,
+                                      translations: {
+                                        ...formData.translations,
+                                        [activeTranslationTab]: {
+                                          ...formData.translations[activeTranslationTab],
+                                          description: e.target.value,
+                                        },
+                                      },
+                                    })}
+                                    rows={3}
+                                    placeholder={formData.description || 'Description du produit...'}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex justify-end gap-3 pt-4">
@@ -675,15 +688,20 @@ const AdminDashboard: React.FC = () => {
                         <TableRow key={product.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              {product.image && (
+                              {product.images[0] && (
                                 <img
-                                  src={resolveImagePath(product.image)}
+                                  src={resolveImagePath(product.images[0])}
                                   alt={product.name}
                                   className="w-10 h-10 object-cover rounded"
                                 />
                               )}
                               <div>
-                                <p className="font-medium">{product.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{product.name}</p>
+                                  {product.translations && Object.keys(product.translations).length > 0 && (
+                                    <Globe className="w-3.5 h-3.5 text-primary" title={`${Object.keys(product.translations).length} traduction(s)`} />
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground">{product.slug}</p>
                               </div>
                             </div>
@@ -773,13 +791,8 @@ const AdminDashboard: React.FC = () => {
             </Card>
           </TabsContent>
 
-
           <TabsContent value="users">
             <UserManagement />
-          </TabsContent>
-
-          <TabsContent value="security">
-            <AccessLogsManagement />
           </TabsContent>
         </Tabs>
       </main>

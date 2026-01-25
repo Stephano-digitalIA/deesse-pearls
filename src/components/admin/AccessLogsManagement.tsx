@@ -1,6 +1,15 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  getAccessLogs,
+  deleteAccessLog,
+  clearAccessLogs,
+  getAccessBlocks,
+  deleteAccessBlock,
+  clearAccessBlocks,
+  AccessLog,
+  AccessBlock,
+} from '@/lib/localStorage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +20,6 @@ import { ShieldAlert, Trash2, RefreshCw, Clock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { AccessLog, AccessBlock } from '@/types/supabase';
 
 const AccessLogsManagement: React.FC = () => {
   const queryClient = useQueryClient();
@@ -20,39 +28,23 @@ const AccessLogsManagement: React.FC = () => {
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
     queryKey: ['admin-access-logs'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_access_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (error) throw error;
-      return data as AccessLog[];
+      return getAccessLogs();
     }
   });
 
-  // Fetch blocked IPs
+  // Fetch blocked users
   const { data: blocks, isLoading: blocksLoading, refetch: refetchBlocks } = useQuery({
     queryKey: ['admin-access-blocks'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_access_blocks')
-        .select('*')
-        .order('blocked_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as AccessBlock[];
+      return getAccessBlocks();
     }
   });
 
   // Delete log mutation
   const deleteLogMutation = useMutation({
     mutationFn: async (logId: string) => {
-      const { error } = await supabase
-        .from('admin_access_logs')
-        .delete()
-        .eq('id', logId);
-      if (error) throw error;
+      const success = deleteAccessLog(logId);
+      if (!success) throw new Error('Log not found');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-logs'] });
@@ -66,11 +58,7 @@ const AccessLogsManagement: React.FC = () => {
   // Clear all logs mutation
   const clearAllLogsMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('admin_access_logs')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      if (error) throw error;
+      clearAccessLogs();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-logs'] });
@@ -81,18 +69,15 @@ const AccessLogsManagement: React.FC = () => {
     }
   });
 
-  // Unblock IP mutation
+  // Unblock user mutation
   const unblockMutation = useMutation({
     mutationFn: async (blockId: string) => {
-      const { error } = await supabase
-        .from('admin_access_blocks')
-        .delete()
-        .eq('id', blockId);
-      if (error) throw error;
+      const success = deleteAccessBlock(blockId);
+      if (!success) throw new Error('Block not found');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-blocks'] });
-      toast.success('IP débloquée');
+      toast.success('Utilisateur débloqué');
     },
     onError: () => {
       toast.error('Erreur lors du déblocage');
@@ -102,11 +87,7 @@ const AccessLogsManagement: React.FC = () => {
   // Clear all blocks mutation
   const clearAllBlocksMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('admin_access_blocks')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      if (error) throw error;
+      clearAccessBlocks();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-blocks'] });
@@ -126,20 +107,20 @@ const AccessLogsManagement: React.FC = () => {
     return 'Autre';
   };
 
-  const isCurrentlyBlocked = (expiresAt: string | null) => {
-    if (!expiresAt) return true; // No expiry = permanently blocked
-    return new Date(expiresAt) > new Date();
+  const isCurrentlyBlocked = (blockedUntil: string | null) => {
+    if (!blockedUntil) return false;
+    return new Date(blockedUntil) > new Date();
   };
 
-  const getRemainingTime = (expiresAt: string | null) => {
-    if (!expiresAt) return 'Permanent';
-    const remaining = new Date(expiresAt).getTime() - Date.now();
+  const getRemainingTime = (blockedUntil: string | null) => {
+    if (!blockedUntil) return null;
+    const remaining = new Date(blockedUntil).getTime() - Date.now();
     if (remaining <= 0) return null;
     const minutes = Math.ceil(remaining / (1000 * 60));
     return `${minutes} min`;
   };
 
-  const activeBlocks = blocks?.filter(b => isCurrentlyBlocked(b.expires_at)) || [];
+  const activeBlocks = blocks?.filter(b => isCurrentlyBlocked(b.blockedUntil)) || [];
 
   if (logsLoading || blocksLoading) {
     return (
@@ -164,12 +145,12 @@ const AccessLogsManagement: React.FC = () => {
               Sécurité & Accès
             </CardTitle>
             <CardDescription>
-              Journal des tentatives d'accès et gestion des blocages
+              Journal des tentatives d'accès non autorisées et gestion des blocages
             </CardDescription>
           </div>
           {activeBlocks.length > 0 && (
             <Badge variant="destructive" className="text-sm">
-              {activeBlocks.length} IP bloquée{activeBlocks.length > 1 ? 's' : ''}
+              {activeBlocks.length} utilisateur{activeBlocks.length > 1 ? 's' : ''} bloqué{activeBlocks.length > 1 ? 's' : ''}
             </Badge>
           )}
         </div>
@@ -194,9 +175,9 @@ const AccessLogsManagement: React.FC = () => {
                 Actualiser
               </Button>
               {logs && logs.length > 0 && (
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() => clearAllLogsMutation.mutate()}
                   disabled={clearAllLogsMutation.isPending}
                 >
@@ -209,7 +190,7 @@ const AccessLogsManagement: React.FC = () => {
             {!logs || logs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <ShieldAlert className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Aucune tentative d'accès enregistrée</p>
+                <p>Aucune tentative d'accès non autorisée enregistrée</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -217,9 +198,8 @@ const AccessLogsManagement: React.FC = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>IP</TableHead>
-                      <TableHead>Statut</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Navigateur</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -228,19 +208,22 @@ const AccessLogsManagement: React.FC = () => {
                     {logs.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell className="whitespace-nowrap">
-                          {format(new Date(log.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}
+                          {format(new Date(log.createdAt), 'dd MMM yyyy HH:mm', { locale: fr })}
                         </TableCell>
-                        <TableCell className="font-medium">{log.action}</TableCell>
-                        <TableCell>{log.ip_address || '-'}</TableCell>
+                        <TableCell className="font-medium">{log.email}</TableCell>
                         <TableCell>
-                          <Badge 
-                            variant={log.success ? 'default' : 'destructive'} 
+                          <Badge
+                            variant={log.attemptType === 'admin_login_success' ? 'default' : 'destructive'}
                             className="text-xs"
                           >
-                            {log.success ? 'Succès' : 'Échec'}
+                            {log.attemptType === 'unauthorized_admin_access'
+                              ? 'Non autorisé'
+                              : log.attemptType === 'admin_login_success'
+                              ? 'Autorisé'
+                              : log.attemptType}
                           </Badge>
                         </TableCell>
-                        <TableCell>{getBrowserInfo(log.user_agent)}</TableCell>
+                        <TableCell>{getBrowserInfo(log.userAgent)}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -266,9 +249,9 @@ const AccessLogsManagement: React.FC = () => {
                 Actualiser
               </Button>
               {blocks && blocks.length > 0 && (
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() => clearAllBlocksMutation.mutate()}
                   disabled={clearAllBlocksMutation.isPending}
                 >
@@ -281,30 +264,30 @@ const AccessLogsManagement: React.FC = () => {
             {!blocks || blocks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Aucune IP bloquée</p>
+                <p>Aucun utilisateur bloqué</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>IP</TableHead>
-                      <TableHead>Raison</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Tentatives</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Temps restant</TableHead>
-                      <TableHead>Date de blocage</TableHead>
+                      <TableHead>Dernière mise à jour</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {blocks.map((block) => {
-                      const blocked = isCurrentlyBlocked(block.expires_at);
-                      const remaining = getRemainingTime(block.expires_at);
-                      
+                      const blocked = isCurrentlyBlocked(block.blockedUntil);
+                      const remaining = getRemainingTime(block.blockedUntil);
+
                       return (
                         <TableRow key={block.id}>
-                          <TableCell className="font-medium">{block.ip_address}</TableCell>
-                          <TableCell>{block.reason || '-'}</TableCell>
+                          <TableCell className="font-medium">{block.email}</TableCell>
+                          <TableCell>{block.attemptCount}</TableCell>
                           <TableCell>
                             {blocked ? (
                               <Badge variant="destructive">Bloqué</Badge>
@@ -316,7 +299,7 @@ const AccessLogsManagement: React.FC = () => {
                             {remaining || '-'}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {format(new Date(block.blocked_at), 'dd MMM yyyy HH:mm', { locale: fr })}
+                            {format(new Date(block.updatedAt), 'dd MMM yyyy HH:mm', { locale: fr })}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button

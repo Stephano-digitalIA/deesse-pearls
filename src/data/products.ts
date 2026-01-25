@@ -11,6 +11,11 @@ import ringSimplePearl from '@/assets/ring-simple-pearl.jpg';
 import pendantPearl from '@/assets/pendant-pearl.jpg';
 import earringsPearlDrop from '@/assets/earrings-pearl-drop.jpg';
 
+export interface ProductTranslation {
+  name: string;
+  description: string;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -28,6 +33,16 @@ export interface Product {
     diameters?: string[];
   };
   inStock: boolean;
+  translations?: {
+    en?: ProductTranslation;
+    de?: ProductTranslation;
+    es?: ProductTranslation;
+    pt?: ProductTranslation;
+    it?: ProductTranslation;
+    nl?: ProductTranslation;
+    ja?: ProductTranslation;
+    ko?: ProductTranslation;
+  };
 }
 
 export const products: Product[] = [

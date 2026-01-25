@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  getCustomizationRequests,
+  updateCustomizationRequest,
+  deleteCustomizationRequest,
+  CustomizationRequest,
+} from '@/lib/localStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Search, Loader2, Eye, Trash2, Mail, Phone } from 'lucide-react';
-import type { CustomizationRequest } from '@/types/supabase';
 
 const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pending: { label: 'En attente', variant: 'secondary' },
@@ -19,6 +23,30 @@ const statusLabels: Record<string, { label: string; variant: 'default' | 'second
   in_progress: { label: 'En cours', variant: 'default' },
   completed: { label: 'Terminé', variant: 'outline' },
   cancelled: { label: 'Annulé', variant: 'destructive' },
+};
+
+const jewelryLabels: Record<string, string> = {
+  ring: 'Bague',
+  necklace: 'Collier',
+  bracelet: 'Bracelet',
+  earrings: 'Boucles d\'oreilles',
+  pendant: 'Pendentif',
+  other: 'Autre',
+};
+
+const pearlLabels: Record<string, string> = {
+  round: 'Ronde',
+  drop: 'Goutte',
+  baroque: 'Baroque',
+  button: 'Bouton',
+  multiple: 'Plusieurs types',
+};
+
+const metalLabels: Record<string, string> = {
+  'gold-18k': 'Or jaune 18k',
+  'white-gold': 'Or blanc',
+  'rose-gold': 'Or rose',
+  platinum: 'Platine',
 };
 
 const CustomizationManagement: React.FC = () => {
@@ -33,24 +61,22 @@ const CustomizationManagement: React.FC = () => {
   const { data: requests, isLoading } = useQuery({
     queryKey: ['customization-requests'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customization_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as CustomizationRequest[];
+      // Get from localStorage and sort by date (most recent first)
+      const data = getCustomizationRequests();
+      return data.sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: string; notes: string }) => {
-      const { error } = await supabase
-        .from('customization_requests')
-        .update({ status, admin_notes: notes })
-        .eq('id', id);
-
-      if (error) throw error;
+      const result = updateCustomizationRequest(id, {
+        status: status as CustomizationRequest['status'],
+        adminNotes: notes
+      });
+      if (!result) throw new Error('Request not found');
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customization-requests'] });
@@ -64,12 +90,8 @@ const CustomizationManagement: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('customization_requests')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      const success = deleteCustomizationRequest(id);
+      if (!success) throw new Error('Request not found');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customization-requests'] });
@@ -82,13 +104,13 @@ const CustomizationManagement: React.FC = () => {
   });
 
   const filteredRequests = requests?.filter(req =>
-    req.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${req.firstName} ${req.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     req.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const openDetails = (request: CustomizationRequest) => {
     setSelectedRequest(request);
-    setAdminNotes(request.admin_notes || '');
+    setAdminNotes(request.adminNotes || '');
     setNewStatus(request.status);
   };
 
@@ -143,16 +165,16 @@ const CustomizationManagement: React.FC = () => {
               {filteredRequests?.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell className="whitespace-nowrap">
-                    {new Date(request.created_at).toLocaleDateString('fr-FR')}
+                    {new Date(request.createdAt).toLocaleDateString('fr-FR')}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{request.name}</div>
+                    <div className="font-medium">{request.firstName} {request.lastName}</div>
                     <div className="text-sm text-muted-foreground">{request.email}</div>
                   </TableCell>
                   <TableCell>
-                    {request.request_type}
+                    {jewelryLabels[request.jewelryType] || request.jewelryType}
                   </TableCell>
-                  <TableCell>{request.budget_range || '-'}</TableCell>
+                  <TableCell>{request.budget}</TableCell>
                   <TableCell>
                     <Badge variant={statusLabels[request.status]?.variant || 'secondary'}>
                       {statusLabels[request.status]?.label || request.status}
@@ -223,7 +245,7 @@ const CustomizationManagement: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Nom:</span>
-                    <p className="font-medium">{selectedRequest.name}</p>
+                    <p className="font-medium">{selectedRequest.firstName} {selectedRequest.lastName}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Email:</span>
@@ -251,12 +273,20 @@ const CustomizationManagement: React.FC = () => {
                 <h3 className="font-semibold">Détails de la personnalisation</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Type de demande:</span>
-                    <p className="font-medium">{selectedRequest.request_type}</p>
+                    <span className="text-muted-foreground">Type de bijou:</span>
+                    <p className="font-medium">{jewelryLabels[selectedRequest.jewelryType] || selectedRequest.jewelryType}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Type de perle:</span>
+                    <p className="font-medium">{pearlLabels[selectedRequest.pearlType] || selectedRequest.pearlType}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Métal:</span>
+                    <p className="font-medium">{metalLabels[selectedRequest.metalType] || selectedRequest.metalType}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Budget:</span>
-                    <p className="font-medium">{selectedRequest.budget_range || '-'}</p>
+                    <p className="font-medium">{selectedRequest.budget}</p>
                   </div>
                 </div>
                 {selectedRequest.description && (

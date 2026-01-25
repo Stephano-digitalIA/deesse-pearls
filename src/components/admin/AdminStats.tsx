@@ -1,13 +1,13 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getOrders, getProducts, getUsers } from '@/lib/localStorage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  ShoppingCart, 
-  Euro, 
-  Package, 
-  Users, 
+import {
+  ShoppingCart,
+  Euro,
+  Package,
+  Users,
   TrendingUp,
   Clock
 } from 'lucide-react';
@@ -25,28 +25,23 @@ const AdminStats: React.FC = () => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async (): Promise<OrderStats> => {
-      // Fetch all orders
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('id, total, status, created_at');
-
-      if (error) throw error;
+      const orders = getOrders();
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const totalOrders = orders?.length || 0;
-      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
-      const pendingOrders = orders?.filter(order => order.status === 'pending' || order.status === 'confirmed').length || 0;
+      const totalOrders = orders.length;
+      const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total), 0);
+      const pendingOrders = orders.filter(order => order.status === 'pending' || order.status === 'confirmed').length;
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-      
-      const ordersThisMonth = orders?.filter(order => 
-        new Date(order.created_at) >= startOfMonth
-      ).length || 0;
-      
-      const revenueThisMonth = orders?.filter(order => 
-        new Date(order.created_at) >= startOfMonth
-      ).reduce((sum, order) => sum + Number(order.total), 0) || 0;
+
+      const ordersThisMonth = orders.filter(order =>
+        new Date(order.createdAt) >= startOfMonth
+      ).length;
+
+      const revenueThisMonth = orders.filter(order =>
+        new Date(order.createdAt) >= startOfMonth
+      ).reduce((sum, order) => sum + Number(order.total), 0);
 
       return {
         totalOrders,
@@ -62,22 +57,14 @@ const AdminStats: React.FC = () => {
   const { data: productCount } = useQuery({
     queryKey: ['admin-product-count'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return count || 0;
+      return getProducts().length;
     },
   });
 
   const { data: userCount } = useQuery({
     queryKey: ['admin-user-count'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return count || 0;
+      return getUsers().length;
     },
   });
 

@@ -30,6 +30,7 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Account from "./pages/Account";
 import ResetPassword from "./pages/ResetPassword";
+import Checkout from "./pages/Checkout";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancelled from "./pages/PaymentCancelled";
 
@@ -65,6 +66,7 @@ const App = () => (
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/account" element={<Account />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/checkout" element={<Checkout />} />
                         <Route path="/payment-success" element={<PaymentSuccess />} />
                         <Route path="/payment-cancelled" element={<PaymentCancelled />} />
                         <Route path="/about" element={<About />} />

@@ -8,23 +8,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Lock, Mail, UserPlus, Home, ShieldAlert, Clock } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Lock, Mail, UserPlus, Home, ShieldAlert } from 'lucide-react';
+import { verifyAdminSecret } from '@/lib/localStorage';
 import { z } from 'zod';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
 });
-
-const MAX_ATTEMPTS = 3;
-const BLOCK_DURATION_MINUTES = 15;
-
-interface BlockStatus {
-  isBlocked: boolean;
-  remainingMinutes: number;
-  attemptCount: number;
-}
 
 const AdminLogin: React.FC = () => {
   const { secretKey } = useParams<{ secretKey: string }>();
@@ -35,136 +26,39 @@ const AdminLogin: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
   const [activeTab, setActiveTab] = useState('login');
   const [accessDenied, setAccessDenied] = useState(false);
-  const [blockStatus, setBlockStatus] = useState<BlockStatus | null>(null);
   const [isValidSecret, setIsValidSecret] = useState<boolean | null>(null);
-  
-  const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
+
+  const { signIn, signUp, signInWithGoogle, signUpWithGoogle, user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
   // Verify the secret URL key
   useEffect(() => {
-    const verifySecret = async () => {
-      if (!secretKey) {
-        setIsValidSecret(false);
-        return;
-      }
-      
-      const { data, error } = await supabase.rpc('verify_admin_url_secret', { secret_key: secretKey });
-      
-      if (error || !data) {
-        setIsValidSecret(false);
-      } else {
-        setIsValidSecret(true);
-      }
-    };
-    
-    verifySecret();
+    if (!secretKey) {
+      setIsValidSecret(false);
+      return;
+    }
+
+    const isValid = verifyAdminSecret(secretKey);
+    setIsValidSecret(isValid);
   }, [secretKey]);
-
-  // Check if email is blocked using secure RPC function
-  const checkBlockStatus = async (userEmail: string): Promise<BlockStatus> => {
-    try {
-      const { data, error } = await supabase
-        .rpc('check_email_block_status', { check_email: userEmail.toLowerCase() });
-      
-      if (error || !data || data.length === 0) {
-        return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
-      }
-
-      const result = data[0];
-      
-      if (result.is_blocked && result.blocked_until) {
-        const now = new Date();
-        const blockedUntil = new Date(result.blocked_until);
-        const remainingMs = blockedUntil.getTime() - now.getTime();
-        const remainingMinutes = Math.ceil(remainingMs / (1000 * 60));
-        return { isBlocked: true, remainingMinutes, attemptCount: result.attempt_count };
-      }
-
-      return { isBlocked: false, remainingMinutes: 0, attemptCount: result.attempt_count || 0 };
-    } catch (error) {
-      console.error('Failed to check block status:', error);
-      return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
-    }
-  };
-
-  // Increment attempt count and potentially block using secure RPC function
-  const recordFailedAttempt = async (userEmail: string): Promise<BlockStatus> => {
-    try {
-      const { data, error } = await supabase
-        .rpc('record_failed_admin_attempt', { 
-          check_email: userEmail.toLowerCase(),
-          max_attempts: MAX_ATTEMPTS,
-          block_duration_minutes: BLOCK_DURATION_MINUTES
-        });
-
-      if (error || !data || data.length === 0) {
-        console.error('Failed to record failed attempt:', error);
-        return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
-      }
-
-      const result = data[0];
-      return {
-        isBlocked: result.is_blocked,
-        remainingMinutes: result.remaining_minutes,
-        attemptCount: result.attempt_count
-      };
-    } catch (error) {
-      console.error('Failed to record failed attempt:', error);
-      return { isBlocked: false, remainingMinutes: 0, attemptCount: 0 };
-    }
-  };
-
-  // Log access attempt (for both authorized and unauthorized)
-  const logAccessAttempt = async (userEmail: string, userId?: string, attemptType = 'unauthorized_admin_access') => {
-    try {
-      await supabase.from('admin_access_logs').insert({
-        user_id: userId || null,
-        email: userEmail,
-        user_agent: navigator.userAgent,
-        attempt_type: attemptType
-      });
-    } catch (error) {
-      console.error('Failed to log access attempt:', error);
-    }
-  };
-
-  // Alias for backward compatibility
-  const logUnauthorizedAccess = logAccessAttempt;
-
-  // Track if we already logged an access attempt for this session
-  const [hasLoggedAttempt, setHasLoggedAttempt] = useState(false);
 
   useEffect(() => {
     if (!isLoading && user) {
       if (isAdmin) {
-        // Admin logged in - clear any blocks using secure RPC function
-        const adminEmail = (user.email || '').toLowerCase();
-        supabase.rpc('clear_admin_block', { check_email: adminEmail });
-        
-        // Log successful admin access (only once per session)
-        if (!hasLoggedAttempt) {
-          setHasLoggedAttempt(true);
-          logAccessAttempt(user.email || 'unknown', user.id, 'admin_login_success');
-        }
-        
         navigate(`/admin/${secretKey}`);
-      } else if (!hasLoggedAttempt) {
-        // User is logged in but not admin - show access denied and log (only once)
+      } else {
         setAccessDenied(true);
-        setHasLoggedAttempt(true);
-        logUnauthorizedAccess(user.email || 'unknown', user.id);
-        recordFailedAttempt(user.email || 'unknown').then(setBlockStatus);
       }
     }
-  }, [user, isAdmin, isLoading, navigate, hasLoggedAttempt]);
+  }, [user, isAdmin, isLoading, navigate, secretKey]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     setAccessDenied(false);
-    
+
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
       const fieldErrors: { email?: string; password?: string } = {};
@@ -176,44 +70,39 @@ const AdminLogin: React.FC = () => {
       return;
     }
 
-    // Check if blocked before attempting login
-    const currentBlockStatus = await checkBlockStatus(email);
-    if (currentBlockStatus.isBlocked) {
-      setBlockStatus(currentBlockStatus);
-      toast({
-        title: "Accès temporairement bloqué",
-        description: `Trop de tentatives. Réessayez dans ${currentBlockStatus.remainingMinutes} minutes.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsSubmitting(true);
-    
-    const { error } = await signIn(email, password);
-    
-    if (error) {
-      toast({
-        title: "Erreur de connexion",
-        description: error.message === 'Invalid login credentials' 
-          ? "Identifiants incorrects" 
-          : error.message,
-        variant: "destructive",
-      });
+
+    const authResult = await signIn(email, password);
+
+    if (authResult.error) {
+      if (authResult.needsRegistration) {
+        // User not found - redirect to signup tab
+        setActiveTab('signup');
+        toast({
+          title: "Compte non trouvé",
+          description: "Aucun compte trouvé avec cet email. Veuillez vous inscrire.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erreur de connexion",
+          description: authResult.error.message,
+          variant: "destructive",
+        });
+      }
       setIsSubmitting(false);
       return;
     }
-    
-    // Note: the useEffect will handle checking admin status after login
+
     setTimeout(() => {
       setIsSubmitting(false);
-    }, 1500);
+    }, 500);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
       const fieldErrors: { email?: string; password?: string } = {};
@@ -229,30 +118,86 @@ const AdminLogin: React.FC = () => {
       setErrors({ confirmPassword: "Les mots de passe ne correspondent pas" });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
-    const { error } = await signUp(email, password);
-    
-    if (error) {
-      toast({
-        title: "Erreur d'inscription",
-        description: error.message === 'User already registered'
-          ? "Cet email est déjà utilisé"
-          : error.message,
-        variant: "destructive",
-      });
+
+    const authResult = await signUp(email, password);
+
+    if (authResult.error) {
+      if (authResult.alreadyExists) {
+        // User already exists - redirect to login tab
+        setActiveTab('login');
+        toast({
+          title: "Email déjà utilisé",
+          description: "Un compte existe déjà avec cet email. Veuillez vous connecter.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erreur d'inscription",
+          description: authResult.error.message,
+          variant: "destructive",
+        });
+      }
       setIsSubmitting(false);
       return;
     }
-    
+
     toast({
       title: "Compte créé",
-      description: "Votre compte a été créé. Demandez à un administrateur de vous attribuer le rôle admin.",
+      description: "Votre compte a été créé. Connectez-vous avec vos identifiants.",
     });
-    
+
     setActiveTab('login');
     setIsSubmitting(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setAccessDenied(false);
+
+    const result = await signInWithGoogle();
+
+    if (result.error) {
+      if (result.needsRegistration) {
+        setActiveTab('signup');
+        toast({
+          title: "Compte non trouvé",
+          description: "Veuillez créer un compte avec Google.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erreur Google",
+          description: result.error.message,
+          variant: "destructive",
+        });
+      }
+    }
+
+    setIsGoogleLoading(false);
+  };
+
+  const handleGoogleSignUp = async () => {
+    setIsGoogleLoading(true);
+    setAccessDenied(false);
+
+    const { error } = await signUpWithGoogle();
+
+    if (error) {
+      toast({
+        title: "Erreur Google",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Compte créé",
+        description: "Votre compte a été créé avec succès.",
+      });
+    }
+
+    setIsGoogleLoading(false);
   };
 
   if (isLoading || isValidSecret === null) {
@@ -287,8 +232,6 @@ const AdminLogin: React.FC = () => {
     );
   }
 
-  const isBlocked = blockStatus?.isBlocked;
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-pearl px-4">
       <Card className="w-full max-w-md shadow-elegant">
@@ -302,16 +245,7 @@ const AdminLogin: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isBlocked && (
-            <Alert variant="destructive" className="mb-4">
-              <Clock className="h-4 w-4" />
-              <AlertTitle>Accès temporairement bloqué</AlertTitle>
-              <AlertDescription>
-                Trop de tentatives d'accès non autorisées. Veuillez réessayer dans {blockStatus.remainingMinutes} minute{blockStatus.remainingMinutes > 1 ? 's' : ''}.
-              </AlertDescription>
-            </Alert>
-          )}
-          {accessDenied && !isBlocked && (
+          {accessDenied && (
             <Alert variant="destructive" className="mb-4">
               <ShieldAlert className="h-4 w-4" />
               <AlertTitle>Accès refusé</AlertTitle>
@@ -322,8 +256,8 @@ const AdminLogin: React.FC = () => {
           )}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login" disabled={isBlocked}>Connexion</TabsTrigger>
-              <TabsTrigger value="signup" disabled={isBlocked}>Inscription</TabsTrigger>
+              <TabsTrigger value="login">Connexion</TabsTrigger>
+              <TabsTrigger value="signup">Inscription</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
@@ -339,14 +273,14 @@ const AdminLogin: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting || isBlocked}
+                      disabled={isSubmitting}
                     />
                   </div>
                   {errors.email && (
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Mot de passe</Label>
                   <div className="relative">
@@ -358,18 +292,18 @@ const AdminLogin: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting || isBlocked}
+                      disabled={isSubmitting}
                     />
                   </div>
                   {errors.password && (
                     <p className="text-sm text-destructive">{errors.password}</p>
                   )}
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   className="w-full"
-                  disabled={isSubmitting || isBlocked}
+                  disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <>
@@ -379,6 +313,47 @@ const AdminLogin: React.FC = () => {
                   ) : (
                     'Se connecter'
                   )}
+                </Button>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">ou</span>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading}
+                >
+                  {isGoogleLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
+                  )}
+                  Continuer avec Google
                 </Button>
               </form>
             </TabsContent>
@@ -396,14 +371,14 @@ const AdminLogin: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting || isBlocked}
+                      disabled={isSubmitting}
                     />
                   </div>
                   {errors.email && (
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Mot de passe</Label>
                   <div className="relative">
@@ -415,7 +390,7 @@ const AdminLogin: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting || isBlocked}
+                      disabled={isSubmitting}
                     />
                   </div>
                   {errors.password && (
@@ -434,18 +409,18 @@ const AdminLogin: React.FC = () => {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10"
-                      disabled={isSubmitting || isBlocked}
+                      disabled={isSubmitting}
                     />
                   </div>
                   {errors.confirmPassword && (
                     <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                   )}
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   className="w-full"
-                  disabled={isSubmitting || isBlocked}
+                  disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <>
@@ -458,6 +433,47 @@ const AdminLogin: React.FC = () => {
                       Créer un compte
                     </>
                   )}
+                </Button>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">ou</span>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignUp}
+                  disabled={isGoogleLoading}
+                >
+                  {isGoogleLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
+                  )}
+                  S'inscrire avec Google
                 </Button>
               </form>
             </TabsContent>

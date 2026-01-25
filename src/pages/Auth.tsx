@@ -25,7 +25,7 @@ const Auth: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const { signIn, signUp, resetPassword, signInWithGoogle, user, session, isLoading } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithGoogle, signUpWithGoogle, user, session, isLoading } = useAuth();
   const { t } = useLocale();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -54,7 +54,7 @@ const Auth: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -66,17 +66,25 @@ const Auth: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    const { error } = await signIn(email, password);
+    const authResult = await signIn(email, password);
     setIsSubmitting(false);
 
-    if (error) {
-      toast({
-        title: t('loginError'),
-        description: error.message === 'Invalid login credentials' 
-          ? t('invalidCredentials')
-          : error.message,
-        variant: "destructive",
-      });
+    if (authResult.error) {
+      if (authResult.needsRegistration) {
+        // User not found - redirect to signup tab
+        setActiveTab('signup');
+        toast({
+          title: t('accountNotFound') || 'Compte non trouvé',
+          description: t('pleaseSignUpEmail') || 'Aucun compte trouvé avec cet email. Veuillez vous inscrire.',
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: t('loginError'),
+          description: authResult.error.message,
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: t('loginSuccess'),
@@ -90,14 +98,14 @@ const Auth: React.FC = () => {
     e.preventDefault();
     setErrors({});
 
-    const result = signupSchema.safeParse({ 
-      email, 
-      password, 
-      confirmPassword, 
-      firstName, 
-      lastName 
+    const result = signupSchema.safeParse({
+      email,
+      password,
+      confirmPassword,
+      firstName,
+      lastName
     });
-    
+
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
@@ -108,20 +116,22 @@ const Auth: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    const { error } = await signUp(email, password, firstName, lastName);
+    const authResult = await signUp(email, password, firstName, lastName);
     setIsSubmitting(false);
 
-    if (error) {
-      if (error.message.includes('already registered')) {
+    if (authResult.error) {
+      if (authResult.alreadyExists) {
+        // User already exists - redirect to login tab
+        setActiveTab('login');
         toast({
-          title: t('emailAlreadyUsed'),
-          description: t('accountExistsWithEmail'),
+          title: t('emailAlreadyUsed') || 'Email déjà utilisé',
+          description: t('accountExistsLogin') || 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
           variant: "destructive",
         });
       } else {
         toast({
           title: t('signupError'),
-          description: error.message,
+          description: authResult.error.message,
           variant: "destructive",
         });
       }
@@ -173,16 +183,43 @@ const Auth: React.FC = () => {
     }
   };
 
+  // Google Sign In - for existing users only
   const handleGoogleSignIn = async () => {
-    const { error } = await signInWithGoogle();
+    const result = await signInWithGoogle();
 
-    // Most OAuth failures happen before we can reach /auth/callback.
-    // If we get an error here, surface it immediately.
+    if (result.error) {
+      if (result.needsRegistration) {
+        // User not registered - switch to signup tab
+        setActiveTab('signup');
+        toast({
+          title: t('accountNotFound') || 'Compte non trouvé',
+          description: t('pleaseSignUp') || 'Veuillez créer un compte avec Google.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: t('error'),
+          description: `${result.error.message} (Google OAuth)`,
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  // Google Sign Up - for new users
+  const handleGoogleSignUp = async () => {
+    const { error } = await signUpWithGoogle();
+
     if (error) {
       toast({
         title: t('error'),
         description: `${error.message} (Google OAuth)`,
         variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: t('signupSuccess') || 'Inscription réussie',
+        description: t('accountCreated') || 'Votre compte a été créé avec succès.',
       });
     }
   };
@@ -499,7 +536,7 @@ const Auth: React.FC = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={signInWithGoogle}
+                    onClick={handleGoogleSignUp}
                     className="w-full"
                   >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -520,7 +557,7 @@ const Auth: React.FC = () => {
                         fill="#EA4335"
                       />
                     </svg>
-                    {t('continueWithGoogle')}
+                    {t('signUpWithGoogle') || "S'inscrire avec Google"}
                   </Button>
                 </form>
               </TabsContent>

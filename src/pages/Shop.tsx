@@ -43,11 +43,15 @@ const Shop: React.FC = () => {
   
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
-  const initialCategory: Category = categoryParam 
-    ? categoryRouteMap[categoryParam] || 'all' 
-    : 'all';
+  const [selectedCategory, setSelectedCategory] = useState<Category>('all');
 
-  const [selectedCategory, setSelectedCategory] = useState<Category>(initialCategory);
+  // Sync selectedCategory with URL param
+  useEffect(() => {
+    const newCategory: Category = categoryParam
+      ? categoryRouteMap[categoryParam] || 'all'
+      : 'all';
+    setSelectedCategory(newCategory);
+  }, [categoryParam]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [sortBy, setSortBy] = useState<string>('default');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);

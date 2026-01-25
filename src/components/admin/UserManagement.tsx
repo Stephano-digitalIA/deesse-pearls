@@ -1,109 +1,121 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getUsers, updateUser, deleteUser, User, getProfileByUserId } from '@/lib/localStorage';
+
+interface UserWithProfile extends User {
+  firstName?: string;
+  lastName?: string;
+}
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Users, 
-  Search, 
-  Loader2, 
-  Shield, 
-  ShieldCheck, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Users,
+  Search,
+  Loader2,
+  ShieldCheck,
   UserCog,
   Mail,
-  Calendar
+  Calendar,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { UserProfile, UserRole } from '@/types/supabase';
-
-interface UserWithRole extends UserProfile {
-  roles: string[];
-}
 
 const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<UserWithRole[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'user'>('user');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async (): Promise<UserWithProfile[]> => {
+      const allUsers = getUsers();
+      return allUsers
+        .map(user => {
+          const profile = getProfileByUserId(user.id);
+          return {
+            ...user,
+            firstName: profile?.firstName || '',
+            lastName: profile?.lastName || '',
+          };
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    },
+  });
 
-      if (profilesError) throw profilesError;
-
-      // Fetch roles
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      // Fetch emails from edge function
-      let emailsMap: Record<string, string> = {};
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        const response = await fetch(
-          `https://fnhnlastwctnhiejajtg.supabase.co/functions/v1/get-user-emails`,
-          {
-            headers: {
-              Authorization: `Bearer ${session?.session?.access_token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        if (response.ok) {
-          const result = await response.json();
-          emailsMap = result.emails || {};
-        }
-      } catch (emailError) {
-        console.warn('Could not fetch user emails:', emailError);
-      }
-
-      // Map roles to users
-      const rolesMap = new Map<string, string[]>();
-      (roles || []).forEach((r: { user_id: string; role: string }) => {
-        const existing = rolesMap.get(r.user_id) || [];
-        rolesMap.set(r.user_id, [...existing, r.role]);
-      });
-
-      // Combine data - use profile.id as user_id since profiles.id references auth.users.id
-      const usersWithRoles: UserWithRole[] = (profiles || []).map((profile: UserProfile) => ({
-        ...profile,
-        email: emailsMap[profile.id] || profile.email || undefined,
-        roles: rolesMap.get(profile.id) || ['user'],
-      }));
-
-      setUsers(usersWithRoles);
-    } catch (err: any) {
-      toast({
-        title: "Erreur",
-        description: err.message || "Impossible de charger les utilisateurs",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const openEditDialog = (user: User) => {
+    setSelectedRole(user.role);
+    setEditingUser(user);
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const handleSaveRole = () => {
+    if (!editingUser) return;
+
+    updateUser(editingUser.id, { role: selectedRole });
+
+    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-user-count'] });
+    toast({
+      title: 'Rôle modifié',
+      description: `${editingUser.email} est maintenant ${selectedRole === 'admin' ? 'Administrateur' : 'Utilisateur'}`,
+    });
+    setEditingUser(null);
+  };
+
+  const handleDelete = () => {
+    if (!deletingUser) return;
+
+    deleteUser(deletingUser.id);
+    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-user-count'] });
+    toast({
+      title: 'Utilisateur supprimé',
+      description: `${deletingUser.email} a été supprimé`,
+    });
+    setDeletingUser(null);
+  };
 
   const filteredUsers = users.filter(user => {
     const searchLower = searchTerm.toLowerCase();
-    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
-    return fullName.includes(searchLower) || 
-           user.phone?.includes(searchTerm) ||
-           user.email?.toLowerCase().includes(searchLower);
+    return (
+      user.email.toLowerCase().includes(searchLower) ||
+      (user.firstName?.toLowerCase() || '').includes(searchLower) ||
+      (user.lastName?.toLowerCase() || '').includes(searchLower)
+    );
   });
 
   const getRoleBadge = (role: string) => {
@@ -113,13 +125,6 @@ const UserManagement: React.FC = () => {
           <Badge className="bg-red-500/20 text-red-500 border-red-500/30">
             <ShieldCheck className="w-3 h-3 mr-1" />
             Admin
-          </Badge>
-        );
-      case 'moderator':
-        return (
-          <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">
-            <Shield className="w-3 h-3 mr-1" />
-            Modérateur
           </Badge>
         );
       default:
@@ -170,10 +175,12 @@ const UserManagement: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Utilisateur</TableHead>
-                  <TableHead>Contact</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Prénom</TableHead>
+                  <TableHead>Nom</TableHead>
                   <TableHead>Rôle</TableHead>
                   <TableHead>Inscription</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -183,51 +190,58 @@ const UserManagement: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center">
                           <span className="text-gold font-medium text-sm">
-                            {(user.first_name?.[0] || '').toUpperCase()}
-                            {(user.last_name?.[0] || '').toUpperCase()}
+                            {(user.firstName?.[0] || user.email[0]).toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium">
-                            {user.first_name || user.last_name 
-                              ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                              : 'Non renseigné'}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="w-3 h-3 text-muted-foreground" />
+                            <span>{user.email}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
                             ID: {user.id.slice(0, 8)}...
                           </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        {user.email && (
-                          <div className="flex items-center gap-1.5 text-sm">
-                            <Mail className="w-3 h-3 text-muted-foreground" />
-                            <span className="truncate max-w-[180px]">{user.email}</span>
-                          </div>
-                        )}
-                        {user.phone && (
-                          <p className="text-sm text-muted-foreground">{user.phone}</p>
-                        )}
-                        {!user.email && !user.phone && (
-                          <p className="text-sm text-muted-foreground">—</p>
-                        )}
-                      </div>
+                      <span className={user.firstName ? '' : 'text-muted-foreground'}>
+                        {user.firstName || '—'}
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.map((role, idx) => (
-                          <React.Fragment key={idx}>
-                            {getRoleBadge(role)}
-                          </React.Fragment>
-                        ))}
-                      </div>
+                      <span className={user.lastName ? '' : 'text-muted-foreground'}>
+                        {user.lastName || '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {getRoleBadge(user.role)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Calendar className="w-3 h-3" />
-                        {format(new Date(user.created_at), 'dd MMM yyyy', { locale: fr })}
+                        {format(new Date(user.createdAt), 'dd MMM yyyy', { locale: fr })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(user)}
+                        >
+                          <Pencil className="w-4 h-4 mr-1" />
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:bg-destructive hover:text-white"
+                          onClick={() => setDeletingUser(user)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Supprimer
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -237,6 +251,72 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Edit User Role Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le rôle</DialogTitle>
+            <DialogDescription>
+              Modifiez le rôle de <strong>{editingUser?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Rôle</Label>
+              <Select value={selectedRole} onValueChange={(value: 'admin' | 'user') => setSelectedRole(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un rôle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">
+                    <div className="flex items-center gap-2">
+                      <UserCog className="w-4 h-4" />
+                      Utilisateur
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4" />
+                      Administrateur
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSaveRole}>
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer l'utilisateur ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{deletingUser?.email}</strong> ?
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

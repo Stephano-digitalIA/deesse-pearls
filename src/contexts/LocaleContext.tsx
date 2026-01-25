@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type Language = 'fr' | 'en' | 'de' | 'es' | 'pt' | 'it' | 'nl' | 'ja' | 'ko';
 export type Currency = 'EUR' | 'USD';
@@ -21,7 +21,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Bracelets',
     necklaces: 'Colliers',
     rings: 'Bagues',
-    earrings: "Boucles d'oreilles",
     pendants: 'Pendentifs',
     jewelrySets: 'Parures',
     otherJewelry: 'Autres Bijoux',
@@ -170,6 +169,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: 'Confirmée',
     orderShipped: 'Expédiée',
     orderDelivered: 'Livrée',
+    paymentSuccessTitle: 'Merci pour votre commande !',
+    paymentSuccessMessage: 'Votre paiement a été effectué avec succès. Vous recevrez un email de confirmation.',
     orderCancelled: 'Annulée',
     // Password reset
     forgotPassword: 'Mot de passe oublié ?',
@@ -207,7 +208,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Bracelets',
     necklaces: 'Necklaces',
     rings: 'Rings',
-    earrings: 'Earrings',
     pendants: 'Pendants',
     jewelrySets: 'Jewelry Sets',
     otherJewelry: 'Other Jewelry',
@@ -356,6 +356,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: 'Confirmed',
     orderShipped: 'Shipped',
     orderDelivered: 'Delivered',
+    paymentSuccessTitle: 'Thank you for your order!',
+    paymentSuccessMessage: 'Your payment was successful. You will receive a confirmation email.',
     orderCancelled: 'Cancelled',
     // Password reset
     forgotPassword: 'Forgot password?',
@@ -393,7 +395,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Armbänder',
     necklaces: 'Halsketten',
     rings: 'Ringe',
-    earrings: 'Ohrringe',
     pendants: 'Anhänger',
     jewelrySets: 'Schmucksets',
     otherJewelry: 'Anderer Schmuck',
@@ -542,6 +543,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: 'Bestätigt',
     orderShipped: 'Versendet',
     orderDelivered: 'Geliefert',
+    paymentSuccessTitle: 'Vielen Dank für Ihre Bestellung!',
+    paymentSuccessMessage: 'Ihre Zahlung war erfolgreich. Sie erhalten eine Bestätigungs-E-Mail.',
     orderCancelled: 'Storniert',
     // Password reset
     forgotPassword: 'Passwort vergessen?',
@@ -564,6 +567,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'oder',
     continueWithGoogle: 'Mit Google fortfahren',
+    // Account page
+    loading: 'Laden',
+    loadingProfile: 'Profil wird geladen...',
     // Mobile header
     language: 'Sprache',
     currency: 'Währung',
@@ -576,7 +582,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Pulseras',
     necklaces: 'Collares',
     rings: 'Anillos',
-    earrings: 'Pendientes',
     pendants: 'Colgantes',
     jewelrySets: 'Conjuntos de Joyas',
     otherJewelry: 'Otras Joyas',
@@ -725,6 +730,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: 'Confirmado',
     orderShipped: 'Enviado',
     orderDelivered: 'Entregado',
+    paymentSuccessTitle: '¡Gracias por su pedido!',
+    paymentSuccessMessage: 'Su pago se ha realizado con éxito. Recibirá un correo de confirmación.',
     orderCancelled: 'Cancelado',
     // Password reset
     forgotPassword: '¿Olvidaste tu contraseña?',
@@ -747,6 +754,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'o',
     continueWithGoogle: 'Continuar con Google',
+    // Account page
+    loading: 'Cargando',
+    loadingProfile: 'Cargando perfil...',
     // Mobile header
     language: 'Idioma',
     currency: 'Moneda',
@@ -759,7 +769,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Pulseiras',
     necklaces: 'Colares',
     rings: 'Anéis',
-    earrings: 'Brincos',
     pendants: 'Pingentes',
     jewelrySets: 'Conjuntos de Joias',
     otherJewelry: 'Outras Joias',
@@ -908,6 +917,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: 'Confirmado',
     orderShipped: 'Enviado',
     orderDelivered: 'Entregue',
+    paymentSuccessTitle: 'Obrigado pelo seu pedido!',
+    paymentSuccessMessage: 'O seu pagamento foi efetuado com sucesso. Receberá um email de confirmação.',
     orderCancelled: 'Cancelado',
     // Password reset
     forgotPassword: 'Esqueceu a senha?',
@@ -930,6 +941,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'ou',
     continueWithGoogle: 'Continuar com Google',
+    // Account page
+    loading: 'Carregando',
+    loadingProfile: 'Carregando perfil...',
     // Mobile header
     language: 'Idioma',
     currency: 'Moeda',
@@ -942,7 +956,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Bracciali',
     necklaces: 'Collane',
     rings: 'Anelli',
-    earrings: 'Orecchini',
     pendants: 'Ciondoli',
     jewelrySets: 'Parure',
     otherJewelry: 'Altri Gioielli',
@@ -1091,6 +1104,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: 'Confermato',
     orderShipped: 'Spedito',
     orderDelivered: 'Consegnato',
+    paymentSuccessTitle: 'Grazie per il tuo ordine!',
+    paymentSuccessMessage: 'Il pagamento è andato a buon fine. Riceverai un\'email di conferma.',
     orderCancelled: 'Annullato',
     // Password reset
     forgotPassword: 'Password dimenticata?',
@@ -1113,6 +1128,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'o',
     continueWithGoogle: 'Continua con Google',
+    // Account page
+    loading: 'Caricamento',
+    loadingProfile: 'Caricamento profilo...',
     // Mobile header
     language: 'Lingua',
     currency: 'Valuta',
@@ -1125,7 +1143,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'Armbanden',
     necklaces: 'Kettingen',
     rings: 'Ringen',
-    earrings: 'Oorbellen',
     pendants: 'Hangers',
     jewelrySets: 'Sieradensets',
     otherJewelry: 'Andere Sieraden',
@@ -1274,6 +1291,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: 'Bevestigd',
     orderShipped: 'Verzonden',
     orderDelivered: 'Geleverd',
+    paymentSuccessTitle: 'Bedankt voor uw bestelling!',
+    paymentSuccessMessage: 'Uw betaling is geslaagd. U ontvangt een bevestigingsmail.',
     orderCancelled: 'Geannuleerd',
     // Password reset
     forgotPassword: 'Wachtwoord vergeten?',
@@ -1296,6 +1315,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'of',
     continueWithGoogle: 'Doorgaan met Google',
+    // Account page
+    loading: 'Laden',
+    loadingProfile: 'Profiel laden...',
     // Mobile header
     language: 'Taal',
     currency: 'Valuta',
@@ -1308,7 +1330,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: 'ブレスレット',
     necklaces: 'ネックレス',
     rings: 'リング',
-    earrings: 'イヤリング',
     pendants: 'ペンダント',
     jewelrySets: 'ジュエリーセット',
     otherJewelry: 'その他のジュエリー',
@@ -1457,6 +1478,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: '確認済み',
     orderShipped: '発送済み',
     orderDelivered: '配達完了',
+    paymentSuccessTitle: 'ご注文ありがとうございます！',
+    paymentSuccessMessage: 'お支払いが完了しました。確認メールをお送りいたします。',
     orderCancelled: 'キャンセル済み',
     // Password reset
     forgotPassword: 'パスワードをお忘れですか？',
@@ -1479,6 +1502,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: 'または',
     continueWithGoogle: 'Googleで続行',
+    // Account page
+    loading: '読み込み中',
+    loadingProfile: 'プロフィールを読み込んでいます...',
     // Mobile header
     language: '言語',
     currency: '通貨',
@@ -1491,7 +1517,6 @@ const translations: Record<Language, Record<string, string>> = {
     bracelets: '브레이슬릿',
     necklaces: '목걸이',
     rings: '반지',
-    earrings: '귀걸이',
     pendants: '펜던트',
     jewelrySets: '주얼리 세트',
     otherJewelry: '기타 주얼리',
@@ -1640,6 +1665,8 @@ const translations: Record<Language, Record<string, string>> = {
     orderConfirmed: '확인됨',
     orderShipped: '배송됨',
     orderDelivered: '배달 완료',
+    paymentSuccessTitle: '주문해 주셔서 감사합니다!',
+    paymentSuccessMessage: '결제가 완료되었습니다. 확인 이메일을 보내드리겠습니다.',
     orderCancelled: '취소됨',
     // Password reset
     forgotPassword: '비밀번호를 잊으셨나요?',
@@ -1662,6 +1689,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Google auth
     or: '또는',
     continueWithGoogle: 'Google로 계속하기',
+    // Account page
+    loading: '로딩 중',
+    loadingProfile: '프로필 로딩 중...',
     // Mobile header
     language: '언어',
     currency: '통화',
@@ -1718,16 +1748,16 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   });
 
   // Custom setLanguage that also persists immediately
-  const setLanguage = useCallback((lang: Language) => {
+  const setLanguage = (lang: Language) => {
     safeSetItem('deesse-language', lang);
     setLanguageState(lang);
-  }, []);
+  };
 
   // Custom setCurrency that also persists immediately
-  const setCurrency = useCallback((curr: Currency) => {
+  const setCurrency = (curr: Currency) => {
     safeSetItem('deesse-currency', curr);
     setCurrencyState(curr);
-  }, []);
+  };
 
   // Sync with localStorage on mount (for cases where state was initialized before localStorage was ready)
   useEffect(() => {
@@ -1741,30 +1771,20 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, []);
 
-  const t = useCallback((key: string): string => {
+  const t = (key: string): string => {
     return translations[language]?.[key] || translations.fr[key] || key;
-  }, [language]);
+  };
 
-  const formatPrice = useCallback((price: number): string => {
-    const rate = currency === 'USD' ? 1.08 : 1;
-    const converted = price * rate;
+  const formatPrice = (price: number): string => {
+    // Pas de conversion de devise - les prix sont identiques en EUR et USD
     return new Intl.NumberFormat(language === 'en' ? 'en-US' : language, {
       style: 'currency',
       currency: currency,
-    }).format(converted);
-  }, [language, currency]);
-
-  const contextValue = useMemo(() => ({
-    language,
-    currency,
-    setLanguage,
-    setCurrency,
-    t,
-    formatPrice,
-  }), [language, currency, setLanguage, setCurrency, t, formatPrice]);
+    }).format(price);
+  };
 
   return (
-    <LocaleContext.Provider value={contextValue}>
+    <LocaleContext.Provider value={{ language, currency, setLanguage, setCurrency, t, formatPrice }}>
       {children}
     </LocaleContext.Provider>
   );

@@ -2,14 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ShoppingBag, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { Product } from '@/types/supabase';
+import type { Product } from '@/lib/localStorage';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { usePrefetchProduct } from '@/hooks/useTranslatedProducts';
 import { Button } from '@/components/ui/button';
-import { getProductTranslation } from '@/data/productTranslations';
 import { resolveImagePath } from '@/lib/utils';
+import { getProductTranslation } from '@/data/productTranslations';
 interface ProductCardProps {
   product: Product;
 }

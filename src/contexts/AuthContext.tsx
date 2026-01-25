@@ -1,263 +1,333 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  User as LocalUser,
+  getCurrentUser,
+  setCurrentUser,
+  getUserByEmail,
+  createUser,
+  updateUser,
+  initializeDefaultData,
+  getUsers,
+  setUsers,
+  upsertProfile,
+  getProfileByUserId,
+} from '@/lib/localStorage';
+import {
+  signInWithGoogle as firebaseSignInWithGoogle,
+  signOutFirebase,
+  isFirebaseConfigured,
+  onAuthChange,
+  FirebaseUser,
+} from '@/lib/firebase';
+import { toast } from 'sonner';
 
-type AppRole = 'admin' | 'moderator' | 'user';
+// ============================================
+// TYPES
+// ============================================
+interface User {
+  id: string;
+  email: string;
+  user_metadata?: {
+    first_name?: string;
+    last_name?: string;
+    avatar_url?: string;
+  };
+}
+
+interface Session {
+  user: User;
+  access_token: string;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
   isAdmin: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; needsRegistration?: boolean }>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: Error | null; alreadyExists?: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signUpWithGoogle: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Try to get cached session from localStorage for instant display
-const getCachedSession = (): { user: User | null; session: Session | null } => {
-  try {
-    const storageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
-    const cached = localStorage.getItem(storageKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed?.user && parsed?.access_token) {
-        // Check if token is not expired (with 60s buffer)
-        const expiresAt = parsed.expires_at;
-        if (expiresAt && Date.now() / 1000 < expiresAt - 60) {
-          return {
-            user: parsed.user as User,
-            session: {
-              access_token: parsed.access_token,
-              refresh_token: parsed.refresh_token,
-              expires_at: parsed.expires_at,
-              expires_in: parsed.expires_in,
-              token_type: parsed.token_type || 'bearer',
-              user: parsed.user,
-            } as Session,
-          };
-        }
-      }
-    }
-  } catch (e) {
-    // Ignore cache errors
-  }
-  return { user: null, session: null };
-};
+// ============================================
+// HELPERS
+// ============================================
+function localUserToUser(localUser: LocalUser): User {
+  const profile = getProfileByUserId(localUser.id);
+  return {
+    id: localUser.id,
+    email: localUser.email,
+    user_metadata: {
+      first_name: profile?.firstName,
+      last_name: profile?.lastName,
+    },
+  };
+}
 
+function firebaseUserToUser(firebaseUser: FirebaseUser): User {
+  return {
+    id: firebaseUser.uid,
+    email: firebaseUser.email || '',
+    user_metadata: {
+      first_name: firebaseUser.displayName?.split(' ')[0],
+      last_name: firebaseUser.displayName?.split(' ').slice(1).join(' '),
+      avatar_url: firebaseUser.photoURL || undefined,
+    },
+  };
+}
+
+function getOrCreateLocalUser(firebaseUser: FirebaseUser): LocalUser | null {
+  if (!firebaseUser.email) return null;
+
+  let localUser = getUserByEmail(firebaseUser.email);
+
+  if (!localUser) {
+    console.log('AuthContext: Creating new local user for:', firebaseUser.email);
+    const users = getUsers();
+    const newLocalUser: LocalUser = {
+      id: firebaseUser.uid,
+      email: firebaseUser.email,
+      password: '',
+      role: 'user',
+      createdAt: new Date().toISOString(),
+    };
+    users.push(newLocalUser);
+    setUsers(users);
+
+    const displayNameParts = firebaseUser.displayName?.split(' ') || [];
+    upsertProfile({
+      userId: firebaseUser.uid,
+      firstName: displayNameParts[0] || '',
+      lastName: displayNameParts.slice(1).join(' ') || '',
+    });
+
+    localUser = newLocalUser;
+  }
+
+  return localUser;
+}
+
+// ============================================
+// PROVIDER
+// ============================================
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize with cached data for instant display
-  const cached = getCachedSession();
-  const [user, setUser] = useState<User | null>(cached.user);
-  const [session, setSession] = useState<Session | null>(cached.session);
-  // If we have cached data, don't show loading
-  const [isLoading, setIsLoading] = useState(!cached.user);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const checkAdminRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking admin role:', error);
-        return false;
+  // Fonction pour connecter un utilisateur Firebase
+  const loginFirebaseUser = (firebaseUser: FirebaseUser, showToast: boolean = true) => {
+    console.log('AuthContext: Logging in Firebase user:', firebaseUser.email);
+    
+    const localUser = getOrCreateLocalUser(firebaseUser);
+    
+    if (localUser) {
+      const appUser = firebaseUserToUser(firebaseUser);
+      setCurrentUser(localUser);
+      setUser(appUser);
+      setSession({ user: appUser, access_token: 'firebase-token' });
+      setIsAdmin(localUser.role === 'admin');
+      
+      if (showToast) {
+        toast.success('Connexion Google réussie !');
       }
-      return !!data;
-    } catch {
-      return false;
+      return true;
     }
+    return false;
   };
 
-  // Sync user metadata to profiles table on login
-  const syncUserProfile = async (user: User) => {
-    try {
-      const metadata = user.user_metadata || {};
-      const email = user.email || null;
-      const firstName = metadata.first_name || metadata.given_name || metadata.name?.split(' ')[0] || null;
-      const lastName = metadata.last_name || metadata.family_name || metadata.name?.split(' ').slice(1).join(' ') || null;
-
-      // Check if profile exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, email, first_name, last_name')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (existingProfile) {
-        // Profile exists - only update empty fields (don't overwrite user's saved data)
-        const updates: Record<string, string | null> = {};
-        if (!existingProfile.email && email) updates.email = email;
-        if (!existingProfile.first_name && firstName) updates.first_name = firstName;
-        if (!existingProfile.last_name && lastName) updates.last_name = lastName;
-
-        if (Object.keys(updates).length > 0) {
-          updates.updated_at = new Date().toISOString();
-          await supabase
-            .from('profiles')
-            .update(updates)
-            .eq('user_id', user.id);
-        }
-      } else {
-        // No profile exists - create one with user metadata
-        await supabase
-          .from('profiles')
-          .insert({
-            user_id: user.id,
-            email: email,
-            first_name: firstName,
-            last_name: lastName,
-          });
-      }
-    } catch (error) {
-      console.error('Error syncing user profile:', error);
-    }
-  };
-
+  // ============================================
+  // INITIALISATION
+  // ============================================
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    console.log('AuthContext: Initializing...');
+    initializeDefaultData();
 
-        // Defer admin check and profile sync to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            checkAdminRole(session.user.id).then(setIsAdmin);
-            // Sync profile on sign in (including OAuth callback)
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-              syncUserProfile(session.user);
-            }
-          }, 0);
-        } else {
-          setIsAdmin(false);
-        }
-
-        setIsLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        checkAdminRole(session.user.id).then(setIsAdmin);
-        // Sync profile on initial load too
-        syncUserProfile(session.user);
-      }
-
+    // Vérifier session localStorage existante
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      console.log('AuthContext: Found localStorage session:', currentUser.email);
+      const appUser = localUserToUser(currentUser);
+      setUser(appUser);
+      setSession({ user: appUser, access_token: 'local-token' });
+      setIsAdmin(currentUser.role === 'admin');
       setIsLoading(false);
-    });
+      return;
+    }
 
-    return () => subscription.unsubscribe();
+    // Écouter les changements Firebase (pour persistance)
+    if (isFirebaseConfigured()) {
+      const unsubscribe = onAuthChange((firebaseUser) => {
+        if (firebaseUser && !user) {
+          loginFirebaseUser(firebaseUser, false);
+        }
+        setIsLoading(false);
+      });
+
+      // Timeout de sécurité
+      setTimeout(() => setIsLoading(false), 2000);
+
+      return () => unsubscribe();
+    }
+
+    setIsLoading(false);
   }, []);
 
+  // ============================================
+  // CONNEXION EMAIL/PASSWORD
+  // ============================================
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error: error as Error | null };
+    const localUser = getUserByEmail(email);
+
+    if (!localUser) {
+      return {
+        error: new Error('Aucun compte trouvé avec cet email. Veuillez vous inscrire.'),
+        needsRegistration: true,
+      };
+    }
+
+    if (!localUser.password) {
+      return {
+        error: new Error('Ce compte utilise la connexion Google. Cliquez sur "Continuer avec Google".'),
+      };
+    }
+
+    if (localUser.password !== password) {
+      return { error: new Error('Mot de passe incorrect') };
+    }
+
+    const appUser = localUserToUser(localUser);
+    setCurrentUser(localUser);
+    setUser(appUser);
+    setSession({ user: appUser, access_token: 'local-token' });
+    setIsAdmin(localUser.role === 'admin');
+
+    return { error: null };
   };
 
+  // ============================================
+  // INSCRIPTION EMAIL/PASSWORD
+  // ============================================
   const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
-      },
-    });
-    return { error: error as Error | null };
+    const existingUser = getUserByEmail(email);
+
+    if (existingUser) {
+      return {
+        error: new Error('Un compte existe déjà avec cet email. Veuillez vous connecter.'),
+        alreadyExists: true,
+      };
+    }
+
+    const newUser = createUser(email, password, 'user');
+
+    if (firstName || lastName) {
+      upsertProfile({
+        userId: newUser.id,
+        firstName: firstName || '',
+        lastName: lastName || '',
+      });
+    }
+
+    const appUser = localUserToUser(newUser);
+    setCurrentUser(newUser);
+    setUser(appUser);
+    setSession({ user: appUser, access_token: 'local-token' });
+    setIsAdmin(false);
+
+    return { error: null };
   };
 
+  // ============================================
+  // DÉCONNEXION
+  // ============================================
   const signOut = async () => {
-    // Clear local state immediately
+    console.log('AuthContext: Signing out...');
+    
+    if (isFirebaseConfigured()) {
+      await signOutFirebase();
+    }
+
+    setCurrentUser(null);
     setUser(null);
     setSession(null);
     setIsAdmin(false);
-
-    // Clear Supabase session (this also clears localStorage)
-    await supabase.auth.signOut();
-
-    // Force clear any cached session data
-    try {
-      const storageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
-      localStorage.removeItem(storageKey);
-    } catch (e) {
-      // Ignore storage errors
-    }
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/reset-password`;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-    return { error: error as Error | null };
+    const localUser = getUserByEmail(email);
+    if (!localUser) {
+      return { error: new Error('Aucun compte trouvé avec cet email.') };
+    }
+    if (!localUser.password) {
+      return { error: new Error('Ce compte utilise Google.') };
+    }
+    return { error: null };
   };
 
   const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    return { error: error as Error | null };
+    const storedUser = getCurrentUser();
+    if (!storedUser) {
+      return { error: new Error('Non authentifié') };
+    }
+    updateUser(storedUser.id, { password: newPassword });
+    return { error: null };
   };
 
+  // ============================================
+  // CONNEXION GOOGLE (avec popup)
+  // ============================================
   const signInWithGoogle = async () => {
-    const redirectTo = `${window.location.origin}/auth/callback`;
-
-    // In embedded previews (iframes), Google OAuth can fail or be blocked.
-    // We request the OAuth URL and redirect the TOP window ourselves.
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        skipBrowserRedirect: true,
-      },
-    });
-
-    if (!error && data?.url) {
-      // Redirect the top-level browsing context when possible.
-      const target = window.top ?? window;
-      target.location.assign(data.url);
+    if (!isFirebaseConfigured()) {
+      return { error: new Error('La connexion Google n\'est pas configurée.') };
     }
 
-    return { error: error as Error | null };
+    console.log('AuthContext: Starting Google sign-in...');
+    
+    const { user: firebaseUser, error } = await firebaseSignInWithGoogle();
+    
+    if (error) {
+      toast.error(error.message);
+      return { error };
+    }
+    
+    if (firebaseUser) {
+      // Connecter l'utilisateur immédiatement
+      loginFirebaseUser(firebaseUser, true);
+    }
+
+    return { error: null };
   };
 
+  const signUpWithGoogle = async () => {
+    return signInWithGoogle();
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      isLoading,
-      isAdmin,
-      signIn,
-      signUp,
-      signOut,
-      resetPassword,
-      updatePassword,
-      signInWithGoogle,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isLoading,
+        isAdmin,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
+        updatePassword,
+        signInWithGoogle,
+        signUpWithGoogle,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

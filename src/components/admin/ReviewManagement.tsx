@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getReviews, updateReview, deleteReview, Review, getProducts } from '@/lib/localStorage';
 import { Check, X, Trash2, Star, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,80 +17,75 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import type { Review } from '@/types/supabase';
+
+interface ReviewWithProduct extends Review {
+  productName?: string;
+}
 
 const ReviewManagement: React.FC = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('pending');
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['admin-reviews', filter],
-    queryFn: async () => {
-      let query = supabase
-        .from('reviews')
-        .select('*, products(name)')
-        .order('created_at', { ascending: false });
+    queryFn: async (): Promise<ReviewWithProduct[]> => {
+      const allReviews = getReviews();
+      const products = getProducts();
 
+      let filteredReviews = allReviews;
       if (filter === 'pending') {
-        query = query.eq('is_approved', false);
+        filteredReviews = allReviews.filter(r => !r.isApproved);
       } else if (filter === 'approved') {
-        query = query.eq('is_approved', true);
+        filteredReviews = allReviews.filter(r => r.isApproved);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Review[];
+      return filteredReviews.map(review => {
+        const product = products.find(p => p.id === review.productId);
+        return {
+          ...review,
+          productName: product?.name,
+        };
+      }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     },
   });
 
   const approveMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      const { error } = await supabase
-        .from('reviews')
-        .update({ is_approved: true })
-        .eq('id', reviewId);
-      if (error) throw error;
+      updateReview(reviewId, { isApproved: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
-      toast.success('Avis approuvé');
+      toast({ title: 'Avis approuvé' });
     },
     onError: () => {
-      toast.error('Erreur lors de l\'approbation');
+      toast({ title: 'Erreur lors de l\'approbation', variant: 'destructive' });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      const { error } = await supabase
-        .from('reviews')
-        .update({ is_approved: false })
-        .eq('id', reviewId);
-      if (error) throw error;
+      updateReview(reviewId, { isApproved: false });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
-      toast.success('Avis rejeté');
+      toast({ title: 'Avis retiré' });
     },
     onError: () => {
-      toast.error('Erreur lors du rejet');
+      toast({ title: 'Erreur lors du rejet', variant: 'destructive' });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', reviewId);
-      if (error) throw error;
+      deleteReview(reviewId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
-      toast.success('Avis supprimé');
+      toast({ title: 'Avis supprimé' });
     },
     onError: () => {
-      toast.error('Erreur lors de la suppression');
+      toast({ title: 'Erreur lors de la suppression', variant: 'destructive' });
     },
   });
 
@@ -143,17 +138,17 @@ const ReviewManagement: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      {review.user_name}
-                      <Badge variant={review.is_approved ? 'default' : 'secondary'}>
-                        {review.is_approved ? 'Approuvé' : 'En attente'}
+                      {review.authorName}
+                      <Badge variant={review.isApproved ? 'default' : 'secondary'}>
+                        {review.isApproved ? 'Approuvé' : 'En attente'}
                       </Badge>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {review.user_email} • {new Date(review.created_at).toLocaleDateString('fr-FR')}
+                      {review.authorEmail} • {new Date(review.createdAt).toLocaleDateString('fr-FR')}
                     </p>
-                    {review.products && (
+                    {review.productName && (
                       <p className="text-sm text-gold mt-1">
-                        Produit: {review.products.name}
+                        Produit: {review.productName}
                       </p>
                     )}
                   </div>
@@ -168,9 +163,9 @@ const ReviewManagement: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-foreground mb-4">{review.content}</p>
+                <p className="text-foreground mb-4">{review.comment}</p>
                 <div className="flex gap-2">
-                  {!review.is_approved && (
+                  {!review.isApproved && (
                     <Button
                       size="sm"
                       onClick={() => approveMutation.mutate(review.id)}
@@ -181,7 +176,7 @@ const ReviewManagement: React.FC = () => {
                       Approuver
                     </Button>
                   )}
-                  {review.is_approved && (
+                  {review.isApproved && (
                     <Button
                       size="sm"
                       variant="outline"

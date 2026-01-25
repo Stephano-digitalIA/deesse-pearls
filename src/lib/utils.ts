@@ -15,24 +15,32 @@ const assetImages = import.meta.glob('/src/assets/*.jpg', { eager: true, import:
  */
 export function resolveImagePath(imagePath: string): string {
   if (!imagePath) return '/placeholder.svg';
-  
+
   // If it's already a full URL, return as-is
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
-  
+
   // Handle /src/assets/products/... paths
   if (imagePath.startsWith('/src/assets/products/')) {
     const resolved = productImages[imagePath];
     if (resolved) return resolved;
   }
-  
+
   // Handle /src/assets/... paths
   if (imagePath.startsWith('/src/assets/')) {
     const resolved = assetImages[imagePath];
     if (resolved) return resolved;
   }
-  
+
+  // Handle plain filenames (e.g., "pendant-diamond-halo-1.jpg")
+  // Try to resolve from products folder
+  if (!imagePath.startsWith('/')) {
+    const fullPath = `/src/assets/products/${imagePath}`;
+    const resolved = productImages[fullPath];
+    if (resolved) return resolved;
+  }
+
   // Fallback to placeholder
-  return imagePath || '/placeholder.svg';
+  return '/placeholder.svg';
 }

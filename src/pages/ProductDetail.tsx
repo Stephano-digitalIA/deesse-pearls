@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award } from "lucide-react";
+import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Loader2 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
+import { useTranslatedProductBySlug, useTranslatedProductsByCategory } from "@/hooks/useTranslatedProducts";
 import { useReviews } from "@/hooks/useReviews";
 import { useQueryClient } from "@tanstack/react-query";
-import { products as staticProducts } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
 import ReviewForm, { reviewTranslations } from "@/components/ReviewForm";
 import { Button } from "@/components/ui/button";
@@ -26,30 +26,8 @@ const ProductDetail: React.FC = () => {
 
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.["fr"] || key;
 
-  // Use static product data for instant display (no Supabase latency)
-  const product = useMemo(() => {
-    const found = staticProducts.find(p => p.slug === slug);
-    if (!found) return null;
-    return {
-      id: found.id,
-      slug: found.slug,
-      category: found.category,
-      name: getProductTranslation(found.slug, 'name', language) || found.name,
-      description: getProductTranslation(found.slug, 'description', language) || found.description,
-      price: found.price,
-      image: found.images?.[0] || '',
-      badge: found.badge,
-      rating: found.rating,
-      reviews: found.reviews,
-      variants: found.variants,
-      in_stock: found.inStock,
-      created_at: '',
-    };
-  }, [slug, language]);
-
+  const { data: product, isLoading, error } = useTranslatedProductBySlug(slug || "");
   const queryClient = useQueryClient();
-  const isLoading = false;
-  const error = null;
 
   // Fetch reviews from database
   const { data: reviews = [], isLoading: reviewsLoading } = useReviews(product?.id || "");
@@ -64,31 +42,21 @@ const ProductDetail: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["reviews", product?.id] });
   };
 
-  // Get related products from static data (same category)
-  const relatedProducts = useMemo(() => {
-    if (!product) return [];
-    return staticProducts
-      .filter(p => p.category === product.category && p.id !== product.id)
-      .slice(0, 4)
-      .map(p => ({
-        id: p.id,
-        slug: p.slug,
-        category: p.category,
-        name: getProductTranslation(p.slug, 'name', language) || p.name,
-        description: getProductTranslation(p.slug, 'description', language) || p.description,
-        price: p.price,
-        image: p.images?.[0] || '',
-        badge: p.badge,
-        rating: p.rating,
-        reviews: p.reviews,
-        variants: p.variants,
-        in_stock: p.inStock,
-        created_at: '',
-      }));
-  }, [product, language]);
+  // Fetch related products based on product category
+  const { data: relatedProductsData = [] } = useTranslatedProductsByCategory(
+    (product?.category || "pearls") as 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'other',
+  );
+  const relatedProducts = relatedProductsData.filter((p) => p.id !== product?.id).slice(0, 4);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      </div>
+    );
+  }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -103,12 +71,10 @@ const ProductDetail: React.FC = () => {
 
   const favorite = isFavorite(product.id);
 
+  // Le produit retourné par useTranslatedProductBySlug contient déjà les traductions
   const productName = product.name;
   const translatedDescription = product.description;
 
-  // Get images from static product
-  const staticProductData = staticProducts.find(p => p.slug === slug);
-  const images = staticProductData?.images || (product.image ? [product.image] : []);
 
   const handleAddToCart = () => {
     const variantInfo: string[] = [];
@@ -121,7 +87,7 @@ const ProductDetail: React.FC = () => {
         id: product.id,
         name: productName,
         price: product.price,
-        image: images[0],
+        image: product.images[0],
         variant: variantInfo.length > 0 ? variantInfo.join(" - ") : undefined,
       });
     }
@@ -166,7 +132,7 @@ const ProductDetail: React.FC = () => {
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
             <div className="relative aspect-square rounded-lg overflow-hidden bg-secondary">
               <img
-                src={resolveImagePath(images[selectedImage])}
+                src={resolveImagePath(product.images[selectedImage])}
                 alt={productName}
                 className="w-full h-full object-cover"
               />
@@ -177,16 +143,16 @@ const ProductDetail: React.FC = () => {
                   {product.badge === "new" ? ts("product.new") : ts("product.bestSeller")}
                 </Badge>
               )}
-              {images.length > 1 && (
+              {product.images.length > 1 && (
                 <>
                   <button
-                    onClick={() => setSelectedImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+                    onClick={() => setSelectedImage((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))}
                     className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background p-2 rounded-full transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => setSelectedImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+                    onClick={() => setSelectedImage((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))}
                     className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background p-2 rounded-full transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />
@@ -194,9 +160,9 @@ const ProductDetail: React.FC = () => {
                 </>
               )}
             </div>
-            {images.length > 1 && (
+            {product.images.length > 1 && (
               <div className="flex gap-2">
-                {images.map((img, index) => (
+                {product.images.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
