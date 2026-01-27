@@ -5,8 +5,28 @@ import { CheckCircle, ShoppingBag, ArrowRight, Package, MapPin, Receipt, Loader2
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useLocale } from '@/contexts/LocaleContext';
-import { getOrderById, Order } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
+
+interface OrderItem {
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+interface Order {
+  id: string;
+  order_number: string;
+  created_at: string;
+  customer_name: string;
+  customer_email: string;
+  shipping_address: string;
+  subtotal: number;
+  shipping_cost: number;
+  total: number;
+  items: OrderItem[];
+}
 
 const PaymentSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -22,11 +42,39 @@ const PaymentSuccess: React.FC = () => {
   }, [clearCart]);
 
   useEffect(() => {
-    if (orderId) {
-      const foundOrder = getOrderById(orderId);
-      setOrder(foundOrder || null);
-    }
-    setIsLoading(false);
+    const fetchOrder = async () => {
+      if (!orderId) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .eq('id', orderId)
+        .single();
+
+      if (error) {
+        console.error('[PaymentSuccess] Error fetching order:', error);
+      } else if (data) {
+        setOrder({
+          id: data.id,
+          order_number: data.order_number,
+          created_at: data.created_at,
+          customer_name: data.customer_name,
+          customer_email: data.customer_email,
+          shipping_address: data.shipping_address,
+          subtotal: data.subtotal,
+          shipping_cost: data.shipping_cost,
+          total: data.total,
+          items: data.order_items || [],
+        });
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchOrder();
   }, [orderId]);
 
   // Email envoyé dans Checkout.tsx (onApprove PayPal) - pas de doublon ici
@@ -89,19 +137,19 @@ const PaymentSuccess: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Numéro de commande</span>
-                  <p className="font-mono font-medium">{order.orderNumber}</p>
+                  <p className="font-mono font-medium">{order.order_number}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Date</span>
-                  <p className="font-medium">{formatDate(order.createdAt)}</p>
+                  <p className="font-medium">{formatDate(order.created_at)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Client</span>
-                  <p className="font-medium">{order.customerName}</p>
+                  <p className="font-medium">{order.customer_name}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Email</span>
-                  <p className="font-medium">{order.customerEmail}</p>
+                  <p className="font-medium">{order.customer_email}</p>
                 </div>
                 <div className="col-span-2">
                   <span className="text-muted-foreground">Statut</span>
@@ -121,12 +169,12 @@ const PaymentSuccess: React.FC = () => {
                 {order.items.map((item, index) => (
                   <div key={index} className="flex justify-between items-center text-sm">
                     <div className="flex-1">
-                      <p className="font-medium">{item.productName}</p>
+                      <p className="font-medium">{item.product_name}</p>
                       <p className="text-muted-foreground">
-                        {item.quantity} × {formatPrice(item.unitPrice)}
+                        {item.quantity} × {formatPrice(item.unit_price)}
                       </p>
                     </div>
-                    <p className="font-medium">{formatPrice(item.totalPrice)}</p>
+                    <p className="font-medium">{formatPrice(item.total_price)}</p>
                   </div>
                 ))}
               </div>
@@ -140,7 +188,7 @@ const PaymentSuccess: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Livraison</span>
-                  <span>{formatPrice(order.shippingCost)}</span>
+                  <span>{formatPrice(order.shipping_cost)}</span>
                 </div>
               </div>
 
@@ -153,7 +201,7 @@ const PaymentSuccess: React.FC = () => {
             </div>
 
             {/* Shipping Address */}
-            {order.shippingAddress && (
+            {order.shipping_address && (
               <div className="bg-card border border-border rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <MapPin className="w-5 h-5 text-gold" />
@@ -161,7 +209,7 @@ const PaymentSuccess: React.FC = () => {
                 </div>
 
                 <div className="text-sm">
-                  <p>{order.shippingAddress}</p>
+                  <p>{order.shipping_address}</p>
                 </div>
               </div>
             )}

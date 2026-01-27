@@ -1,15 +1,25 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  getAccessLogs,
-  deleteAccessLog,
-  clearAccessLogs,
-  getAccessBlocks,
-  deleteAccessBlock,
-  clearAccessBlocks,
-  AccessLog,
-  AccessBlock,
-} from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AccessLog {
+  id: string;
+  user_id: string | null;
+  email: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  attempt_type: 'unauthorized_admin_access' | 'admin_login_success';
+  created_at: string;
+}
+
+interface AccessBlock {
+  id: string;
+  email: string;
+  attempt_count: number;
+  blocked_until: string | null;
+  created_at: string;
+  updated_at: string;
+}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +38,15 @@ const AccessLogsManagement: React.FC = () => {
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
     queryKey: ['admin-access-logs'],
     queryFn: async () => {
-      return getAccessLogs();
+      const { data, error } = await supabase
+        .from('access_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('[AccessLogs] Error fetching logs:', error);
+        return [] as AccessLog[];
+      }
+      return (data || []) as AccessLog[];
     }
   });
 
@@ -36,15 +54,26 @@ const AccessLogsManagement: React.FC = () => {
   const { data: blocks, isLoading: blocksLoading, refetch: refetchBlocks } = useQuery({
     queryKey: ['admin-access-blocks'],
     queryFn: async () => {
-      return getAccessBlocks();
+      const { data, error } = await supabase
+        .from('access_blocks')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      if (error) {
+        console.error('[AccessLogs] Error fetching blocks:', error);
+        return [] as AccessBlock[];
+      }
+      return (data || []) as AccessBlock[];
     }
   });
 
   // Delete log mutation
   const deleteLogMutation = useMutation({
     mutationFn: async (logId: string) => {
-      const success = deleteAccessLog(logId);
-      if (!success) throw new Error('Log not found');
+      const { error } = await supabase
+        .from('access_logs')
+        .delete()
+        .eq('id', logId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-logs'] });
@@ -58,7 +87,11 @@ const AccessLogsManagement: React.FC = () => {
   // Clear all logs mutation
   const clearAllLogsMutation = useMutation({
     mutationFn: async () => {
-      clearAccessLogs();
+      const { error } = await supabase
+        .from('access_logs')
+        .delete()
+        .not('id', 'is', null);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-logs'] });
@@ -72,8 +105,11 @@ const AccessLogsManagement: React.FC = () => {
   // Unblock user mutation
   const unblockMutation = useMutation({
     mutationFn: async (blockId: string) => {
-      const success = deleteAccessBlock(blockId);
-      if (!success) throw new Error('Block not found');
+      const { error } = await supabase
+        .from('access_blocks')
+        .delete()
+        .eq('id', blockId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-blocks'] });
@@ -87,7 +123,11 @@ const AccessLogsManagement: React.FC = () => {
   // Clear all blocks mutation
   const clearAllBlocksMutation = useMutation({
     mutationFn: async () => {
-      clearAccessBlocks();
+      const { error } = await supabase
+        .from('access_blocks')
+        .delete()
+        .not('id', 'is', null);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-access-blocks'] });
@@ -120,7 +160,7 @@ const AccessLogsManagement: React.FC = () => {
     return `${minutes} min`;
   };
 
-  const activeBlocks = blocks?.filter(b => isCurrentlyBlocked(b.blockedUntil)) || [];
+  const activeBlocks = blocks?.filter(b => isCurrentlyBlocked(b.blocked_until)) || [];
 
   if (logsLoading || blocksLoading) {
     return (
@@ -208,22 +248,22 @@ const AccessLogsManagement: React.FC = () => {
                     {logs.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell className="whitespace-nowrap">
-                          {format(new Date(log.createdAt), 'dd MMM yyyy HH:mm', { locale: fr })}
+                          {format(new Date(log.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}
                         </TableCell>
                         <TableCell className="font-medium">{log.email}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={log.attemptType === 'admin_login_success' ? 'default' : 'destructive'}
+                            variant={log.attempt_type === 'admin_login_success' ? 'default' : 'destructive'}
                             className="text-xs"
                           >
-                            {log.attemptType === 'unauthorized_admin_access'
+                            {log.attempt_type === 'unauthorized_admin_access'
                               ? 'Non autorisé'
-                              : log.attemptType === 'admin_login_success'
+                              : log.attempt_type === 'admin_login_success'
                               ? 'Autorisé'
-                              : log.attemptType}
+                              : log.attempt_type}
                           </Badge>
                         </TableCell>
-                        <TableCell>{getBrowserInfo(log.userAgent)}</TableCell>
+                        <TableCell>{getBrowserInfo(log.user_agent)}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -281,13 +321,13 @@ const AccessLogsManagement: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {blocks.map((block) => {
-                      const blocked = isCurrentlyBlocked(block.blockedUntil);
-                      const remaining = getRemainingTime(block.blockedUntil);
+                      const blocked = isCurrentlyBlocked(block.blocked_until);
+                      const remaining = getRemainingTime(block.blocked_until);
 
                       return (
                         <TableRow key={block.id}>
                           <TableCell className="font-medium">{block.email}</TableCell>
-                          <TableCell>{block.attemptCount}</TableCell>
+                          <TableCell>{block.attempt_count}</TableCell>
                           <TableCell>
                             {blocked ? (
                               <Badge variant="destructive">Bloqué</Badge>
@@ -299,7 +339,7 @@ const AccessLogsManagement: React.FC = () => {
                             {remaining || '-'}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {format(new Date(block.updatedAt), 'dd MMM yyyy HH:mm', { locale: fr })}
+                            {format(new Date(block.updated_at), 'dd MMM yyyy HH:mm', { locale: fr })}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button

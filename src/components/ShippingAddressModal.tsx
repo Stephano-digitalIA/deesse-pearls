@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile, ShippingAddress } from '@/hooks/useUserProfile';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
 import { toast } from 'sonner';
 import { shippingTranslations, getCountriesWithPriority, Language, normalizeCountryToCode, getCountryName, PRIORITY_COUNTRY_CODES } from '@/data/shippingTranslations';
@@ -22,6 +23,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
   onConfirm,
 }) => {
   const { profile, saveProfile, isLoading } = useUserProfile();
+  const { user } = useAuth();
   const { language } = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,26 +52,25 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
       // Réinitialiser les erreurs quand le modal s'ouvre
       setErrors({});
 
-      // Récupérer l'utilisateur connecté depuis localStorage
-      const currentUser = JSON.parse(localStorage.getItem('deesse_current_user') || '{}');
-
-      // Récupérer le profil correspondant depuis localStorage
+      // Récupérer le profil depuis localStorage (si existant)
       const profiles = JSON.parse(localStorage.getItem('deesse_profiles') || '[]');
-      const userProfile = profiles.find((p: any) => p.userId === currentUser.id);
+      const userProfile = user?.id
+        ? profiles.find((p: any) => p.userId === user.id)
+        : undefined;
 
       console.log('[ShippingAddressModal] === DEBUG PRE-REMPLISSAGE ===');
-      console.log('[ShippingAddressModal] currentUser:', currentUser);
+      console.log('[ShippingAddressModal] user:', user?.email);
       console.log('[ShippingAddressModal] userProfile:', userProfile);
 
       // Pré-remplir le formulaire avec les données trouvées
-      if (userProfile || currentUser.email) {
+      if (userProfile || user?.email) {
         // Normaliser le pays : convertir le nom en code si nécessaire
         const countryCode = normalizeCountryToCode(userProfile?.country || 'FR');
 
         setFormData({
-          firstName: userProfile?.firstName || '',
-          lastName: userProfile?.lastName || '',
-          email: currentUser?.email || '',
+          firstName: userProfile?.firstName || user?.user_metadata?.first_name || '',
+          lastName: userProfile?.lastName || user?.user_metadata?.last_name || '',
+          email: user?.email || '',
           phone: userProfile?.phone || '',
           addressLine1: userProfile?.addressLine1 || '',
           addressLine2: userProfile?.addressLine2 || '',
@@ -81,7 +82,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
         console.log('[ShippingAddressModal] Formulaire pré-rempli');
       }
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const handleChange = (field: keyof ShippingAddress, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -137,15 +138,16 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Récupérer l'utilisateur connecté
-      const currentUser = JSON.parse(localStorage.getItem('deesse_current_user') || '{}');
+      const userId = user?.id;
 
       // Sauvegarder dans deesse_profiles
       const profiles = JSON.parse(localStorage.getItem('deesse_profiles') || '[]');
-      const existingIndex = profiles.findIndex((p: any) => p.userId === currentUser.id);
+      const existingIndex = userId
+        ? profiles.findIndex((p: any) => p.userId === userId)
+        : -1;
 
       const profileData = {
-        userId: currentUser.id,
+        userId,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,

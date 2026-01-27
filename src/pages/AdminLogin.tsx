@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Lock, Mail, UserPlus, Home, ShieldAlert } from 'lucide-react';
-import { verifyAdminSecret } from '@/lib/localStorage';
 import { z } from 'zod';
+
+const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || 'admin2025';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Adresse email invalide" }),
@@ -40,8 +41,7 @@ const AdminLogin: React.FC = () => {
       return;
     }
 
-    const isValid = verifyAdminSecret(secretKey);
-    setIsValidSecret(isValid);
+    setIsValidSecret(secretKey === ADMIN_SECRET);
   }, [secretKey]);
 
   useEffect(() => {

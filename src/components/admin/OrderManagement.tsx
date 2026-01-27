@@ -1,6 +1,34 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getOrders, updateOrder, Order } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
+
+interface OrderItem {
+  product_id: string;
+  product_name: string;
+  product_image: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  variant?: string;
+}
+
+interface Order {
+  id: string;
+  order_number: string;
+  user_id?: string;
+  customer_email: string;
+  customer_name: string;
+  customer_phone?: string;
+  shipping_address: string;
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  order_items: OrderItem[];
+  subtotal: number;
+  shipping_cost: number;
+  total: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +74,12 @@ const OrderManagement: React.FC = () => {
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async (): Promise<Order[]> => {
-      return getOrders();
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as Order[];
     },
   });
 
@@ -55,7 +88,11 @@ const OrderManagement: React.FC = () => {
 
     setIsUpdating(true);
     try {
-      updateOrder(selectedOrder.id, { status: newStatus });
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', selectedOrder.id);
+      if (error) throw error;
 
       toast({
         title: "Statut mis à jour",
@@ -78,9 +115,9 @@ const OrderManagement: React.FC = () => {
 
   const filteredOrders = orders?.filter(order => {
     const matchesSearch =
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_email.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
 
@@ -157,16 +194,16 @@ const OrderManagement: React.FC = () => {
                   filteredOrders?.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-sm">
-                        {order.orderNumber}
+                        {order.order_number}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{order.customerName}</p>
-                          <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
+                          <p className="font-medium">{order.customer_name}</p>
+                          <p className="text-xs text-muted-foreground">{order.customer_email}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(order.createdAt), 'dd MMM yyyy', { locale: fr })}
+                        {format(new Date(order.created_at), 'dd MMM yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
                         <Badge className={`${statusConfig[order.status].color} text-white`}>
@@ -203,7 +240,7 @@ const OrderManagement: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="w-5 h-5" />
-              Commande {selectedOrder?.orderNumber}
+              Commande {selectedOrder?.order_number}
             </DialogTitle>
           </DialogHeader>
 
@@ -245,15 +282,15 @@ const OrderManagement: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">Client</h3>
-                  <p>{selectedOrder.customerName}</p>
-                  <p className="text-sm text-muted-foreground">{selectedOrder.customerEmail}</p>
-                  {selectedOrder.customerPhone && (
-                    <p className="text-sm text-muted-foreground">{selectedOrder.customerPhone}</p>
+                  <p>{selectedOrder.customer_name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedOrder.customer_email}</p>
+                  {selectedOrder.customer_phone && (
+                    <p className="text-sm text-muted-foreground">{selectedOrder.customer_phone}</p>
                   )}
                 </div>
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">Adresse de livraison</h3>
-                  <p className="text-sm whitespace-pre-line">{selectedOrder.shippingAddress}</p>
+                  <p className="text-sm whitespace-pre-line">{selectedOrder.shipping_address}</p>
                 </div>
               </div>
 
@@ -272,23 +309,23 @@ const OrderManagement: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedOrder.items.map((item, index) => (
+                    {selectedOrder.order_items.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            {item.productImage && (
+                            {item.product_image && (
                               <img
-                                src={resolveImagePath(item.productImage)}
-                                alt={item.productName}
+                                src={resolveImagePath(item.product_image)}
+                                alt={item.product_name}
                                 className="w-10 h-10 object-cover rounded"
                               />
                             )}
-                            <span>{item.productName}</span>
+                            <span>{item.product_name}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="text-right">{item.unitPrice.toFixed(2)} €</TableCell>
-                        <TableCell className="text-right font-medium">{item.totalPrice.toFixed(2)} €</TableCell>
+                        <TableCell className="text-right">{item.unit_price.toFixed(2)} €</TableCell>
+                        <TableCell className="text-right font-medium">{item.total_price.toFixed(2)} €</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -300,7 +337,7 @@ const OrderManagement: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Livraison</span>
-                    <span>{selectedOrder.shippingCost.toFixed(2)} €</span>
+                    <span>{selectedOrder.shipping_cost.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-lg pt-2 border-t">
                     <span>Total</span>

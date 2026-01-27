@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, Product, ProductTranslation } from '@/hooks/useProducts';
-import { verifyAdminSecret } from '@/lib/localStorage';
 import { Button } from '@/components/ui/button';
+
+const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || 'admin2025';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -143,8 +144,7 @@ const AdminDashboard: React.FC = () => {
       return;
     }
 
-    const isValid = verifyAdminSecret(secretKey);
-    setIsValidSecret(isValid);
+    setIsValidSecret(secretKey === ADMIN_SECRET);
   }, [secretKey]);
 
   // Verify admin access

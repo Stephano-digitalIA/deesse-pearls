@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUsers, updateUser, deleteUser, User, getProfileByUserId } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
 
-interface UserWithProfile extends User {
-  firstName?: string;
-  lastName?: string;
+interface UserData {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'admin' | 'user';
+  createdAt: string;
 }
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -54,57 +58,91 @@ import { fr } from 'date-fns/locale';
 
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserData | null>(null);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'user'>('user');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
-    queryFn: async (): Promise<UserWithProfile[]> => {
-      const allUsers = getUsers();
-      return allUsers
-        .map(user => {
-          const profile = getProfileByUserId(user.id);
-          return {
-            ...user,
-            firstName: profile?.firstName || '',
-            lastName: profile?.lastName || '',
-          };
-        })
+    queryFn: async (): Promise<UserData[]> => {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*');
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+      // Get emails from orders (best effort since auth.users isn't queryable from client)
+      const { data: orderEmails } = await supabase
+        .from('orders')
+        .select('user_id, customer_email')
+        .not('user_id', 'is', null);
+
+      const emailMap = new Map<string, string>();
+      (orderEmails || []).forEach(o => {
+        if (o.user_id && o.customer_email) emailMap.set(o.user_id, o.customer_email);
+      });
+
+      const roleMap = new Map<string, string>();
+      (roles || []).forEach(r => roleMap.set(r.user_id, r.role));
+
+      return (profiles || [])
+        .map(p => ({
+          id: p.user_id,
+          email: emailMap.get(p.user_id) || '',
+          firstName: p.first_name || '',
+          lastName: p.last_name || '',
+          role: (roleMap.get(p.user_id) === 'admin' ? 'admin' : 'user') as 'admin' | 'user',
+          createdAt: p.created_at || new Date().toISOString(),
+        }))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     },
   });
 
-  const openEditDialog = (user: User) => {
+  const openEditDialog = (user: UserData) => {
     setSelectedRole(user.role);
     setEditingUser(user);
   };
 
-  const handleSaveRole = () => {
+  const handleSaveRole = async () => {
     if (!editingUser) return;
 
-    updateUser(editingUser.id, { role: selectedRole });
+    if (selectedRole === 'admin') {
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({ user_id: editingUser.id, role: 'admin' }, { onConflict: 'user_id' });
+      if (error) {
+        toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+        return;
+      }
+    } else {
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', editingUser.id);
+    }
 
     queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     queryClient.invalidateQueries({ queryKey: ['admin-user-count'] });
     toast({
       title: 'Rôle modifié',
-      description: `${editingUser.email} est maintenant ${selectedRole === 'admin' ? 'Administrateur' : 'Utilisateur'}`,
+      description: `${editingUser.email || editingUser.firstName} est maintenant ${selectedRole === 'admin' ? 'Administrateur' : 'Utilisateur'}`,
     });
     setEditingUser(null);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deletingUser) return;
 
-    deleteUser(deletingUser.id);
+    await supabase.from('user_roles').delete().eq('user_id', deletingUser.id);
+    await supabase.from('profiles').delete().eq('user_id', deletingUser.id);
+
     queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     queryClient.invalidateQueries({ queryKey: ['admin-user-count'] });
     toast({
       title: 'Utilisateur supprimé',
-      description: `${deletingUser.email} a été supprimé`,
+      description: `${deletingUser.email || deletingUser.firstName} a été supprimé`,
     });
     setDeletingUser(null);
   };

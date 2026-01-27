@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { createCustomizationRequest } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 const Customization: React.FC = () => {
   const { t, language } = useLocale();
@@ -34,18 +34,22 @@ const Customization: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Save to localStorage
-      createCustomizationRequest({
-        jewelryType: formData.jewelryType,
-        pearlType: formData.pearlType,
-        metalType: formData.metalType,
-        budget: formData.budget,
-        description: formData.description || '',
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone || undefined,
-      });
+      const { error } = await supabase
+        .from('customization_requests')
+        .insert({
+          jewelry_type: formData.jewelryType,
+          pearl_type: formData.pearlType,
+          metal_type: formData.metalType,
+          budget: formData.budget,
+          description: formData.description || '',
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone || null,
+          status: 'pending',
+        });
+
+      if (error) throw error;
 
       toast.success(pageT.toastSuccess);
       setStep(4);

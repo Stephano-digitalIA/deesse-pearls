@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { createReview } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -155,13 +155,18 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
     setIsSubmitting(true);
 
     try {
-      createReview({
-        productId,
-        authorName: name.trim(),
-        authorEmail: email.trim(),
-        rating,
-        comment: comment.trim(),
-      });
+      const { error } = await supabase
+        .from('reviews')
+        .insert({
+          product_id: productId,
+          author_name: name.trim(),
+          author_email: email.trim(),
+          rating,
+          comment: comment.trim(),
+          approved: false,
+        });
+
+      if (error) throw error;
 
       toast.success(t('review.success'));
       setName('');

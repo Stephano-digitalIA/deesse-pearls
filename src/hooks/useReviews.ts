@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getReviewsByProductId } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Review {
   id: string;
@@ -14,18 +14,19 @@ export const useReviews = (productId: string) => {
   return useQuery({
     queryKey: ['reviews', productId],
     queryFn: async () => {
-      // Get approved reviews from localStorage
-      const reviews = getReviewsByProductId(productId, true);
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('id, product_id, author_name, rating, comment, created_at')
+        .eq('product_id', productId)
+        .eq('approved', true)
+        .order('created_at', { ascending: false });
 
-      // Map to expected format
-      return reviews.map(r => ({
-        id: r.id,
-        product_id: r.productId,
-        author_name: r.authorName,
-        rating: r.rating,
-        comment: r.comment,
-        created_at: r.createdAt,
-      })) as Review[];
+      if (error) {
+        console.error('[useReviews] Error fetching reviews:', error);
+        throw error;
+      }
+
+      return (data || []) as Review[];
     },
     enabled: !!productId,
   });

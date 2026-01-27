@@ -138,36 +138,24 @@ export interface OrderEmailData {
   subtotal: string;
   shipping: string;
   total: string;
+  customer_email: string;
+  customer_name: string;
+  shipping_address: string;
 }
 
 export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Promise<boolean> => {
   console.log('=== DEBUT ENVOI EMAIL ===');
 
-  const currentUserStr = localStorage.getItem('deesse_current_user');
-  console.log('Raw currentUser:', currentUserStr);
+  const customerEmail = orderData.customer_email;
+  const customerName = orderData.customer_name || 'Client';
+  const shippingAddress = orderData.shipping_address || 'Non spécifiée';
 
-  const currentUser = JSON.parse(currentUserStr || '{}');
-  console.log('Parsed currentUser:', currentUser);
-
-  const customerEmail = currentUser.email;
   console.log('customerEmail:', customerEmail);
 
   if (!customerEmail) {
     console.error('EMAIL VIDE - Abandon');
     return false;
   }
-
-  const profilesStr = localStorage.getItem('deesse_profiles');
-  const profiles = JSON.parse(profilesStr || '[]');
-  const userProfile = profiles.find((p: any) => p.userId === currentUser.id);
-
-  const customerName = userProfile
-    ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
-    : 'Client';
-
-  const shippingAddress = userProfile
-    ? `${userProfile.addressLine1 || ''}, ${userProfile.postalCode || ''} ${userProfile.city || ''}, ${userProfile.country || ''}`
-    : 'Non spécifiée';
 
   // Récupérer les traductions
   const t = getEmailTranslations();

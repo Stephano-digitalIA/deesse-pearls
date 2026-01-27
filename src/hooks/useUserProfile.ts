@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getProfileByUserId, upsertProfile, Profile, getProfiles } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 // Clé pour l'adresse de livraison temporaire (checkout)
 const SHIPPING_ADDRESS_KEY = 'deesse_shipping_address';
@@ -49,49 +49,53 @@ export function useUserProfile() {
 
   // Charger le profil au montage ou quand l'utilisateur change
   useEffect(() => {
-    setIsLoading(true);
+    const loadProfile = async () => {
+      setIsLoading(true);
 
-    // Toujours vérifier s'il y a une adresse de livraison temporaire (checkout en cours)
-    const savedShippingAddress = getShippingAddress();
+      // Toujours vérifier s'il y a une adresse de livraison temporaire (checkout en cours)
+      const savedShippingAddress = getShippingAddress();
 
-    // DEBUG: Log pour tracer le chargement
-    console.log('=== useUserProfile DEBUG ===');
-    console.log('user:', user ? { id: user.id, email: user.email } : null);
-    console.log('savedShippingAddress:', savedShippingAddress);
-    console.log('ALL profiles in localStorage:', getProfiles());
+      if (user) {
+        // Utilisateur connecté : charger depuis Supabase
+        const { data: savedProfile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-    if (user) {
-      // Utilisateur connecté : charger depuis le profil sauvegardé
-      const savedProfile = getProfileByUserId(user.id);
-      console.log('savedProfile from localStorage:', savedProfile);
+        if (error) {
+          console.error('[useUserProfile] Error fetching profile:', error);
+        }
 
-      // Fusionner les données : priorité au profil utilisateur (Account.tsx),
-      // puis l'adresse de livraison temporaire, puis les valeurs par défaut
-      const mergedProfile: UserProfile = {
-        userId: user.id,
-        firstName: savedProfile?.firstName || savedShippingAddress?.firstName || user.user_metadata?.first_name || '',
-        lastName: savedProfile?.lastName || savedShippingAddress?.lastName || user.user_metadata?.last_name || '',
-        email: user.email || savedShippingAddress?.email || '',
-        phone: savedProfile?.phone || savedShippingAddress?.phone || '',
-        addressLine1: savedProfile?.addressLine1 || savedShippingAddress?.addressLine1 || '',
-        addressLine2: savedProfile?.addressLine2 || savedShippingAddress?.addressLine2 || '',
-        city: savedProfile?.city || savedShippingAddress?.city || '',
-        postalCode: savedProfile?.postalCode || savedShippingAddress?.postalCode || '',
-        country: savedProfile?.country || savedShippingAddress?.country || 'France',
-      };
+        // Fusionner les données : priorité au profil Supabase,
+        // puis l'adresse de livraison temporaire, puis user_metadata
+        const mergedProfile: UserProfile = {
+          userId: user.id,
+          firstName: savedProfile?.first_name || savedShippingAddress?.firstName || user.user_metadata?.first_name || '',
+          lastName: savedProfile?.last_name || savedShippingAddress?.lastName || user.user_metadata?.last_name || '',
+          email: user.email || savedShippingAddress?.email || '',
+          phone: savedProfile?.phone || savedShippingAddress?.phone || '',
+          addressLine1: savedProfile?.address_line1 || savedShippingAddress?.addressLine1 || '',
+          addressLine2: savedProfile?.address_line2 || savedShippingAddress?.addressLine2 || '',
+          city: savedProfile?.city || savedShippingAddress?.city || '',
+          postalCode: savedProfile?.postal_code || savedShippingAddress?.postalCode || '',
+          country: savedProfile?.country || savedShippingAddress?.country || 'France',
+        };
 
-      console.log('mergedProfile:', mergedProfile);
-      setProfile(mergedProfile);
-    } else {
-      // Pas d'utilisateur : vérifier s'il y a une adresse temporaire
-      if (savedShippingAddress) {
-        setProfile(savedShippingAddress);
+        setProfile(mergedProfile);
       } else {
-        setProfile(null);
+        // Pas d'utilisateur : vérifier s'il y a une adresse temporaire
+        if (savedShippingAddress) {
+          setProfile(savedShippingAddress);
+        } else {
+          setProfile(null);
+        }
       }
-    }
 
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    loadProfile();
   }, [user]);
 
   // Sauvegarder le profil
@@ -99,19 +103,26 @@ export function useUserProfile() {
     // Toujours sauvegarder en tant qu'adresse de livraison pour le checkout
     saveShippingAddress(newProfile);
 
-    // Si utilisateur connecté, aussi sauvegarder dans son profil permanent
+    // Si utilisateur connecté, aussi sauvegarder dans Supabase
     if (user) {
-      upsertProfile({
-        userId: user.id,
-        firstName: newProfile.firstName,
-        lastName: newProfile.lastName,
-        phone: newProfile.phone,
-        addressLine1: newProfile.addressLine1,
-        addressLine2: newProfile.addressLine2,
-        city: newProfile.city,
-        postalCode: newProfile.postalCode,
-        country: newProfile.country,
-      });
+      supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          first_name: newProfile.firstName,
+          last_name: newProfile.lastName,
+          phone: newProfile.phone,
+          address_line1: newProfile.addressLine1,
+          address_line2: newProfile.addressLine2 || null,
+          city: newProfile.city,
+          postal_code: newProfile.postalCode,
+          country: newProfile.country,
+        }, { onConflict: 'user_id' })
+        .then(({ error }) => {
+          if (error) {
+            console.error('[useUserProfile] Error saving profile:', error);
+          }
+        });
     }
 
     setProfile({

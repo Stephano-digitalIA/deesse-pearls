@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getReviews, updateReview, deleteReview, Review, getProducts } from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Review {
+  id: string;
+  product_id: string;
+  author_name: string;
+  author_email: string;
+  comment: string;
+  rating: number;
+  approved: boolean;
+  created_at: string;
+}
 import { Check, X, Trash2, Star, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface ReviewWithProduct extends Review {
-  productName?: string;
+  product_name?: string;
 }
 
 const ReviewManagement: React.FC = () => {
@@ -30,29 +41,41 @@ const ReviewManagement: React.FC = () => {
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['admin-reviews', filter],
     queryFn: async (): Promise<ReviewWithProduct[]> => {
-      const allReviews = getReviews();
-      const products = getProducts();
+      let query = supabase
+        .from('reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      let filteredReviews = allReviews;
       if (filter === 'pending') {
-        filteredReviews = allReviews.filter(r => !r.isApproved);
+        query = query.eq('approved', false);
       } else if (filter === 'approved') {
-        filteredReviews = allReviews.filter(r => r.isApproved);
+        query = query.eq('approved', true);
       }
 
-      return filteredReviews.map(review => {
-        const product = products.find(p => p.id === review.productId);
-        return {
-          ...review,
-          productName: product?.name,
-        };
-      }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const { data: allReviews, error } = await query;
+      if (error) throw error;
+
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, name');
+
+      const productMap = new Map<string, string>();
+      (products || []).forEach(p => productMap.set(p.id, p.name));
+
+      return (allReviews || []).map(review => ({
+        ...review,
+        product_name: productMap.get(review.product_id),
+      }));
     },
   });
 
   const approveMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      updateReview(reviewId, { isApproved: true });
+      const { error } = await supabase
+        .from('reviews')
+        .update({ approved: true })
+        .eq('id', reviewId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
@@ -65,7 +88,11 @@ const ReviewManagement: React.FC = () => {
 
   const rejectMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      updateReview(reviewId, { isApproved: false });
+      const { error } = await supabase
+        .from('reviews')
+        .update({ approved: false })
+        .eq('id', reviewId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
@@ -78,7 +105,11 @@ const ReviewManagement: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      deleteReview(reviewId);
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', reviewId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
@@ -138,17 +169,17 @@ const ReviewManagement: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      {review.authorName}
-                      <Badge variant={review.isApproved ? 'default' : 'secondary'}>
-                        {review.isApproved ? 'Approuvé' : 'En attente'}
+                      {review.author_name}
+                      <Badge variant={review.approved ? 'default' : 'secondary'}>
+                        {review.approved ? 'Approuvé' : 'En attente'}
                       </Badge>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {review.authorEmail} • {new Date(review.createdAt).toLocaleDateString('fr-FR')}
+                      {review.author_email} • {new Date(review.created_at).toLocaleDateString('fr-FR')}
                     </p>
-                    {review.productName && (
+                    {review.product_name && (
                       <p className="text-sm text-gold mt-1">
-                        Produit: {review.productName}
+                        Produit: {review.product_name}
                       </p>
                     )}
                   </div>
@@ -165,7 +196,7 @@ const ReviewManagement: React.FC = () => {
               <CardContent>
                 <p className="text-foreground mb-4">{review.comment}</p>
                 <div className="flex gap-2">
-                  {!review.isApproved && (
+                  {!review.approved && (
                     <Button
                       size="sm"
                       onClick={() => approveMutation.mutate(review.id)}
@@ -176,7 +207,7 @@ const ReviewManagement: React.FC = () => {
                       Approuver
                     </Button>
                   )}
-                  {review.isApproved && (
+                  {review.approved && (
                     <Button
                       size="sm"
                       variant="outline"

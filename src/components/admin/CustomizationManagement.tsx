@@ -1,11 +1,23 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  getCustomizationRequests,
-  updateCustomizationRequest,
-  deleteCustomizationRequest,
-  CustomizationRequest,
-} from '@/lib/localStorage';
+import { supabase } from '@/integrations/supabase/client';
+
+interface CustomizationRequest {
+  id: string;
+  jewelry_type: string;
+  pearl_type: string;
+  metal_type: string;
+  budget: string;
+  description: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  status: 'pending' | 'contacted' | 'in_progress' | 'completed' | 'cancelled';
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -61,22 +73,25 @@ const CustomizationManagement: React.FC = () => {
   const { data: requests, isLoading } = useQuery({
     queryKey: ['customization-requests'],
     queryFn: async () => {
-      // Get from localStorage and sort by date (most recent first)
-      const data = getCustomizationRequests();
-      return data.sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      const { data, error } = await supabase
+        .from('customization_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as CustomizationRequest[];
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: string; notes: string }) => {
-      const result = updateCustomizationRequest(id, {
-        status: status as CustomizationRequest['status'],
-        adminNotes: notes
-      });
-      if (!result) throw new Error('Request not found');
-      return result;
+      const { error } = await supabase
+        .from('customization_requests')
+        .update({
+          status: status as CustomizationRequest['status'],
+          admin_notes: notes,
+        })
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customization-requests'] });
@@ -90,8 +105,11 @@ const CustomizationManagement: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const success = deleteCustomizationRequest(id);
-      if (!success) throw new Error('Request not found');
+      const { error } = await supabase
+        .from('customization_requests')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customization-requests'] });
@@ -104,13 +122,13 @@ const CustomizationManagement: React.FC = () => {
   });
 
   const filteredRequests = requests?.filter(req =>
-    `${req.firstName} ${req.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${req.first_name} ${req.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     req.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const openDetails = (request: CustomizationRequest) => {
     setSelectedRequest(request);
-    setAdminNotes(request.adminNotes || '');
+    setAdminNotes(request.admin_notes || '');
     setNewStatus(request.status);
   };
 
@@ -165,14 +183,14 @@ const CustomizationManagement: React.FC = () => {
               {filteredRequests?.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell className="whitespace-nowrap">
-                    {new Date(request.createdAt).toLocaleDateString('fr-FR')}
+                    {new Date(request.created_at).toLocaleDateString('fr-FR')}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{request.firstName} {request.lastName}</div>
+                    <div className="font-medium">{request.first_name} {request.last_name}</div>
                     <div className="text-sm text-muted-foreground">{request.email}</div>
                   </TableCell>
                   <TableCell>
-                    {jewelryLabels[request.jewelryType] || request.jewelryType}
+                    {jewelryLabels[request.jewelry_type] || request.jewelry_type}
                   </TableCell>
                   <TableCell>{request.budget}</TableCell>
                   <TableCell>
@@ -245,7 +263,7 @@ const CustomizationManagement: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Nom:</span>
-                    <p className="font-medium">{selectedRequest.firstName} {selectedRequest.lastName}</p>
+                    <p className="font-medium">{selectedRequest.first_name} {selectedRequest.last_name}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Email:</span>
@@ -274,15 +292,15 @@ const CustomizationManagement: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Type de bijou:</span>
-                    <p className="font-medium">{jewelryLabels[selectedRequest.jewelryType] || selectedRequest.jewelryType}</p>
+                    <p className="font-medium">{jewelryLabels[selectedRequest.jewelry_type] || selectedRequest.jewelry_type}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Type de perle:</span>
-                    <p className="font-medium">{pearlLabels[selectedRequest.pearlType] || selectedRequest.pearlType}</p>
+                    <p className="font-medium">{pearlLabels[selectedRequest.pearl_type] || selectedRequest.pearl_type}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Métal:</span>
-                    <p className="font-medium">{metalLabels[selectedRequest.metalType] || selectedRequest.metalType}</p>
+                    <p className="font-medium">{metalLabels[selectedRequest.metal_type] || selectedRequest.metal_type}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Budget:</span>

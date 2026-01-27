@@ -3,14 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
-import {
-  getProfileByUserId,
-  upsertProfile,
-  getOrdersByUserId,
-  Profile as LocalProfile,
-  Order as LocalOrder,
-} from '@/lib/localStorage';
 import { saveShippingAddress } from '@/hooks/useUserProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,7 +58,7 @@ const Account: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [profile, setProfile] = useState<LocalProfile | null>(null);
+  const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [orders, setOrders] = useState<OrderForDisplay[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -93,21 +87,29 @@ const Account: React.FC = () => {
     }
   }, [user]);
 
-  const fetchProfile = () => {
+  const fetchProfile = async () => {
     if (!user) return;
 
-    const localProfile = getProfileByUserId(user.id);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (localProfile) {
-      setProfile(localProfile);
-      setFirstName(localProfile.firstName || '');
-      setLastName(localProfile.lastName || '');
-      setPhone(localProfile.phone || '');
-      setAddressLine1(localProfile.addressLine1 || '');
-      setAddressLine2(localProfile.addressLine2 || '');
-      setCity(localProfile.city || '');
-      setPostalCode(localProfile.postalCode || '');
-      setCountry(normalizeCountryToCode(localProfile.country || ''));
+    if (error) {
+      console.error('[Account] Error fetching profile:', error);
+    }
+
+    if (data) {
+      setProfile(data);
+      setFirstName(data.first_name || '');
+      setLastName(data.last_name || '');
+      setPhone(data.phone || '');
+      setAddressLine1(data.address_line1 || '');
+      setAddressLine2(data.address_line2 || '');
+      setCity(data.city || '');
+      setPostalCode(data.postal_code || '');
+      setCountry(normalizeCountryToCode(data.country || ''));
     } else {
       // Initialize from user metadata if no profile exists
       setFirstName(user.user_metadata?.first_name || '');
@@ -116,30 +118,38 @@ const Account: React.FC = () => {
     setIsLoadingData(false);
   };
 
-  const fetchOrders = () => {
+  const fetchOrders = async () => {
     if (!user) return;
 
-    const localOrders = getOrdersByUserId(user.id);
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-    // Convert localStorage orders to display format
-    const displayOrders: OrderForDisplay[] = localOrders.map(order => ({
+    if (error) {
+      console.error('[Account] Error fetching orders:', error);
+      return;
+    }
+
+    const displayOrders: OrderForDisplay[] = (data || []).map(order => ({
       id: order.id,
-      order_number: order.orderNumber,
+      order_number: order.order_number,
       status: order.status,
       total: order.total,
       subtotal: order.subtotal,
-      shipping_cost: order.shippingCost,
-      created_at: order.createdAt,
+      shipping_cost: order.shipping_cost,
+      created_at: order.created_at,
       shipping_address: {
-        line1: order.shippingAddress,
+        line1: order.shipping_address,
       },
-      order_items: order.items.map(item => ({
-        id: item.productId,
-        product_name: item.productName,
-        product_image: item.productImage,
+      order_items: (order.order_items || []).map((item: any) => ({
+        id: item.id,
+        product_name: item.product_name,
+        product_image: item.product_image,
         quantity: item.quantity,
-        unit_price: item.unitPrice,
-        total_price: item.totalPrice,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
       })),
     }));
 
@@ -176,18 +186,25 @@ const Account: React.FC = () => {
     setIsSaving(true);
 
     try {
-      // Save to localStorage (profile)
-      upsertProfile({
-        userId: user.id,
-        firstName: firstName || '',
-        lastName: lastName || '',
-        phone: phone || undefined,
-        addressLine1: addressLine1 || undefined,
-        addressLine2: addressLine2 || undefined,
-        city: city || undefined,
-        postalCode: postalCode || undefined,
-        country: country || undefined,
-      });
+      // Save profile to Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          phone: phone || null,
+          address_line1: addressLine1 || null,
+          address_line2: addressLine2 || null,
+          city: city || null,
+          postal_code: postalCode || null,
+          country: country || null,
+        }, { onConflict: 'user_id' });
+
+      if (error) {
+        console.error('[Account] Error saving profile:', error);
+        throw error;
+      }
 
       // Also save to shipping address storage (for checkout sync)
       saveShippingAddress({

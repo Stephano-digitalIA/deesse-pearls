@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
-import { createOrder } from '@/lib/localStorage';
 import { getShippingAddress, ShippingAddress, clearShippingAddress } from '@/hooks/useUserProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, CreditCard, Package, MapPin, Loader2, RefreshCw, Edit2 } from 'lucide-react';
 import { resolveImagePath } from '@/lib/utils';
 import ShippingAddressModal from '@/components/ShippingAddressModal';
-import { sendOrderConfirmationEmail, formatOrderItemsForEmail } from '@/services/emailService';
+import { sendOrderConfirmationEmail } from '@/services/emailService';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb';
 
@@ -28,6 +28,9 @@ const PayPalButtons: React.FC<{
     shippingCost: number;
     total: number;
     formatPrice: (price: number) => string;
+    customerEmail: string;
+    customerName: string;
+    shippingAddress: string;
   };
   onSuccess: (details: any) => void;
   onError: (error: any) => void;
@@ -120,19 +123,25 @@ const PayPalButtons: React.FC<{
             height: 48,
           },
 
-          createOrder: (_data: any, actions: any) => {
-            const orderAmount = amountRef.current.toFixed(2);
-            console.log('[PayPal] Creating order for', orderAmount, 'USD');
+          createOrder: async (_data: any, actions: any) => {
+            try {
+              const orderAmount = amountRef.current.toFixed(2);
+              console.log('[PayPal] Creating order for', orderAmount, 'USD');
 
-            return actions.order.create({
-              intent: 'CAPTURE',
-              purchase_units: [{
-                amount: {
-                  value: orderAmount,
-                  currency_code: 'USD'
-                }
-              }]
-            });
+              return await actions.order.create({
+                purchase_units: [{
+                  amount: {
+                    currency_code: 'USD',
+                    value: orderAmount
+                  },
+                  description: 'Commande DeessePearls'
+                }]
+              });
+            } catch (err: any) {
+              console.error('[PayPal] createOrder error:', err);
+              onErrorRef.current(err);
+              throw err;
+            }
           },
 
           onApprove: async (_data: any, actions: any) => {
@@ -154,13 +163,18 @@ const PayPalButtons: React.FC<{
                 .map(item => `• ${item.name} (x${item.quantity}) - ${data.formatPrice(item.price * item.quantity)}`)
                 .join('\n');
 
-              const emailSent = await sendOrderConfirmationEmail({
-                order_number: orderNumber,
-                order_items: orderItems,
-                subtotal: data.formatPrice(data.subtotal),
-                shipping: data.formatPrice(data.shippingCost),
-                total: data.formatPrice(data.total),
-              });
+              const emailSent = data.customerEmail
+                ? await sendOrderConfirmationEmail({
+                    order_number: orderNumber,
+                    order_items: orderItems,
+                    subtotal: data.formatPrice(data.subtotal),
+                    shipping: data.formatPrice(data.shippingCost),
+                    total: data.formatPrice(data.total),
+                    customer_email: data.customerEmail,
+                    customer_name: data.customerName,
+                    shipping_address: data.shippingAddress,
+                  })
+                : (console.log('[PayPal] Email non envoyé - utilisateur non connecté'), false);
 
               console.log('[PayPal] Email envoyé:', emailSent);
 
@@ -307,70 +321,80 @@ const Checkout: React.FC = () => {
       // Récupérer le numéro de commande généré dans onApprove
       const orderNumber = details.generatedOrderNumber;
 
-      // Récupérer l'email depuis deesse_current_user
-      const currentUser = JSON.parse(localStorage.getItem('deesse_current_user') || '{}');
-      const customerEmail = currentUser.email || user?.email || details.payer?.email_address || '';
-
-      // Récupérer le profil depuis deesse_profiles
-      const profiles = JSON.parse(localStorage.getItem('deesse_profiles') || '[]');
-      const currentUserId = currentUser.id || user?.id;
-      const userProfile = profiles.find((p: any) => p.userId === currentUserId);
+      // Récupérer l'email depuis le contexte Auth (Supabase) ou PayPal
+      const customerEmail = user?.email || details.payer?.email_address || '';
 
       console.log('[Checkout] === DEBUG ===');
       console.log('[Checkout] orderNumber:', orderNumber);
       console.log('[Checkout] customerEmail:', customerEmail);
 
-      // Construire le nom et l'adresse depuis le profil ou shippingAddress
-      const customerName = userProfile
-        ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
-        : shippingAddress
-          ? `${shippingAddress.firstName} ${shippingAddress.lastName}`
-          : user?.email?.split('@')[0] || 'Client';
+      // Construire le nom depuis user_metadata ou shippingAddress
+      const firstName = user?.user_metadata?.first_name || shippingAddress?.firstName || '';
+      const lastName = user?.user_metadata?.last_name || shippingAddress?.lastName || '';
+      const customerName = `${firstName} ${lastName}`.trim() || user?.email?.split('@')[0] || 'Client';
 
-      const formattedAddress = userProfile
-        ? `${userProfile.addressLine1 || ''}${userProfile.addressLine2 ? ', ' + userProfile.addressLine2 : ''}, ${userProfile.postalCode || ''} ${userProfile.city || ''}, ${userProfile.country || ''}`
-        : shippingAddress
-          ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${shippingAddress.country}`
-          : 'Non spécifiée';
+      const formattedAddress = shippingAddress
+        ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${shippingAddress.country}`
+        : 'Non spécifiée';
 
-      // Alerte si email toujours vide
       if (!customerEmail) {
         console.error('[Checkout] ATTENTION: Aucun email trouvé pour le client!');
       }
 
+      // Sauvegarder la commande dans Supabase
+      const { data: savedOrder, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          user_id: user?.id || null,
+          customer_email: customerEmail,
+          customer_name: customerName,
+          customer_phone: shippingAddress?.phone || null,
+          shipping_address: formattedAddress,
+          status: 'paid',
+          subtotal,
+          shipping_cost: shippingCost,
+          total,
+          currency: 'USD',
+          paypal_order_id: details.id,
+          paypal_status: details.status,
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('[Checkout] Erreur sauvegarde commande Supabase:', orderError);
+        throw orderError;
+      }
+
+      console.log('[Checkout] Commande sauvegardée dans Supabase:', savedOrder.id);
+
+      // Sauvegarder les items de la commande
       const orderItems = items.map((item) => ({
-        productId: item.id,
-        productName: item.name,
-        productImage: item.image,
+        order_id: savedOrder.id,
+        product_id: item.id,
+        product_name: item.name,
+        product_image: item.image,
         quantity: item.quantity,
-        unitPrice: item.price,
-        totalPrice: item.price * item.quantity,
-        variant: item.variant || item.size || item.quality,
+        unit_price: item.price,
+        total_price: item.price * item.quantity,
+        variant: item.variant || item.size || item.quality || null,
       }));
 
-      // Créer la commande avec le MÊME numéro que l'email
-      const order = createOrder({
-        userId: user?.id,
-        customerEmail,
-        customerName,
-        customerPhone: shippingAddress?.phone,
-        shippingAddress: formattedAddress,
-        status: 'confirmed',
-        items: orderItems,
-        subtotal,
-        shippingCost,
-        total,
-        paypalTransactionId: details.id,
-        paypalStatus: details.status,
-        notes: `PayPal Transaction ID: ${details.id}`,
-      }, orderNumber);  // Passer le numéro de commande généré dans onApprove
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error('[Checkout] Erreur sauvegarde items Supabase:', itemsError);
+      }
 
       // Email envoyé dans onApprove de PayPal (pas ici pour éviter les doublons)
 
       // Nettoyer l'adresse temporaire après commande réussie
       clearShippingAddress();
       clearCart();
-      navigate(`/payment-success?order_id=${order.id}&order_number=${order.orderNumber}`);
+      navigate(`/payment-success?order_id=${savedOrder.id}&order_number=${orderNumber}`);
       toast.success('Paiement effectué avec succès !');
     } catch (error) {
       console.error('Order creation error:', error);
@@ -604,6 +628,11 @@ const Checkout: React.FC = () => {
                         shippingCost,
                         total,
                         formatPrice,
+                        customerEmail: user?.email || shippingAddress?.email || '',
+                        customerName: `${user?.user_metadata?.first_name || shippingAddress?.firstName || ''} ${user?.user_metadata?.last_name || shippingAddress?.lastName || ''}`.trim() || 'Client',
+                        shippingAddress: shippingAddress
+                          ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${shippingAddress.country}`
+                          : 'Non spécifiée',
                       }}
                       onSuccess={handlePaymentSuccess}
                       onError={handlePaymentError}

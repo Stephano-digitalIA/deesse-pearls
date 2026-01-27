@@ -1,4 +1,4 @@
-import { Product } from '@/data/products';
+import { Product } from '@/hooks/useTranslatedProducts';
 
 type SupportedLocale = 'fr' | 'en' | 'de' | 'es' | 'pt' | 'it' | 'nl' | 'ja' | 'ko';
 
