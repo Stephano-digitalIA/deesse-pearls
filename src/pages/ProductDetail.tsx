@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Loader2 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslatedProductBySlug, useTranslatedProductsByCategory } from "@/hooks/useTranslatedProducts";
 import { useReviews } from "@/hooks/useReviews";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,16 @@ import ReviewForm, { reviewTranslations } from "@/components/ReviewForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { shopProductTranslations } from "@/data/shopProductTranslations";
 import { getProductTranslation } from "@/data/productTranslations";
@@ -23,6 +34,9 @@ const ProductDetail: React.FC = () => {
   const { t, formatPrice, language } = useLocale();
   const { addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
 
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.["fr"] || key;
 
@@ -94,14 +108,37 @@ const ProductDetail: React.FC = () => {
     toast.success(`${productName} ${ts("product.addedToCart")}`);
   };
 
-  const toggleFavorite = () => {
-    if (favorite) {
-      removeFavorite(product.id);
-      toast.info(ts("product.removedFromFavorites"));
-    } else {
-      addFavorite(product.id);
-      toast.success(ts("product.addedToFavorites"));
+  const toggleFavorite = async () => {
+    if (!user) {
+      setShowLoginAlert(true);
+      return;
     }
+
+    if (favorite) {
+      const success = await removeFavorite(product.id);
+      if (success) {
+        toast.info(ts("product.removedFromFavorites"));
+      } else {
+        toast.error(ts("product.errorRemovingFavorite") || "Erreur lors de la suppression");
+      }
+    } else {
+      const success = await addFavorite({
+        id: product.id,
+        name: productName,
+        image: product.images[0],
+        price: product.price,
+      });
+      if (success) {
+        toast.success(ts("product.addedToFavorites"));
+      } else {
+        toast.error(ts("product.errorAddingFavorite") || "Erreur lors de l'ajout");
+      }
+    }
+  };
+
+  const handleLoginRedirect = () => {
+    setShowLoginAlert(false);
+    navigate('/auth');
   };
 
   const averageRating =
@@ -470,6 +507,23 @@ const ProductDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      <AlertDialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('loginRequiredTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('loginRequiredMessage')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLoginRedirect} className="bg-gold hover:bg-gold-dark text-deep-black">
+              {t('loginNow')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

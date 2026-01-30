@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
-import { saveShippingAddress } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,19 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, MapPin, Package, LogOut, Save } from 'lucide-react';
 import { getCountriesWithPriority, normalizeCountryToCode, getCountryName, Language, PRIORITY_COUNTRY_CODES, shippingTranslations } from '@/data/shippingTranslations';
 import OrderCard from '@/components/OrderCard';
-import { z } from 'zod';
 
-// Validation schema for profile
-const profileSchema = z.object({
-  first_name: z.string().max(50, 'First name too long').optional().nullable(),
-  last_name: z.string().max(50, 'Last name too long').optional().nullable(),
-  phone: z.string().regex(/^[+0-9\s()-]{0,20}$/, 'Invalid phone format').optional().nullable().or(z.literal('')),
-  address_line1: z.string().max(200, 'Address too long').optional().nullable(),
-  address_line2: z.string().max(200, 'Address too long').optional().nullable(),
-  city: z.string().max(100, 'City name too long').optional().nullable(),
-  postal_code: z.string().max(10, 'Postal code too long').optional().nullable(),
-  country: z.string().max(100, 'Country name too long').optional().nullable(),
-});
 interface OrderForDisplay {
   id: string;
   order_number: string;
@@ -53,7 +40,7 @@ interface OrderForDisplay {
 }
 
 const Account: React.FC = () => {
-  const { user, session, isLoading, signOut } = useAuth();
+  const { user, session, isLoading } = useAuth();
   const { t, language, formatPrice } = useLocale();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -62,6 +49,7 @@ const Account: React.FC = () => {
   const [orders, setOrders] = useState<OrderForDisplay[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -81,162 +69,181 @@ const Account: React.FC = () => {
   }, [user, session, isLoading, navigate]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
+      console.log('[Account] User detected, loading data...', user.id);
       fetchProfile();
       fetchOrders();
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const fetchProfile = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[Account] Error fetching profile:', error);
-    }
-
-    if (data) {
-      setProfile(data);
-      setFirstName(data.first_name || '');
-      setLastName(data.last_name || '');
-      setPhone(data.phone || '');
-      setAddressLine1(data.address_line1 || '');
-      setAddressLine2(data.address_line2 || '');
-      setCity(data.city || '');
-      setPostalCode(data.postal_code || '');
-      setCountry(normalizeCountryToCode(data.country || ''));
-    } else {
-      // Initialize from user metadata if no profile exists
-      setFirstName(user.user_metadata?.first_name || '');
-      setLastName(user.user_metadata?.last_name || '');
-    }
-    setIsLoadingData(false);
-  };
-
-  const fetchOrders = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*, order_items(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[Account] Error fetching orders:', error);
+    if (!user?.id) {
+      setIsLoadingData(false);
       return;
     }
 
-    const displayOrders: OrderForDisplay[] = (data || []).map(order => ({
-      id: order.id,
-      order_number: order.order_number,
-      status: order.status,
-      total: order.total,
-      subtotal: order.subtotal,
-      shipping_cost: order.shipping_cost,
-      created_at: order.created_at,
-      shipping_address: {
-        line1: order.shipping_address,
-      },
-      order_items: (order.order_items || []).map((item: any) => ({
-        id: item.id,
-        product_name: item.product_name,
-        product_image: item.product_image,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: item.total_price,
-      })),
-    }));
+    console.log('[Account] Fetching profile for user:', user.id);
 
-    setOrders(displayOrders);
+    // Safety timeout: force loading false after 8 seconds
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[Account] Profile fetch timeout after 8s');
+      setIsLoadingData(false);
+    }, 8000);
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      console.log('[Account] Profile result:', { data, error: error?.message });
+
+      if (error) {
+        console.error('[Account] Profile fetch error:', error);
+      }
+
+      if (data) {
+        setProfile(data);
+        setFirstName(data.first_name || user.user_metadata?.first_name || '');
+        setLastName(data.last_name || user.user_metadata?.last_name || '');
+        setPhone(data.phone || '');
+        setAddressLine1(data.address_line1 || '');
+        setAddressLine2(data.address_line2 || '');
+        setCity(data.city || '');
+        setPostalCode(data.postal_code || '');
+        setCountry(normalizeCountryToCode(data.country || 'FR'));
+      } else {
+        console.log('[Account] No profile found, using user metadata');
+        setFirstName(user.user_metadata?.first_name || '');
+        setLastName(user.user_metadata?.last_name || '');
+      }
+    } catch (e) {
+      console.error('[Account] fetchProfile error:', e);
+      setFirstName(user.user_metadata?.first_name || '');
+      setLastName(user.user_metadata?.last_name || '');
+    } finally {
+      clearTimeout(safetyTimeout);
+      setIsLoadingData(false);
+    }
+  };
+
+  const fetchOrders = async () => {
+    if (!user?.id) {
+      setIsLoadingOrders(false);
+      return;
+    }
+
+    console.log('[Account] Fetching orders for user:', user.id);
+
+    // Safety timeout: force loading false after 8 seconds
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[Account] Orders fetch timeout after 8s');
+      setIsLoadingOrders(false);
+    }, 8000);
+
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      console.log('[Account] Orders query result:', {
+        count: data?.length,
+        error: error?.message,
+        firstOrder: data?.[0]?.order_number
+      });
+
+      if (error) {
+        console.error('[Account] Error fetching orders:', error);
+        return;
+      }
+
+      const displayOrders: OrderForDisplay[] = (data || []).map((order: any) => ({
+        id: order.id,
+        order_number: order.order_number,
+        status: order.status,
+        total: order.total,
+        subtotal: order.subtotal,
+        shipping_cost: order.shipping_cost,
+        created_at: order.created_at,
+        shipping_address: {
+          line1: order.shipping_address,
+        },
+        order_items: (order.order_items || []).map((item: any) => ({
+          id: item.id,
+          product_name: item.product_name,
+          product_image: item.product_image,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+        })),
+      }));
+
+      console.log('[Account] Mapped orders:', displayOrders.length);
+      setOrders(displayOrders);
+    } catch (e) {
+      console.error('[Account] fetchOrders error:', e);
+    } finally {
+      clearTimeout(safetyTimeout);
+      setIsLoadingOrders(false);
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-
-    // Client-side validation
-    const profileData = {
-      first_name: firstName || null,
-      last_name: lastName || null,
-      phone: phone || null,
-      address_line1: addressLine1 || null,
-      address_line2: addressLine2 || null,
-      city: city || null,
-      postal_code: postalCode || null,
-      country: country || null,
-    };
-
-    const validationResult = profileSchema.safeParse(profileData);
-    if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0];
-      toast({
-        title: t('error'),
-        description: firstError.message,
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!user?.id) return;
 
     setIsSaving(true);
 
     try {
-      // Save profile to Supabase
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
-          first_name: firstName || null,
-          last_name: lastName || null,
-          phone: phone || null,
-          address_line1: addressLine1 || null,
-          address_line2: addressLine2 || null,
-          city: city || null,
-          postal_code: postalCode || null,
-          country: country || null,
-        }, { onConflict: 'user_id' });
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone,
+          address_line1: addressLine1,
+          address_line2: addressLine2,
+          city: city,
+          postal_code: postalCode,
+          country: country,
+        })
+        .eq('user_id', user.id)
+        .abortSignal(controller.signal);
 
-      if (error) {
-        console.error('[Account] Error saving profile:', error);
-        throw error;
-      }
+      clearTimeout(timeoutId);
 
-      // Also save to shipping address storage (for checkout sync)
-      saveShippingAddress({
-        firstName: firstName || '',
-        lastName: lastName || '',
-        email: user.email || '',
-        phone: phone || '',
-        addressLine1: addressLine1 || '',
-        addressLine2: addressLine2 || '',
-        city: city || '',
-        postalCode: postalCode || '',
-        country: country || '',
-      });
+      if (error) throw error;
 
       toast({
         title: t('profileUpdated'),
         description: t('infoSaved'),
       });
-    } catch (error) {
+    } catch (e) {
+      console.error('[Account] Save error:', e);
       toast({
         title: t('error'),
         description: t('cannotSaveProfile'),
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsSaving(false);
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+  const handleSignOut = () => {
+    console.log('[Account] Forcing immediate logout...');
+    localStorage.clear();
+    sessionStorage.clear();
+    try { indexedDB.deleteDatabase('supabase'); } catch {}
+    supabase.auth.signOut().catch(() => {});
+    window.location.href = '/';
   };
 
   const getStatusLabel = (status: string) => {
@@ -276,8 +283,8 @@ const Account: React.FC = () => {
     return locales[language] || 'fr-FR';
   };
 
-  // Build welcome name from profile or user metadata
-  const welcomeName = firstName || user?.user_metadata?.first_name || user?.email?.split('@')[0] || '';
+  // Show name immediately from user_metadata (available before profile loads)
+  const welcomeName = user?.user_metadata?.first_name || firstName || user?.email?.split('@')[0] || '';
 
   if (isLoading) {
     return (
@@ -305,7 +312,7 @@ const Account: React.FC = () => {
           className="mb-8 p-6 rounded-xl bg-gradient-to-r from-gold/10 via-gold/5 to-transparent border border-gold/20"
         >
           <h1 className="font-display text-2xl md:text-3xl font-semibold mb-1">
-            {t('welcome')}, <span className="text-gold">{welcomeName}</span> 👋
+            {t('welcome')} <span className="text-gold">{welcomeName}</span> 👋
           </h1>
           <p className="text-muted-foreground text-sm">{user.email}</p>
         </motion.div>
@@ -361,7 +368,6 @@ const Account: React.FC = () => {
                       id="firstName"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Marie"
                     />
                   </div>
                   <div className="space-y-2">
@@ -370,7 +376,6 @@ const Account: React.FC = () => {
                       id="lastName"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Dupont"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
@@ -380,7 +385,6 @@ const Account: React.FC = () => {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+33 6 12 34 56 78"
                     />
                   </div>
                 </CardContent>
@@ -403,7 +407,6 @@ const Account: React.FC = () => {
                       id="addressLine1"
                       value={addressLine1}
                       onChange={(e) => setAddressLine1(e.target.value)}
-                      placeholder="123 Rue de la Perle"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
@@ -412,7 +415,6 @@ const Account: React.FC = () => {
                       id="addressLine2"
                       value={addressLine2}
                       onChange={(e) => setAddressLine2(e.target.value)}
-                      placeholder="Appartement, étage, etc."
                     />
                   </div>
                   <div className="space-y-2">
@@ -421,7 +423,6 @@ const Account: React.FC = () => {
                       id="city"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="Paris"
                     />
                   </div>
                   <div className="space-y-2">
@@ -430,7 +431,6 @@ const Account: React.FC = () => {
                       id="postalCode"
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
-                      placeholder="75001"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
@@ -488,14 +488,20 @@ const Account: React.FC = () => {
                   {t('orderHistory')}
                 </CardTitle>
                 <CardDescription>
-                  {orders.length > 0 
-                    ? `${orders.length} commande${orders.length > 1 ? 's' : ''}`
-                    : t('noOrdersYet')
+                  {isLoadingOrders
+                    ? t('loading') + '...'
+                    : orders.length > 0
+                      ? `${orders.length} commande${orders.length > 1 ? 's' : ''}`
+                      : t('noOrdersYet')
                   }
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {orders.length === 0 ? (
+                {isLoadingOrders ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-gold" />
+                  </div>
+                ) : orders.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>{t('noOrdersYet')}</p>

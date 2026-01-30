@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile, ShippingAddress } from '@/hooks/useUserProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
 import { toast } from 'sonner';
@@ -22,7 +23,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const { profile, saveProfile, isLoading } = useUserProfile();
+  const { saveProfile } = useUserProfile();
   const { user } = useAuth();
   const { language } = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,43 +47,68 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
     country: 'FR', // Use country code
   });
 
-  // Pré-remplir avec le profil existant quand le modal s'ouvre
+  // Charger le profil directement depuis Supabase quand le modal s'ouvre
   useEffect(() => {
-    if (isOpen) {
-      // Réinitialiser les erreurs quand le modal s'ouvre
+    if (!isOpen || !user?.id) return;
+
+    const userId = user.id;
+    const userEmail = user.email || '';
+    const userFirstName = user.user_metadata?.first_name || '';
+    const userLastName = user.user_metadata?.last_name || '';
+
+    const loadProfileData = async () => {
+      console.log('[ShippingModal] Loading profile for user:', userId);
       setErrors({});
 
-      // Récupérer le profil depuis localStorage (si existant)
-      const profiles = JSON.parse(localStorage.getItem('deesse_profiles') || '[]');
-      const userProfile = user?.id
-        ? profiles.find((p: any) => p.userId === user.id)
-        : undefined;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, phone, address_line1, address_line2, city, postal_code, country')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      console.log('[ShippingAddressModal] === DEBUG PRE-REMPLISSAGE ===');
-      console.log('[ShippingAddressModal] user:', user?.email);
-      console.log('[ShippingAddressModal] userProfile:', userProfile);
+        console.log('[ShippingModal] Profile query result:', { data, error: error?.message });
 
-      // Pré-remplir le formulaire avec les données trouvées
-      if (userProfile || user?.email) {
-        // Normaliser le pays : convertir le nom en code si nécessaire
-        const countryCode = normalizeCountryToCode(userProfile?.country || 'FR');
+        if (error) {
+          console.error('[ShippingModal] Profile load error:', error);
+        }
 
-        setFormData({
-          firstName: userProfile?.firstName || user?.user_metadata?.first_name || '',
-          lastName: userProfile?.lastName || user?.user_metadata?.last_name || '',
-          email: user?.email || '',
-          phone: userProfile?.phone || '',
-          addressLine1: userProfile?.addressLine1 || '',
-          addressLine2: userProfile?.addressLine2 || '',
-          city: userProfile?.city || '',
-          postalCode: userProfile?.postalCode || '',
+        const countryCode = normalizeCountryToCode(data?.country || 'FR');
+
+        const newFormData = {
+          firstName: data?.first_name || userFirstName,
+          lastName: data?.last_name || userLastName,
+          email: userEmail,
+          phone: data?.phone || '',
+          addressLine1: data?.address_line1 || '',
+          addressLine2: data?.address_line2 || '',
+          city: data?.city || '',
+          postalCode: data?.postal_code || '',
           country: countryCode,
-        });
+        };
 
-        console.log('[ShippingAddressModal] Formulaire pré-rempli');
+        console.log('[ShippingModal] Setting formData:', newFormData);
+        setFormData(newFormData);
+      } catch (e) {
+        console.error('[ShippingModal] Error:', e);
+        // Fallback to user metadata
+        setFormData({
+          firstName: userFirstName,
+          lastName: userLastName,
+          email: userEmail,
+          phone: '',
+          addressLine1: '',
+          addressLine2: '',
+          city: '',
+          postalCode: '',
+          country: 'FR',
+        });
       }
-    }
-  }, [isOpen, user]);
+    };
+
+    loadProfileData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, user?.id]);
 
   const handleChange = (field: keyof ShippingAddress, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -138,42 +164,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const userId = user?.id;
-
-      // Sauvegarder dans deesse_profiles
-      const profiles = JSON.parse(localStorage.getItem('deesse_profiles') || '[]');
-      const existingIndex = userId
-        ? profiles.findIndex((p: any) => p.userId === userId)
-        : -1;
-
-      const profileData = {
-        userId,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-        addressLine1: formData.addressLine1,
-        addressLine2: formData.addressLine2,
-        city: formData.city,
-        postalCode: formData.postalCode,
-        country: formData.country,
-      };
-
-      if (existingIndex >= 0) {
-        profiles[existingIndex] = { ...profiles[existingIndex], ...profileData };
-      } else {
-        profiles.push(profileData);
-      }
-
-      localStorage.setItem('deesse_profiles', JSON.stringify(profiles));
-
-      // Aussi sauvegarder dans deesse_shipping_address pour le checkout
-      localStorage.setItem('deesse_shipping_address', JSON.stringify(formData));
-
-      console.log('[ShippingAddressModal] Profil sauvegardé:', profileData);
-      console.log('[ShippingAddressModal] Shipping address sauvegardée:', formData);
-
-      // Appeler aussi saveProfile du hook pour maintenir la compatibilité
-      saveProfile(formData);
+      await saveProfile(formData);
 
       toast.success(ts.addressSaved);
       onConfirm();
@@ -184,10 +175,6 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return null;
-  }
 
   return (
     <AnimatePresence>
@@ -247,7 +234,10 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">{ts.lastName} *</Label>
+                    <Label htmlFor="lastName" className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      {ts.lastName} *
+                    </Label>
                     <Input
                       id="lastName"
                       value={formData.lastName}
@@ -340,7 +330,10 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="city">{ts.city} *</Label>
+                    <Label htmlFor="city" className="flex items-center gap-1">
+                      <Building className="w-3 h-3" />
+                      {ts.city} *
+                    </Label>
                     <Input
                       id="city"
                       value={formData.city}

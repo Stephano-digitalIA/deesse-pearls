@@ -80,46 +80,112 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // INITIALISATION
   // ============================================
   useEffect(() => {
-    console.log('AuthContext: Initializing...');
+    let isMounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supabaseSession) => {
-      console.log('Supabase: Auth state changed:', event, supabaseSession?.user?.email || 'null');
+    // Helper to clear all auth state
+    const clearAuthState = () => {
+      if (!isMounted) return;
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
+      setIsLoading(false);
+    };
+
+    // Helper to nuke stale tokens from all storage
+    const nukeTokens = () => {
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
+      try { indexedDB.deleteDatabase('supabase'); } catch {}
+    };
+
+    // Catch auth errors globally (registered FIRST, before any Supabase call)
+    const handleAuthError = (event: PromiseRejectionEvent) => {
+      const error = event.reason;
+      const msg = error?.message || '';
+      if (
+        error?.name === 'AuthApiError' ||
+        msg.includes('Refresh Token') ||
+        msg.includes('refresh_token') ||
+        msg.includes('Invalid Refresh Token')
+      ) {
+        console.warn('[Auth] Invalid token detected, cleaning up:', msg);
+        event.preventDefault();
+        nukeTokens();
+        supabase.auth.signOut().catch(() => {});
+        clearAuthState();
+      }
+    };
+    window.addEventListener('unhandledrejection', handleAuthError);
+
+    // Safety timeout: force isLoading=false after 5s if Supabase is unreachable
+    const timeout = setTimeout(() => {
+      if (isMounted) setIsLoading(false);
+    }, 5000);
+
+    // Initialize auth with explicit error handling
+    const initAuth = async () => {
+      try {
+        // Try to get existing session
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.warn('[Auth] getSession error, cleaning up:', error.message);
+          nukeTokens();
+          clearAuthState();
+          return;
+        }
+
+        if (data.session?.user && isMounted) {
+          const appUser = supabaseUserToUser(data.session.user);
+          setUser(appUser);
+          setSession({ user: appUser, access_token: data.session.access_token });
+          checkIsAdmin(data.session.user.id).then(setIsAdmin).catch(() => setIsAdmin(false));
+        }
+
+        if (isMounted) setIsLoading(false);
+      } catch (e: any) {
+        console.warn('[Auth] Init error, cleaning up:', e?.message);
+        nukeTokens();
+        clearAuthState();
+      }
+    };
+
+    // Listen for auth state changes (after initial load)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, supabaseSession) => {
+      console.log('[Auth] Event:', event);
+
+      if (!isMounted) return;
 
       if (supabaseSession?.user) {
         const appUser = supabaseUserToUser(supabaseSession.user);
         setUser(appUser);
         setSession({ user: appUser, access_token: supabaseSession.access_token });
-
-        const admin = await checkIsAdmin(supabaseSession.user.id);
-        setIsAdmin(admin);
+        checkIsAdmin(supabaseSession.user.id).then(setIsAdmin).catch(() => setIsAdmin(false));
       } else {
         setUser(null);
         setSession(null);
         setIsAdmin(false);
       }
+      clearTimeout(timeout);
       setIsLoading(false);
     });
 
-    supabase.auth.getSession().then(async ({ data: { session: supabaseSession } }) => {
-      if (supabaseSession?.user) {
-        const appUser = supabaseUserToUser(supabaseSession.user);
-        setUser(appUser);
-        setSession({ user: appUser, access_token: supabaseSession.access_token });
+    // Run init
+    initAuth();
 
-        const admin = await checkIsAdmin(supabaseSession.user.id);
-        setIsAdmin(admin);
-      }
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+      window.removeEventListener('unhandledrejection', handleAuthError);
+    };
   }, []);
 
   // ============================================
   // CONNEXION EMAIL/PASSWORD
   // ============================================
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -134,17 +200,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: new Error(error.message) };
     }
 
-    if (data.user) {
-      const appUser = supabaseUserToUser(data.user);
-      setUser(appUser);
-      setSession({ user: appUser, access_token: data.session?.access_token || '' });
-
-      const admin = await checkIsAdmin(data.user.id);
-      setIsAdmin(admin);
-
-      toast.success('Connexion réussie !');
-    }
-
+    // State updates handled by onAuthStateChange
+    toast.success('Connexion réussie !');
     return { error: null };
   };
 
@@ -152,7 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // INSCRIPTION EMAIL/PASSWORD
   // ============================================
   const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -174,13 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: new Error(error.message) };
     }
 
-    if (data.user) {
-      const appUser = supabaseUserToUser(data.user);
-      setUser(appUser);
-      setSession({ user: appUser, access_token: data.session?.access_token || '' });
-      setIsAdmin(false);
-    }
-
+    // State updates handled by onAuthStateChange
     return { error: null };
   };
 
@@ -188,17 +239,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // DÉCONNEXION
   // ============================================
   const signOut = async () => {
-    console.log('AuthContext: Signing out...');
-
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.warn('AuthContext: Supabase signOut error (ignored):', err);
-    }
-
+    console.log('[Auth] signOut called');
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+
+    // Clear all browser storage so no stale token can survive
+    try { localStorage.clear(); } catch {}
+    try { sessionStorage.clear(); } catch {}
+    try { indexedDB.deleteDatabase('supabase'); } catch {}
+
+    // Fire-and-forget — never await, never block
+    supabase.auth.signOut().catch(() => {});
   };
 
   const resetPassword = async (email: string) => {
@@ -229,12 +281,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // CONNEXION GOOGLE (OAuth)
   // ============================================
   const signInWithGoogle = async () => {
-    console.log('AuthContext: Starting Google sign-in with Supabase...');
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

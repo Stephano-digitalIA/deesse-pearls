@@ -1,36 +1,44 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Trash2, ShoppingBag } from 'lucide-react';
+import { Heart, Trash2, ShoppingBag, Loader2 } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
-import { useFavorites } from '@/contexts/FavoritesContext';
+import { useFavorites, FavoriteItem } from '@/contexts/FavoritesContext';
 import { useCart } from '@/contexts/CartContext';
-import { products } from '@/data/products';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { resolveImagePath } from '@/lib/utils';
 
 const Favorites: React.FC = () => {
-  const { t, formatPrice, language } = useLocale();
-  const { favorites, removeFavorite, clearFavorites } = useFavorites();
+  const { t, formatPrice } = useLocale();
+  const { favoriteItems, removeFavorite, clearFavorites, isLoading } = useFavorites();
   const { addItem } = useCart();
 
-  const favoriteProducts = products.filter(p => favorites.includes(p.id));
-
-  const handleAddToCart = (product: typeof products[0]) => {
+  const handleAddToCart = (item: FavoriteItem) => {
     addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
+      id: item.product_id,
+      name: item.product_name,
+      price: item.product_price,
+      image: item.product_image,
     });
-    toast.success(`${product.name} ${t('addedToCart')}`);
+    toast.success(`${item.product_name} ${t('addedToCart')}`);
   };
 
-  const handleRemove = (productId: string, productName: string) => {
-    removeFavorite(productId);
-    toast.info(`${productName} ${t('removedFromFavorites')}`);
+  const handleRemove = async (productId: string, productName: string) => {
+    const success = await removeFavorite(productId);
+    if (success) {
+      toast.info(`${productName} ${t('removedFromFavorites')}`);
+    } else {
+      toast.error(t('errorRemovingFavorite') || 'Erreur lors de la suppression');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +60,7 @@ const Favorites: React.FC = () => {
       </section>
 
       <div className="container mx-auto px-4 py-12">
-        {favoriteProducts.length === 0 ? (
+        {favoriteItems.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -74,14 +82,18 @@ const Favorites: React.FC = () => {
             {/* Header with count and clear button */}
             <div className="flex items-center justify-between mb-8">
               <p className="text-muted-foreground">
-                {favoriteProducts.length} {favoriteProducts.length === 1 ? t('productInFavorites') : t('productsInFavorites')}
+                {favoriteItems.length} {favoriteItems.length === 1 ? t('productInFavorites') : t('productsInFavorites')}
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  clearFavorites();
-                  toast.info(t('allFavoritesRemoved'));
+                onClick={async () => {
+                  const success = await clearFavorites();
+                  if (success) {
+                    toast.info(t('allFavoritesRemoved'));
+                  } else {
+                    toast.error(t('errorClearingFavorites') || 'Erreur lors de la suppression');
+                  }
                 }}
                 className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
               >
@@ -92,48 +104,37 @@ const Favorites: React.FC = () => {
 
             {/* Favorites Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {favoriteProducts.map((product, index) => (
+              {favoriteItems.map((item, index) => (
                 <motion.div
-                  key={product.id}
+                  key={item.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className="bg-card rounded-lg overflow-hidden border border-border group"
                 >
-                  <Link to={`/product/${product.slug}`}>
-                    <div className="relative aspect-square overflow-hidden">
-                      <img
-                        src={resolveImagePath(product.image)}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                      {product.badge && (
-                        <span
-                          className={`absolute top-3 left-3 px-3 py-1 text-xs font-semibold uppercase rounded-full ${
-                            product.badge === 'new'
-                              ? 'bg-lagoon text-accent-foreground'
-                              : 'bg-gold text-deep-black'
-                          }`}
-                        >
-                          {product.badge === 'new' ? t('new') : t('bestSeller')}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                  
+                  <div className="relative aspect-square overflow-hidden">
+                    <img
+                      src={item.product_image}
+                      alt={item.product_name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      onError={(e) => {
+                        console.log('[Favorites] Image error for:', item.product_name, item.product_image);
+                        (e.target as HTMLImageElement).src = '/placeholder.png';
+                      }}
+                    />
+                  </div>
+
                   <div className="p-4">
-                    <Link to={`/product/${product.slug}`}>
-                      <h3 className="font-display text-lg mb-2 group-hover:text-gold transition-colors line-clamp-1">
-                        {product.name}
-                      </h3>
-                    </Link>
+                    <h3 className="font-display text-lg mb-2 group-hover:text-gold transition-colors line-clamp-1">
+                      {item.product_name}
+                    </h3>
                     <p className="font-display text-xl text-gold mb-4">
-                      {formatPrice(product.price)}
+                      {formatPrice(item.product_price)}
                     </p>
-                    
+
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleAddToCart(product)}
+                        onClick={() => handleAddToCart(item)}
                         className="flex-1 bg-gold hover:bg-gold-light text-deep-black"
                         size="sm"
                       >
@@ -141,7 +142,7 @@ const Favorites: React.FC = () => {
                         {t('addToCart')}
                       </Button>
                       <Button
-                        onClick={() => handleRemove(product.id, product.name)}
+                        onClick={() => handleRemove(item.product_id, item.product_name)}
                         variant="outline"
                         size="sm"
                         className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"

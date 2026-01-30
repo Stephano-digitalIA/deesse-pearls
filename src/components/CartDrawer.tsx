@@ -199,20 +199,20 @@ const CartDrawer: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <LogIn className="w-5 h-5 text-gold" />
-              Connexion requise
+              {t('loginRequiredTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Pour finaliser votre commande et procéder au paiement PayPal, vous devez être connecté à votre compte.
+              {t('loginRequiredForCheckout')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLoginRedirect}
               className="bg-gold hover:bg-gold-dark text-deep-black"
             >
               <LogIn className="w-4 h-4 mr-2" />
-              Se connecter
+              {t('loginNow')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

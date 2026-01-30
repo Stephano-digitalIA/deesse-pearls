@@ -45,14 +45,15 @@ const AdminLogin: React.FC = () => {
   }, [secretKey]);
 
   useEffect(() => {
-    if (!isLoading && user) {
-      if (isAdmin) {
-        navigate(`/admin/${secretKey}`);
-      } else {
-        setAccessDenied(true);
-      }
+    if (isLoading) return;
+    if (!user) return;
+
+    if (isAdmin) {
+      navigate(`/admin/${secretKey}`, { replace: true });
+    } else if (!accessDenied) {
+      setAccessDenied(true);
     }
-  }, [user, isAdmin, isLoading, navigate, secretKey]);
+  }, [user, isAdmin, isLoading, secretKey, accessDenied]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

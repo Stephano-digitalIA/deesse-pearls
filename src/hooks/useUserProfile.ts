@@ -2,9 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-// Clé pour l'adresse de livraison temporaire (checkout)
-const SHIPPING_ADDRESS_KEY = 'deesse_shipping_address';
-
 export interface ShippingAddress {
   firstName: string;
   lastName: string;
@@ -21,115 +18,141 @@ export interface UserProfile extends ShippingAddress {
   userId?: string;
 }
 
-// Récupérer l'adresse de livraison depuis localStorage
-export function getShippingAddress(): ShippingAddress | null {
-  try {
-    const stored = localStorage.getItem(SHIPPING_ADDRESS_KEY);
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
-}
-
-// Sauvegarder l'adresse de livraison dans localStorage
-export function saveShippingAddress(address: ShippingAddress): void {
-  localStorage.setItem(SHIPPING_ADDRESS_KEY, JSON.stringify(address));
-}
-
-// Supprimer l'adresse de livraison temporaire
-export function clearShippingAddress(): void {
-  localStorage.removeItem(SHIPPING_ADDRESS_KEY);
-}
-
 // Hook principal
 export function useUserProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Charger le profil au montage ou quand l'utilisateur change
-  useEffect(() => {
-    const loadProfile = async () => {
-      setIsLoading(true);
-
-      // Toujours vérifier s'il y a une adresse de livraison temporaire (checkout en cours)
-      const savedShippingAddress = getShippingAddress();
-
-      if (user) {
-        // Utilisateur connecté : charger depuis Supabase
-        const { data: savedProfile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('[useUserProfile] Error fetching profile:', error);
-        }
-
-        // Fusionner les données : priorité au profil Supabase,
-        // puis l'adresse de livraison temporaire, puis user_metadata
-        const mergedProfile: UserProfile = {
-          userId: user.id,
-          firstName: savedProfile?.first_name || savedShippingAddress?.firstName || user.user_metadata?.first_name || '',
-          lastName: savedProfile?.last_name || savedShippingAddress?.lastName || user.user_metadata?.last_name || '',
-          email: user.email || savedShippingAddress?.email || '',
-          phone: savedProfile?.phone || savedShippingAddress?.phone || '',
-          addressLine1: savedProfile?.address_line1 || savedShippingAddress?.addressLine1 || '',
-          addressLine2: savedProfile?.address_line2 || savedShippingAddress?.addressLine2 || '',
-          city: savedProfile?.city || savedShippingAddress?.city || '',
-          postalCode: savedProfile?.postal_code || savedShippingAddress?.postalCode || '',
-          country: savedProfile?.country || savedShippingAddress?.country || 'France',
-        };
-
-        setProfile(mergedProfile);
-      } else {
-        // Pas d'utilisateur : vérifier s'il y a une adresse temporaire
-        if (savedShippingAddress) {
-          setProfile(savedShippingAddress);
-        } else {
-          setProfile(null);
-        }
-      }
-
+  // Charger le profil depuis Supabase
+  // IMPORTANT: Utilise user?.id comme dépendance pour éviter les boucles infinies
+  const loadProfile = useCallback(async () => {
+    if (!user) {
+      setProfile(null);
       setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    const userId = user.id;
+    const userEmail = user.email || '';
+    const userFirstName = user.user_metadata?.first_name || '';
+    const userLastName = user.user_metadata?.last_name || '';
+
+    const fallback = () => {
+      setProfile({
+        userId,
+        firstName: userFirstName,
+        lastName: userLastName,
+        email: userEmail,
+        phone: '',
+        addressLine1: '',
+        city: '',
+        postalCode: '',
+        country: 'FR',
+      });
     };
 
-    loadProfile();
-  }, [user]);
+    try {
+      console.log('[useUserProfile] Fetching profile for user:', userId);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.warn('[useUserProfile] Query timeout after 3s, aborting');
+        controller.abort();
+      }, 3000);
 
-  // Sauvegarder le profil
-  const saveProfile = useCallback((newProfile: ShippingAddress) => {
-    // Toujours sauvegarder en tant qu'adresse de livraison pour le checkout
-    saveShippingAddress(newProfile);
-
-    // Si utilisateur connecté, aussi sauvegarder dans Supabase
-    if (user) {
-      supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
-          first_name: newProfile.firstName,
-          last_name: newProfile.lastName,
-          phone: newProfile.phone,
-          address_line1: newProfile.addressLine1,
-          address_line2: newProfile.addressLine2 || null,
-          city: newProfile.city,
-          postal_code: newProfile.postalCode,
-          country: newProfile.country,
-        }, { onConflict: 'user_id' })
-        .then(({ error }) => {
-          if (error) {
-            console.error('[useUserProfile] Error saving profile:', error);
-          }
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeoutId);
+      console.log('[useUserProfile] Query result:', { data, error: error?.message });
+
+      if (error) {
+        // Abort errors are expected when timeout fires
+        if (error.message?.includes('abort')) {
+          console.warn('[useUserProfile] Query aborted (timeout)');
+        } else {
+          console.error('[useUserProfile] Error fetching profile:', error);
+        }
+        fallback();
+        return;
+      }
+
+      if (data) {
+        setProfile({
+          userId,
+          firstName: data.first_name || userFirstName,
+          lastName: data.last_name || userLastName,
+          email: userEmail,
+          phone: data.phone || '',
+          addressLine1: data.address_line1 || '',
+          addressLine2: data.address_line2 || '',
+          city: data.city || '',
+          postalCode: data.postal_code || '',
+          country: data.country || 'FR',
         });
+      } else {
+        console.log('[useUserProfile] No profile found, using fallback');
+        fallback();
+      }
+    } catch (e: any) {
+      console.error('[useUserProfile] loadProfile error:', e?.message || e);
+      fallback();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, user?.email, user?.user_metadata?.first_name, user?.user_metadata?.last_name]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  // Sauvegarder le profil dans Supabase
+  const saveProfile = useCallback(async (newProfile: ShippingAddress) => {
+    if (!user?.id) return;
+
+    const userId = user.id;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: userId,
+        first_name: newProfile.firstName,
+        last_name: newProfile.lastName,
+        phone: newProfile.phone,
+        address_line1: newProfile.addressLine1,
+        address_line2: newProfile.addressLine2 || null,
+        city: newProfile.city,
+        postal_code: newProfile.postalCode,
+        country: newProfile.country,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+      .abortSignal(controller.signal);
+
+    clearTimeout(timeoutId);
+
+    if (error) {
+      console.error('[useUserProfile] Error saving profile:', error);
+      throw error;
     }
 
     setProfile({
       ...newProfile,
-      userId: user?.id,
+      userId,
     });
-  }, [user]);
+  }, [user?.id]);
+
+  // Recharger le profil (utile après modification dans un modal)
+  const refreshProfile = useCallback(() => {
+    return loadProfile();
+  }, [loadProfile]);
 
   // Vérifier si le profil est complet pour le checkout
   const isProfileComplete = useCallback((): boolean => {
@@ -150,8 +173,8 @@ export function useUserProfile() {
     profile,
     isLoading,
     saveProfile,
+    refreshProfile,
     isProfileComplete,
-    shippingAddress: getShippingAddress(),
   };
 }
 

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
-import { getShippingAddress, ShippingAddress, clearShippingAddress } from '@/hooks/useUserProfile';
+import { useUserProfile, ShippingAddress } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -14,6 +14,7 @@ import { ArrowLeft, CreditCard, Package, MapPin, Loader2, RefreshCw, Edit2 } fro
 import { resolveImagePath } from '@/lib/utils';
 import ShippingAddressModal from '@/components/ShippingAddressModal';
 import { sendOrderConfirmationEmail } from '@/services/emailService';
+import { getCountryName, Language } from '@/data/shippingTranslations';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb';
 
@@ -36,6 +37,7 @@ const PayPalButtons: React.FC<{
   onError: (error: any) => void;
   onCancel: () => void;
 }> = ({ amount, orderData, onSuccess, onError, onCancel }) => {
+  const { t } = useLocale();
   const paypalContainerRef = useRef<HTMLDivElement>(null);
   const paypalButtonsRef = useRef<any>(null);
   const isRenderedRef = useRef(false);
@@ -60,33 +62,52 @@ const PayPalButtons: React.FC<{
   }, [onSuccess, onError, onCancel, amount, orderData]);
 
   useEffect(() => {
+    // Diagnostic au montage
+    console.log('[PayPal] Component mounted');
+    console.log('[PayPal] PAYPAL_CLIENT_ID:', PAYPAL_CLIENT_ID);
+    console.log('[PayPal] window.paypal exists:', !!window.paypal);
+    console.log('[PayPal] Existing script tag:', document.querySelector('script[src*="paypal"]')?.getAttribute('src'));
+
     // Charger le script PayPal si pas encore chargé
     const loadScript = () => {
       return new Promise<void>((resolve, reject) => {
+        // Already available
         if (window.paypal) {
+          console.log('[PayPal] SDK already available');
           scriptLoadedRef.current = true;
           resolve();
           return;
         }
 
+        // Remove any stale script tag (may have loaded with errors or wrong config)
         const existingScript = document.querySelector('script[src*="paypal.com/sdk"]');
         if (existingScript) {
-          existingScript.addEventListener('load', () => {
-            scriptLoadedRef.current = true;
-            resolve();
-          });
-          return;
+          console.log('[PayPal] Removing stale script tag');
+          existingScript.remove();
         }
 
+        // Timeout: reject if SDK doesn't load within 15s
+        const timeout = setTimeout(() => {
+          reject(new Error('PayPal SDK load timeout'));
+        }, 15000);
+
         const script = document.createElement('script');
-        script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+        // disable-funding=card force l'utilisation du popup PayPal qui gère mieux les cartes
+        // L'utilisateur pourra toujours payer par carte via le popup PayPal
+        script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&intent=capture&components=buttons&disable-funding=card`;
         script.async = true;
         script.onload = () => {
-          console.log('[PayPal] Script loaded');
+          clearTimeout(timeout);
+          console.log('[PayPal] SDK loaded, window.paypal:', typeof window.paypal);
           scriptLoadedRef.current = true;
-          resolve();
+          if (window.paypal) {
+            resolve();
+          } else {
+            reject(new Error('PayPal SDK loaded but window.paypal is undefined'));
+          }
         };
         script.onerror = () => {
+          clearTimeout(timeout);
           reject(new Error('Failed to load PayPal script'));
         };
         document.body.appendChild(script);
@@ -126,12 +147,12 @@ const PayPalButtons: React.FC<{
           createOrder: async (_data: any, actions: any) => {
             try {
               const orderAmount = amountRef.current.toFixed(2);
-              console.log('[PayPal] Creating order for', orderAmount, 'USD');
+              console.log('[PayPal] Creating order for', orderAmount, 'EUR');
 
               return await actions.order.create({
                 purchase_units: [{
                   amount: {
-                    currency_code: 'USD',
+                    currency_code: 'EUR',
                     value: orderAmount
                   },
                   description: 'Commande DeessePearls'
@@ -144,56 +165,38 @@ const PayPalButtons: React.FC<{
             }
           },
 
-          onApprove: async (_data: any, actions: any) => {
-            console.log('[PayPal] Payment approved');
+          onApprove: async (data: any, actions: any) => {
+            console.log('[PayPal] Payment approved - data:', JSON.stringify(data));
 
             try {
+              console.log('[PayPal] Capturing order...');
               const details = await actions.order.capture();
-              console.log('[PayPal] Capture success:', details.id);
+              console.log('[PayPal] Capture success - details:', JSON.stringify(details));
 
-              // Générer le numéro de commande UNE SEULE FOIS
-              const orderNumber = `DP-${Date.now().toString(36).toUpperCase()}`;
-              console.log('[PayPal] Numéro de commande généré:', orderNumber);
-
-              // Envoyer l'email de confirmation IMMÉDIATEMENT après le paiement
-              console.log('[PayPal] Envoi email de confirmation...');
-              const data = orderDataRef.current;
-
-              const orderItems = data.items
-                .map(item => `• ${item.name} (x${item.quantity}) - ${data.formatPrice(item.price * item.quantity)}`)
-                .join('\n');
-
-              const emailSent = data.customerEmail
-                ? await sendOrderConfirmationEmail({
-                    order_number: orderNumber,
-                    order_items: orderItems,
-                    subtotal: data.formatPrice(data.subtotal),
-                    shipping: data.formatPrice(data.shippingCost),
-                    total: data.formatPrice(data.total),
-                    customer_email: data.customerEmail,
-                    customer_name: data.customerName,
-                    shipping_address: data.shippingAddress,
-                  })
-                : (console.log('[PayPal] Email non envoyé - utilisateur non connecté'), false);
-
-              console.log('[PayPal] Email envoyé:', emailSent);
-
-              // Appeler le callback de succès avec le numéro de commande
-              onSuccessRef.current({ ...details, generatedOrderNumber: orderNumber });
-            } catch (err) {
-              console.error('[PayPal] Capture/Email error:', err);
+              // Passer les détails au callback — la commande sera sauvée
+              // dans Supabase et l'email envoyé seulement après succès DB.
+              console.log('[PayPal] Calling onSuccessRef...');
+              onSuccessRef.current(details);
+              console.log('[PayPal] onSuccessRef called');
+            } catch (err: any) {
+              console.error('[PayPal] Capture error:', err?.message || err);
               onErrorRef.current(err);
             }
           },
 
           onError: (err: any) => {
-            console.error('[PayPal] Error:', err);
+            console.error('[PayPal] Error:', err?.message || JSON.stringify(err));
             onErrorRef.current(err);
           },
 
-          onCancel: () => {
-            console.log('[PayPal] Cancelled');
+          onCancel: (data: any) => {
+            console.log('[PayPal] Cancelled - data:', JSON.stringify(data));
             onCancelRef.current();
+          },
+
+          // Pour les paiements par carte (si applicable)
+          onShippingChange: (data: any) => {
+            console.log('[PayPal] Shipping change:', JSON.stringify(data));
           }
         });
 
@@ -203,7 +206,7 @@ const PayPalButtons: React.FC<{
 
       } catch (err: any) {
         console.error('[PayPal] Render error:', err);
-        setError('Erreur PayPal: ' + (err?.message || 'Unknown'));
+        setError(t('paypalErrorPrefix') + ': ' + (err?.message || 'Unknown'));
         setIsLoading(false);
         isRenderedRef.current = false;
       }
@@ -213,7 +216,7 @@ const PayPalButtons: React.FC<{
       .then(renderPayPalButtons)
       .catch((err) => {
         console.error('[PayPal] Load error:', err);
-        setError('Impossible de charger PayPal');
+        setError(t('paypalLoadError'));
         setIsLoading(false);
       });
 
@@ -242,7 +245,7 @@ const PayPalButtons: React.FC<{
           onClick={() => window.location.reload()}
         >
           <RefreshCw className="w-4 h-4 mr-2" />
-          Recharger
+          {t('reload')}
         </Button>
       </div>
     );
@@ -253,7 +256,7 @@ const PayPalButtons: React.FC<{
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-gold mr-2" />
-          <span className="text-muted-foreground">Chargement PayPal...</span>
+          <span className="text-muted-foreground">{t('loadingPaypal')}</span>
         </div>
       )}
       <div ref={paypalContainerRef} id="paypal-button-container" />
@@ -274,14 +277,16 @@ declare global {
 const Checkout: React.FC = () => {
   const { items, subtotal, shippingCost, total, clearCart } = useCart();
   const { user } = useAuth();
-  const { t, formatPrice } = useLocale();
+  const { t, formatPrice, language } = useLocale();
   const navigate = useNavigate();
+  const { profile, refreshProfile, isProfileComplete } = useUserProfile();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalError, setPaypalError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
 
+  // Charger l'adresse depuis le profil Supabase
   useEffect(() => {
     if (items.length === 0) {
       navigate('/shop');
@@ -293,60 +298,55 @@ const Checkout: React.FC = () => {
       return;
     }
 
-    // Récupérer l'adresse de livraison sauvegardée
-    const savedAddress = getShippingAddress();
-    if (!savedAddress) {
-      // Pas d'adresse → retour au panier
-      toast.error('Veuillez renseigner votre adresse de livraison');
-      navigate('/shop');
-      return;
+    if (profile) {
+      setShippingAddress(profile);
     }
-
-    setShippingAddress(savedAddress);
-  }, [items, user, navigate]);
+  }, [items, user, navigate, profile]);
 
   // ============================================
   // SUCCÈS DU PAIEMENT
   // ============================================
   const handlePaymentSuccess = async (details: any) => {
-    console.log('[Checkout] ========================================');
-    console.log('[Checkout] handlePaymentSuccess APPELÉ !');
-    console.log('[Checkout] PayPal details:', details);
-    console.log('[Checkout] Numéro de commande reçu:', details.generatedOrderNumber);
-    console.log('[Checkout] ========================================');
+    console.log('[Checkout] handlePaymentSuccess called, PayPal ID:', details.id);
+    console.log('[Checkout] Current user:', user?.id, user?.email);
 
     setIsProcessing(true);
 
     try {
-      // Récupérer le numéro de commande généré dans onApprove
-      const orderNumber = details.generatedOrderNumber;
+      // Vérifier que l'utilisateur est authentifié
+      if (!user?.id) {
+        console.error('[Checkout] No user logged in - cannot save order');
+        toast.error('Vous devez être connecté pour finaliser la commande');
+        setIsProcessing(false);
+        return;
+      }
 
-      // Récupérer l'email depuis le contexte Auth (Supabase) ou PayPal
+      // Générer le numéro de commande
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const orderNumber = `DP-${year}${month}-${random}`;
+
       const customerEmail = user?.email || details.payer?.email_address || '';
-
-      console.log('[Checkout] === DEBUG ===');
-      console.log('[Checkout] orderNumber:', orderNumber);
-      console.log('[Checkout] customerEmail:', customerEmail);
-
-      // Construire le nom depuis user_metadata ou shippingAddress
       const firstName = user?.user_metadata?.first_name || shippingAddress?.firstName || '';
       const lastName = user?.user_metadata?.last_name || shippingAddress?.lastName || '';
       const customerName = `${firstName} ${lastName}`.trim() || user?.email?.split('@')[0] || 'Client';
 
       const formattedAddress = shippingAddress
-        ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${shippingAddress.country}`
-        : 'Non spécifiée';
+        ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${getCountryName(shippingAddress.country, language as Language)}`
+        : t('notSpecified');
 
-      if (!customerEmail) {
-        console.error('[Checkout] ATTENTION: Aucun email trouvé pour le client!');
-      }
+      // 1. Sauvegarder la commande dans Supabase
+      console.log('[Checkout] Saving order with user_id:', user.id);
+      console.log('[Checkout] Order data:', { orderNumber, customerEmail, customerName, total });
+      console.log('[Checkout] Starting Supabase insert...');
 
-      // Sauvegarder la commande dans Supabase
       const { data: savedOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_number: orderNumber,
-          user_id: user?.id || null,
+          user_id: user.id,
           customer_email: customerEmail,
           customer_name: customerName,
           customer_phone: shippingAddress?.phone || null,
@@ -355,21 +355,24 @@ const Checkout: React.FC = () => {
           subtotal,
           shipping_cost: shippingCost,
           total,
-          currency: 'USD',
+          currency: 'EUR',
           paypal_order_id: details.id,
           paypal_status: details.status,
         })
         .select()
         .single();
 
+      console.log('[Checkout] Insert completed - data:', savedOrder, 'error:', orderError);
+
       if (orderError) {
-        console.error('[Checkout] Erreur sauvegarde commande Supabase:', orderError);
+        console.error('[Checkout] Order save failed:', orderError.message, orderError.code, orderError.details);
+        toast.error(`Erreur de sauvegarde: ${orderError.message}`);
         throw orderError;
       }
 
-      console.log('[Checkout] Commande sauvegardée dans Supabase:', savedOrder.id);
+      console.log('[Checkout] Order saved successfully:', savedOrder.id);
 
-      // Sauvegarder les items de la commande
+      // 2. Sauvegarder les items de la commande
       const orderItems = items.map((item) => ({
         order_id: savedOrder.id,
         product_id: item.id,
@@ -386,19 +389,46 @@ const Checkout: React.FC = () => {
         .insert(orderItems);
 
       if (itemsError) {
-        console.error('[Checkout] Erreur sauvegarde items Supabase:', itemsError);
+        console.error('[Checkout] Order items save error:', itemsError);
       }
 
-      // Email envoyé dans onApprove de PayPal (pas ici pour éviter les doublons)
+      // 3. Commande créée avec succès → envoyer l'email de confirmation
+      if (customerEmail) {
+        const orderItemsText = items
+          .map(item => `• ${item.name} (x${item.quantity}) - ${formatPrice(item.price * item.quantity)}`)
+          .join('\n');
 
-      // Nettoyer l'adresse temporaire après commande réussie
-      clearShippingAddress();
-      clearCart();
-      navigate(`/payment-success?order_id=${savedOrder.id}&order_number=${orderNumber}`);
-      toast.success('Paiement effectué avec succès !');
+        try {
+          await sendOrderConfirmationEmail({
+            order_number: orderNumber,
+            order_items: orderItemsText,
+            subtotal: formatPrice(subtotal),
+            shipping: formatPrice(shippingCost),
+            total: formatPrice(total),
+            customer_email: customerEmail,
+            customer_name: customerName,
+            shipping_address: formattedAddress,
+          });
+          console.log('[Checkout] Confirmation email sent');
+        } catch (emailErr) {
+          // L'email échoue silencieusement — la commande est déjà sauvée
+          console.error('[Checkout] Email send failed (order is saved):', emailErr);
+        }
+      }
+
+      // 4. Succès complet → vider le panier et rediriger
+      console.log('[Checkout] Clearing cart and redirecting...');
+      await clearCart();
+      // Small delay to ensure state is fully updated before navigation
+      const redirectUrl = `/payment-success?order_id=${savedOrder.id}&order_number=${orderNumber}`;
+      console.log('[Checkout] Navigating to:', redirectUrl);
+      setTimeout(() => {
+        navigate(redirectUrl);
+      }, 100);
+      toast.success(t('paymentSuccessToast'));
     } catch (error) {
-      console.error('Order creation error:', error);
-      toast.error('Erreur lors de la création de la commande');
+      console.error('[Checkout] Order creation error:', error);
+      toast.error(t('orderCreationError'));
       setIsProcessing(false);
     }
   };
@@ -410,12 +440,9 @@ const Checkout: React.FC = () => {
     setShowAddressModal(true);
   };
 
-  const handleAddressUpdated = () => {
+  const handleAddressUpdated = async () => {
     setShowAddressModal(false);
-    const updatedAddress = getShippingAddress();
-    if (updatedAddress) {
-      setShippingAddress(updatedAddress);
-    }
+    await refreshProfile();
   };
 
   // ============================================
@@ -425,21 +452,20 @@ const Checkout: React.FC = () => {
     console.error('Payment error:', error);
     console.error('Payment error message:', error?.message);
 
-    let message = 'Une erreur est survenue lors du paiement';
+    let message = t('paymentErrorOccurred');
 
     if (error?.message?.includes('Window closed') || error?.message?.includes('popup')) {
-      message = 'La fenêtre de paiement a été fermée. Cliquez sur "Réessayer" pour continuer.';
+      message = t('paymentWindowClosed');
     } else if (error?.message?.includes('INSTRUMENT_DECLINED')) {
-      message = 'Le paiement a été refusé par PayPal.';
+      message = t('paymentDeclined');
     } else if (error?.message?.includes('unauthorized')) {
-      message = 'Erreur d\'autorisation PayPal. Vérifiez la configuration du compte sandbox.';
+      message = t('authorizationError');
     } else if (error?.message?.includes('ORDER_NOT_APPROVED')) {
-      message = 'La commande n\'a pas été approuvée. Veuillez réessayer.';
+      message = t('orderNotApproved');
     } else if (error?.message?.includes('CURRENCY_NOT_SUPPORTED')) {
-      message = 'La devise n\'est pas supportée par ce compte PayPal.';
+      message = t('currencyNotSupported');
     } else if (error?.message) {
-      // Afficher le message d'erreur exact pour le debug
-      message = `Erreur PayPal: ${error.message}`;
+      message = `${t('paypalErrorPrefix')}: ${error.message}`;
     }
 
     setPaypalError(message);
@@ -451,7 +477,7 @@ const Checkout: React.FC = () => {
   // ANNULATION
   // ============================================
   const handlePaymentCancel = () => {
-    toast.info('Paiement annulé');
+    toast.info(t('paymentCancelled'));
     setIsProcessing(false);
   };
 
@@ -492,11 +518,11 @@ const Checkout: React.FC = () => {
               className="text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour
+              {t('back')}
             </Button>
             <h1 className="font-display text-2xl md:text-3xl font-semibold">
               <CreditCard className="w-6 h-6 inline-block mr-2 text-gold" />
-              Finaliser la commande
+              {t('checkoutTitle')}
             </h1>
           </div>
 
@@ -507,7 +533,7 @@ const Checkout: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="w-5 h-5 text-gold" />
-                    Récapitulatif ({items.length} article{items.length > 1 ? 's' : ''})
+                    {t('orderSummary')} ({items.length} {items.length > 1 ? t('articles') : t('article')})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -539,11 +565,11 @@ const Checkout: React.FC = () => {
 
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sous-total</span>
+                      <span className="text-muted-foreground">{t('subtotal')}</span>
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Livraison</span>
+                      <span className="text-muted-foreground">{t('shipping')}</span>
                       <span>{formatPrice(shippingCost)}</span>
                     </div>
                   </div>
@@ -551,7 +577,7 @@ const Checkout: React.FC = () => {
                   <Separator />
 
                   <div className="flex justify-between text-lg font-display font-semibold">
-                    <span>Total</span>
+                    <span>{t('total')}</span>
                     <span className="text-gold">{formatPrice(total)}</span>
                   </div>
                 </CardContent>
@@ -563,7 +589,7 @@ const Checkout: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-base">
                       <MapPin className="w-4 h-4 text-gold" />
-                      Adresse de livraison
+                      {t('shippingAddress')}
                     </CardTitle>
                     <Button
                       variant="ghost"
@@ -572,7 +598,7 @@ const Checkout: React.FC = () => {
                       className="text-gold hover:text-gold-dark"
                     >
                       <Edit2 className="w-4 h-4 mr-1" />
-                      Modifier
+                      {t('edit')}
                     </Button>
                   </div>
                 </CardHeader>
@@ -583,7 +609,7 @@ const Checkout: React.FC = () => {
                   <p>{shippingAddress.addressLine1}</p>
                   {shippingAddress.addressLine2 && <p>{shippingAddress.addressLine2}</p>}
                   <p>{shippingAddress.postalCode} {shippingAddress.city}</p>
-                  <p>{shippingAddress.country}</p>
+                  <p>{getCountryName(shippingAddress.country, language as Language)}</p>
                   {shippingAddress.phone && (
                     <p className="mt-2 text-foreground">{shippingAddress.phone}</p>
                   )}
@@ -598,24 +624,24 @@ const Checkout: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-gold" />
-                    Paiement sécurisé
+                    {t('securePaymentTitle')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isProcessing ? (
                     <div className="flex flex-col items-center justify-center py-12">
                       <Loader2 className="w-10 h-10 animate-spin text-gold mb-4" />
-                      <p className="text-muted-foreground">Traitement en cours...</p>
+                      <p className="text-muted-foreground">{t('processingPayment')}</p>
                     </div>
                   ) : paypalError ? (
                     <div className="flex flex-col items-center justify-center py-8 space-y-4">
                       <div className="bg-destructive/10 text-destructive rounded-lg p-4 text-center">
-                        <p className="font-medium">Erreur de paiement</p>
+                        <p className="font-medium">{t('paymentError')}</p>
                         <p className="text-sm mt-1">{paypalError}</p>
                       </div>
                       <Button onClick={handleRetry} variant="outline">
                         <RefreshCw className="w-4 h-4 mr-2" />
-                        Réessayer le paiement
+                        {t('retryPayment')}
                       </Button>
                     </div>
                   ) : (
@@ -631,8 +657,8 @@ const Checkout: React.FC = () => {
                         customerEmail: user?.email || shippingAddress?.email || '',
                         customerName: `${user?.user_metadata?.first_name || shippingAddress?.firstName || ''} ${user?.user_metadata?.last_name || shippingAddress?.lastName || ''}`.trim() || 'Client',
                         shippingAddress: shippingAddress
-                          ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${shippingAddress.country}`
-                          : 'Non spécifiée',
+                          ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${getCountryName(shippingAddress.country, language as Language)}`
+                          : t('notSpecified'),
                       }}
                       onSuccess={handlePaymentSuccess}
                       onError={handlePaymentError}
@@ -655,7 +681,7 @@ const Checkout: React.FC = () => {
               <div className="bg-muted/30 rounded-lg p-4 text-center">
                 <p className="text-sm text-muted-foreground">
                   <span className="text-green-500 mr-1">🔒</span>
-                  Paiement 100% sécurisé via PayPal
+                  {t('securePaymentViaPaypal')}
                 </p>
               </div>
             </div>

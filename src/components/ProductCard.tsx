@@ -1,12 +1,23 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Star, ShoppingBag, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Product } from '@/hooks/useProducts';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { resolveImagePath } from '@/lib/utils';
 import { getProductTranslation } from '@/data/productTranslations';
 interface ProductCardProps {
@@ -17,6 +28,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { t, formatPrice, language } = useLocale();
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
 
   const productName = getProductTranslation(product.slug, 'name', language) || product.name;
 
@@ -31,10 +45,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     });
   };
 
-  const handleToggleFavorite = (e: React.MouseEvent) => {
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleFavorite(product.id);
+
+    if (!user) {
+      setShowLoginAlert(true);
+      return;
+    }
+
+    await toggleFavorite({
+      id: product.id,
+      name: productName,
+      image: product.images?.[0] || '',
+      price: product.price,
+    });
+  };
+
+  const handleLoginRedirect = () => {
+    setShowLoginAlert(false);
+    navigate('/auth');
   };
 
   return (
@@ -103,6 +133,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <p className="font-display text-xl font-semibold text-gold">{formatPrice(product.price)}</p>
         </div>
       </Link>
+
+      <AlertDialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('loginRequiredTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('loginRequiredMessage')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLoginRedirect} className="bg-gold hover:bg-gold-dark text-deep-black">
+              {t('loginNow')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

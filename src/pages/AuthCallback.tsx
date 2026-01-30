@@ -5,11 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     // Wait for auth state to be determined
-    if (loading) return;
+    if (isLoading) return;
 
     // If user is authenticated, redirect to account
     if (user) {
@@ -18,7 +18,7 @@ const AuthCallback: React.FC = () => {
       // No user, redirect to auth page
       navigate('/auth', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, isLoading, navigate]);
 
   return (
     <main className="min-h-screen flex items-center justify-center">

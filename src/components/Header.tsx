@@ -6,6 +6,7 @@ import { useLocale, languages, currencies, languageNames, Language, Currency } f
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import SearchBar from '@/components/SearchBar';
 import {
@@ -308,8 +309,15 @@ const Header: React.FC = () => {
                     </DropdownMenuItem>
                     {/* Admin link removed - admin access only via secret URL */}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => signOut()} 
+                    <DropdownMenuItem
+                      onClick={() => {
+                        console.log('[Header] Forcing immediate logout...');
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        try { indexedDB.deleteDatabase('supabase'); } catch {}
+                        supabase.auth.signOut().catch(() => {});
+                        window.location.href = '/';
+                      }}
                       className="cursor-pointer text-destructive focus:text-destructive"
                     >
                       <LogOut className="w-4 h-4 mr-2" />

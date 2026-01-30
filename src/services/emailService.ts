@@ -182,14 +182,14 @@ export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Pro
         email_title: t.title,
         // Traductions
         greeting: t.greeting,
-        order_confirmed: t.orderConfirmed,
+        order_confirmed_text: t.orderConfirmed,
         summary_label: t.summary,
         subtotal_label: t.subtotal,
         shipping_label: t.shipping,
         total_label: t.total,
         shipping_address_label: t.shippingAddress,
-        thanks: t.thanks,
-        team: t.team,
+        thanks_text: t.thanks,
+        team_text: t.team,
       },
       PUBLIC_KEY
     );

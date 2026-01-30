@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, Product, ProductTranslation } from '@/hooks/useProducts';
 import { Button } from '@/components/ui/button';
 
@@ -150,22 +151,20 @@ const AdminDashboard: React.FC = () => {
   // Verify admin access
   useEffect(() => {
     if (authLoading || isValidSecret === null) return;
-
     if (!isValidSecret) return;
 
-    if (!user) {
-      navigate(`/admin/${secretKey}/connexion`);
-      return;
+    if (!user || !isAdmin) {
+      navigate(`/admin/${secretKey}/connexion`, { replace: true });
     }
+  }, [user, authLoading, secretKey, isValidSecret, isAdmin]);
 
-    if (!isAdmin) {
-      navigate(`/admin/${secretKey}/connexion`);
-    }
-  }, [user, authLoading, navigate, secretKey, isValidSecret, isAdmin]);
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/');
+  const handleLogout = () => {
+    console.log('[Admin] Forcing immediate logout...');
+    localStorage.clear();
+    sessionStorage.clear();
+    try { indexedDB.deleteDatabase('supabase'); } catch {}
+    supabase.auth.signOut().catch(() => {});
+    window.location.href = '/';
   };
 
   const openCreateDialog = () => {

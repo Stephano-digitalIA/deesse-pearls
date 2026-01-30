@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, ShoppingBag, ArrowRight, Package, MapPin, Receipt, Loader2 } from 'lucide-react';
@@ -28,18 +28,35 @@ interface Order {
   items: OrderItem[];
 }
 
+const localeMap: Record<string, string> = {
+  fr: 'fr-FR',
+  en: 'en-US',
+  de: 'de-DE',
+  es: 'es-ES',
+  pt: 'pt-PT',
+  it: 'it-IT',
+  nl: 'nl-NL',
+  ja: 'ja-JP',
+  ko: 'ko-KR',
+};
+
 const PaymentSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('order_id');
   const orderNumber = searchParams.get('order_number');
   const { clearCart } = useCart();
-  const { t, formatPrice } = useLocale();
+  const { t, formatPrice, language } = useLocale();
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Clear cart only once on mount (not on clearCart identity change)
+  const hasCleared = useRef(false);
   useEffect(() => {
-    clearCart();
-  }, [clearCart]);
+    if (!hasCleared.current) {
+      hasCleared.current = true;
+      clearCart();
+    }
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -48,30 +65,34 @@ const PaymentSuccess: React.FC = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*, order_items(*)')
-        .eq('id', orderId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*, order_items(*)')
+          .eq('id', orderId)
+          .maybeSingle();
 
-      if (error) {
-        console.error('[PaymentSuccess] Error fetching order:', error);
-      } else if (data) {
-        setOrder({
-          id: data.id,
-          order_number: data.order_number,
-          created_at: data.created_at,
-          customer_name: data.customer_name,
-          customer_email: data.customer_email,
-          shipping_address: data.shipping_address,
-          subtotal: data.subtotal,
-          shipping_cost: data.shipping_cost,
-          total: data.total,
-          items: data.order_items || [],
-        });
+        if (error) {
+          console.error('[PaymentSuccess] Error fetching order:', error);
+        } else if (data) {
+          setOrder({
+            id: data.id,
+            order_number: data.order_number,
+            created_at: data.created_at,
+            customer_name: data.customer_name,
+            customer_email: data.customer_email,
+            shipping_address: data.shipping_address,
+            subtotal: data.subtotal,
+            shipping_cost: data.shipping_cost,
+            total: data.total,
+            items: data.order_items || [],
+          });
+        }
+      } catch (err) {
+        console.error('[PaymentSuccess] Unexpected error:', err);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     fetchOrder();
@@ -80,7 +101,7 @@ const PaymentSuccess: React.FC = () => {
   // Email envoyé dans Checkout.tsx (onApprove PayPal) - pas de doublon ici
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    return new Date(dateString).toLocaleDateString(localeMap[language] || 'fr-FR', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -131,29 +152,29 @@ const PaymentSuccess: React.FC = () => {
             <div className="bg-card border border-border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-4">
                 <Receipt className="w-5 h-5 text-gold" />
-                <h2 className="font-display text-lg">Récapitulatif de commande</h2>
+                <h2 className="font-display text-lg">{t('orderRecap')}</h2>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Numéro de commande</span>
+                  <span className="text-muted-foreground">{t('orderNumber')}</span>
                   <p className="font-mono font-medium">{order.order_number}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Date</span>
+                  <span className="text-muted-foreground">{t('date')}</span>
                   <p className="font-medium">{formatDate(order.created_at)}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Client</span>
+                  <span className="text-muted-foreground">{t('client')}</span>
                   <p className="font-medium">{order.customer_name}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Email</span>
+                  <span className="text-muted-foreground">{t('email')}</span>
                   <p className="font-medium">{order.customer_email}</p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-muted-foreground">Statut</span>
-                  <p className="font-medium text-green-500">Confirmée</p>
+                  <span className="text-muted-foreground">{t('status')}</span>
+                  <p className="font-medium text-green-500">{t('orderConfirmed')}</p>
                 </div>
               </div>
             </div>
@@ -162,7 +183,7 @@ const PaymentSuccess: React.FC = () => {
             <div className="bg-card border border-border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-4">
                 <Package className="w-5 h-5 text-gold" />
-                <h2 className="font-display text-lg">Articles commandés</h2>
+                <h2 className="font-display text-lg">{t('orderedItems')}</h2>
               </div>
 
               <div className="space-y-3">
@@ -183,11 +204,11 @@ const PaymentSuccess: React.FC = () => {
 
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Sous-total</span>
+                  <span className="text-muted-foreground">{t('subtotal')}</span>
                   <span>{formatPrice(order.subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Livraison</span>
+                  <span className="text-muted-foreground">{t('shipping')}</span>
                   <span>{formatPrice(order.shipping_cost)}</span>
                 </div>
               </div>
@@ -195,7 +216,7 @@ const PaymentSuccess: React.FC = () => {
               <Separator className="my-4" />
 
               <div className="flex justify-between items-center font-display text-lg">
-                <span>Total</span>
+                <span>{t('total')}</span>
                 <span className="text-gold">{formatPrice(order.total)}</span>
               </div>
             </div>
@@ -205,7 +226,7 @@ const PaymentSuccess: React.FC = () => {
               <div className="bg-card border border-border rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <MapPin className="w-5 h-5 text-gold" />
-                  <h2 className="font-display text-lg">Adresse de livraison</h2>
+                  <h2 className="font-display text-lg">{t('shippingAddress')}</h2>
                 </div>
 
                 <div className="text-sm">
@@ -222,9 +243,9 @@ const PaymentSuccess: React.FC = () => {
             className="bg-card border border-border rounded-lg p-6 text-center"
           >
             <Receipt className="w-10 h-10 text-gold mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2">Commande #{orderNumber}</p>
+            <p className="text-lg font-medium mb-2">{t('orderLabel')} #{orderNumber}</p>
             <p className="text-muted-foreground text-sm">
-              Votre commande a été enregistrée avec succès.
+              {t('orderRegisteredSuccess')}
             </p>
           </motion.div>
         ) : (
@@ -235,7 +256,7 @@ const PaymentSuccess: React.FC = () => {
             className="text-center text-muted-foreground py-8"
           >
             <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500/50" />
-            <p>Votre paiement a été traité avec succès.</p>
+            <p>{t('paymentProcessedSuccess')}</p>
           </motion.div>
         )}
 
@@ -249,18 +270,18 @@ const PaymentSuccess: React.FC = () => {
           <Button asChild variant="outline">
             <Link to="/account" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              Voir mes commandes
+              {t('viewMyOrders')}
             </Link>
           </Button>
           <Button asChild variant="outline">
             <Link to="/shop" className="flex items-center gap-2">
               <ShoppingBag className="w-4 h-4" />
-              Continuer mes achats
+              {t('continueShopping')}
             </Link>
           </Button>
           <Button asChild>
             <Link to="/" className="flex items-center gap-2">
-              Retour à l'accueil
+              {t('backToHome')}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>
