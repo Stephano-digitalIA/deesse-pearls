@@ -21,6 +21,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const Header: React.FC = () => {
   const { language, currency, setLanguage, setCurrency, t } = useLocale();
@@ -84,27 +90,38 @@ const Header: React.FC = () => {
           <span className="font-display italic text-xs md:text-sm">{t('designer25Years')}</span>
           <div className="flex items-center gap-3 md:gap-4">
             {/* Language Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 hover:text-gold transition-colors text-xs md:text-sm">
-                <Globe className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                <span>{languageNames[language].split(' ')[0]}</span>
-                <ChevronDown className="w-3 h-3" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card">
-                {languages.map((lang) => (
-                  <DropdownMenuItem
-                    key={lang}
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setLanguage(lang);
-                    }}
-                    className={language === lang ? 'bg-muted' : ''}
-                  >
-                    {languageNames[lang]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center gap-1 hover:text-gold transition-colors text-xs md:text-sm">
+                        <Globe className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                        <span>{languageNames[language].split(' ')[0]}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-card">
+                        {languages.map((lang) => (
+                          <DropdownMenuItem
+                            key={lang}
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              setLanguage(lang);
+                            }}
+                            className={language === lang ? 'bg-muted' : ''}
+                          >
+                            {languageNames[lang]}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[250px] text-center bg-gold text-deep-black font-medium">
+                  <p>{t('languageTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             {/* Currency Selector */}
             <DropdownMenu>
