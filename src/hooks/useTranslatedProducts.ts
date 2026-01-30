@@ -18,7 +18,7 @@ interface DbTranslation {
 export interface Product {
   id: string;
   slug: string;
-  category: 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'other';
+  category: 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'earrings' | 'pendentifs' | 'parures' | 'broches';
   name: string;
   description: string;
   price: number;
@@ -32,7 +32,7 @@ export interface Product {
     diameters?: string[];
   } | null;
   in_stock: boolean;
-  inStock?: boolean; // Alias for compatibility
+  inStock: boolean;
 }
 
 // Supabase product type (matches database schema)
@@ -72,10 +72,11 @@ const convertSupabaseProduct = (p: SupabaseProduct): Product => {
     'colliers': 'necklaces',
     'rings': 'rings',
     'bagues': 'rings',
-    'earrings': 'other',
-    'Boucles d\'oreilles': 'other',
-    'pendentifs': 'other',
-    'parures': 'other',
+    'earrings': 'earrings',
+    'Boucles d\'oreilles': 'earrings',
+    'pendentifs': 'pendentifs',
+    'parures': 'parures',
+    'broches': 'broches',
   };
 
   // Ensure images is always an array
@@ -88,7 +89,7 @@ const convertSupabaseProduct = (p: SupabaseProduct): Product => {
   return {
     id: String(p.id),
     slug: p.slug,
-    category: categoryMap[p.category] || 'other',
+    category: categoryMap[p.category] || 'pearls',
     name: p.name,
     description: p.description || '',
     price: p.price,
@@ -177,7 +178,10 @@ const fetchProductsByCategoryFromSupabase = async (category: string): Promise<Pr
     'bracelets': ['bracelets', 'Bracelets'],
     'necklaces': ['necklaces', 'colliers'],
     'rings': ['rings', 'bagues'],
-    'other': ['earrings', 'Boucles d\'oreilles', 'pendentifs', 'parures'],
+    'earrings': ['earrings', 'Boucles d\'oreilles'],
+    'pendentifs': ['pendentifs'],
+    'parures': ['parures'],
+    'broches': ['broches'],
   };
 
   const categoriesToMatch = categoryVariants[category] || [category];

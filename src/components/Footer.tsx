@@ -55,7 +55,7 @@ const Footer: React.FC = () => {
             <h3 className="font-display text-lg mb-4 text-gold">{t('shop')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/shop/pearls" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/perles" className="text-pearl/70 hover:text-gold transition-colors">
                   {t('loosePearls')}
                 </Link>
               </li>
@@ -65,33 +65,33 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/shop/necklaces" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/colliers" className="text-pearl/70 hover:text-gold transition-colors">
                   {t('necklaces')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/rings" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/bagues" className="text-pearl/70 hover:text-gold transition-colors">
                   {t('rings')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/earrings" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/boucles-oreilles" className="text-pearl/70 hover:text-gold transition-colors">
                   {t('earrings')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/pendants" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/pendentifs" className="text-pearl/70 hover:text-gold transition-colors">
                   {t('pendants')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/sets" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/parures" className="text-pearl/70 hover:text-gold transition-colors">
                   {t('jewelrySets')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/other" className="text-pearl/70 hover:text-gold transition-colors">
-                  {t('otherJewelry')}
+                <Link to="/shop/broches" className="text-pearl/70 hover:text-gold transition-colors">
+                  {t('brooches')}
                 </Link>
               </li>
             </ul>

@@ -19,7 +19,7 @@ export interface ProductTranslation {
 export interface Product {
   id: string;
   slug: string;
-  category: 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'other';
+  category: 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'earrings' | 'pendentifs' | 'parures' | 'broches';
   name: string;
   description: string;
   price: number;
@@ -291,7 +291,7 @@ export const products: Product[] = [
   {
     id: '5',
     slug: 'pendentif-perle-tahiti',
-    category: 'other',
+    category: 'pendentifs',
     name: 'Pendentif Perle de Tahiti',
     description: 'Pendentif délicat en or jaune 18 carats avec une perle de Tahiti drop de qualité exceptionnelle.',
     price: 680,
@@ -307,7 +307,7 @@ export const products: Product[] = [
   {
     id: '17',
     slug: 'boucles-oreilles-perles-tahiti',
-    category: 'other',
+    category: 'earrings',
     name: 'Boucles d\'Oreilles Perles de Tahiti',
     description: 'Élégantes boucles d\'oreilles pendantes en or 18 carats avec perles de Tahiti assorties.',
     price: 1250,
@@ -323,7 +323,7 @@ export const products: Product[] = [
   {
     id: '18',
     slug: 'parure-perles-tahiti',
-    category: 'other',
+    category: 'parures',
     name: 'Parure Complète Perles de Tahiti',
     description: 'Parure comprenant collier, bracelet et boucles d\'oreilles assortis. Coffret luxe inclus.',
     price: 5890,
@@ -338,7 +338,7 @@ export const products: Product[] = [
   {
     id: '19',
     slug: 'broche-perle-tahiti',
-    category: 'other',
+    category: 'broches',
     name: 'Broche Perle de Tahiti & Diamants',
     description: 'Broche raffinée en or blanc avec perle de Tahiti centrale et diamants. Pièce de collection.',
     price: 2680,

@@ -65,7 +65,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onClose }) => {
       case 'bracelets': return t('bracelets');
       case 'necklaces': return t('necklaces');
       case 'rings': return t('rings');
-      case 'other': return t('otherJewelry');
+      case 'earrings': return t('earrings');
+      case 'pendentifs': return t('pendants');
+      case 'parures': return t('jewelrySets');
+      case 'broches': return t('brooches');
       default: return category;
     }
   };

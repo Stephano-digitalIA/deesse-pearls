@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/collapsible';
 import { shopProductTranslations } from '@/data/shopProductTranslations';
 
-type Category = 'all' | 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'earrings' | 'pendentifs' | 'parures' | 'other';
+type Category = 'all' | 'pearls' | 'bracelets' | 'necklaces' | 'rings' | 'earrings' | 'pendentifs' | 'parures' | 'broches';
 
 const categoryRouteMap: Record<string, Category> = {
   'perles': 'pearls',
@@ -33,7 +33,7 @@ const categoryRouteMap: Record<string, Category> = {
   'boucles-oreilles': 'earrings',
   'pendentifs': 'pendentifs',
   'parures': 'parures',
-  'autres': 'other',
+  'broches': 'broches',
 };
 
 const Shop: React.FC = () => {
@@ -44,7 +44,7 @@ const Shop: React.FC = () => {
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 6000]);
   const [sortBy, setSortBy] = useState<string>('default');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -80,6 +80,20 @@ const Shop: React.FC = () => {
       case 'rating':
         filtered = [...filtered].sort((a, b) => b.rating - a.rating);
         break;
+      case 'bestseller':
+        filtered = [...filtered].sort((a, b) => {
+          if (a.badge === 'bestseller' && b.badge !== 'bestseller') return -1;
+          if (a.badge !== 'bestseller' && b.badge === 'bestseller') return 1;
+          return 0;
+        });
+        break;
+      case 'new':
+        filtered = [...filtered].sort((a, b) => {
+          if (a.badge === 'new' && b.badge !== 'new') return -1;
+          if (a.badge !== 'new' && b.badge === 'new') return 1;
+          return 0;
+        });
+        break;
       default:
         break;
     }
@@ -88,10 +102,10 @@ const Shop: React.FC = () => {
   }, [selectedCategory, priceRange, sortBy, products]);
 
   const clearFilters = () => {
-    setPriceRange([0, 5000]);
+    setPriceRange([0, 6000]);
   };
 
-  const hasActiveFilters = priceRange[0] > 0 || priceRange[1] < 5000;
+  const hasActiveFilters = priceRange[0] > 0 || priceRange[1] < 6000;
 
   const categories: { key: Category; label: string; route: string }[] = [
     { key: 'all', label: t('shop'), route: '/shop' },
@@ -102,7 +116,7 @@ const Shop: React.FC = () => {
     { key: 'earrings', label: t('earrings'), route: '/shop/boucles-oreilles' },
     { key: 'pendentifs', label: t('pendants'), route: '/shop/pendentifs' },
     { key: 'parures', label: t('jewelrySets'), route: '/shop/parures' },
-    { key: 'other', label: t('otherJewelry'), route: '/shop/autres' },
+    { key: 'broches', label: t('brooches'), route: '/shop/broches' },
   ];
 
   const getCategoryTitle = () => {
@@ -112,7 +126,9 @@ const Shop: React.FC = () => {
       case 'necklaces': return t('necklaces');
       case 'rings': return t('rings');
       case 'earrings': return t('earrings');
-      case 'other': return t('otherJewelry');
+      case 'pendentifs': return t('pendants');
+      case 'parures': return t('jewelrySets');
+      case 'broches': return t('brooches');
       default: return t('shop');
     }
   };
@@ -130,7 +146,7 @@ const Shop: React.FC = () => {
             value={priceRange}
             onValueChange={(value) => setPriceRange(value as [number, number])}
             min={0}
-            max={5000}
+            max={6000}
             step={100}
             className="w-full"
           />
@@ -269,6 +285,8 @@ const Shop: React.FC = () => {
                 <option value="price-asc">{t('price')} ↑</option>
                 <option value="price-desc">{t('price')} ↓</option>
                 <option value="rating">★ {t('quality')}</option>
+                <option value="bestseller">🏆 {t('bestSellers')}</option>
+                <option value="new">✨ {t('newArrivals')}</option>
               </select>
             </div>
 

@@ -64,7 +64,7 @@ const Header: React.FC = () => {
     { key: 'earrings', path: '/shop/boucles-oreilles' },
     { key: 'pendants', path: '/shop/pendentifs' },
     { key: 'jewelrySets', path: '/shop/parures' },
-    { key: 'otherJewelry', path: '/shop/autres' },
+    { key: 'brooches', path: '/shop/broches' },
   ];
 
   const navItems = [
