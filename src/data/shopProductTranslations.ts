@@ -55,6 +55,28 @@ export const shopProductTranslations: Record<string, Record<string, string>> = {
     ja: 'フィルターをリセット',
     ko: '필터 초기화',
   },
+  'shop.errorLoading': {
+    fr: 'Erreur lors du chargement des produits',
+    en: 'Error loading products',
+    de: 'Fehler beim Laden der Produkte',
+    es: 'Error al cargar los productos',
+    pt: 'Erro ao carregar os produtos',
+    it: 'Errore durante il caricamento dei prodotti',
+    nl: 'Fout bij het laden van producten',
+    ja: '商品の読み込み中にエラーが発生しました',
+    ko: '상품을 불러오는 중 오류가 발생했습니다',
+  },
+  'shop.retry': {
+    fr: 'Réessayer',
+    en: 'Retry',
+    de: 'Erneut versuchen',
+    es: 'Reintentar',
+    pt: 'Tentar novamente',
+    it: 'Riprova',
+    nl: 'Opnieuw proberen',
+    ja: '再試行',
+    ko: '다시 시도',
+  },
 
   // ProductDetail page
   'product.notFound': {
