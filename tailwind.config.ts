@@ -17,6 +17,7 @@ export default {
         display: ["Cormorant Garamond", "serif"],
         body: ["Lato", "sans-serif"],
         tangerine: ["Tangerine", "cursive"],
+        tsukimi: ["Tsukimi Rounded", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

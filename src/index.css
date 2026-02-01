@@ -5,6 +5,7 @@
 @import url('@fontsource/lato/300.css');
 @import url('@fontsource/lato/400.css');
 @import url('@fontsource/lato/700.css');
+@import url('@fontsource/tsukimi-rounded/500.css');
 
 @tailwind base;
 @tailwind components;
