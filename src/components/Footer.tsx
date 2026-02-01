@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Instagram, Facebook } from 'lucide-react';
+import { Mail, Phone, MapPin } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
 
 const Footer: React.FC = () => {
@@ -40,14 +40,6 @@ const Footer: React.FC = () => {
             <p className="text-pearl/70 text-sm leading-relaxed">
               {t('designer25Years')}. {t('dreamJewelry')}.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="text-pearl/60 hover:text-gold transition-colors">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-pearl/60 hover:text-gold transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-            </div>
           </div>
 
           {/* Quick links */}
@@ -55,42 +47,42 @@ const Footer: React.FC = () => {
             <h3 className="font-display text-lg mb-4 text-gold">{t('shop')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/shop/perles" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/perles" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('loosePearls')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/bracelets" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/bracelets" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('bracelets')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/colliers" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/colliers" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('necklaces')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/bagues" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/bagues" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('rings')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/boucles-oreilles" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/boucles-oreilles" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('earrings')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/pendentifs" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/pendentifs" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('pendants')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/parures" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/parures" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('jewelrySets')}
                 </Link>
               </li>
               <li>
-                <Link to="/shop/broches" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/shop/broches" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('brooches')}
                 </Link>
               </li>
@@ -102,27 +94,27 @@ const Footer: React.FC = () => {
             <h3 className="font-display text-lg mb-4 text-gold">{t('customerService')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/contact" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/contact" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('contactUs')}
                 </Link>
               </li>
               <li>
-                <Link to="/faq" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/faq" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('faq')}
                 </Link>
               </li>
               <li>
-                <Link to="/delivery" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/delivery" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('deliveryReturns')}
                 </Link>
               </li>
               <li>
-                <Link to="/commitments" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/commitments" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('ourCommitments')}
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-pearl/70 hover:text-gold transition-colors">
+                <Link to="/about" onClick={() => window.scrollTo(0, 0)} className="text-pearl/70 hover:text-gold transition-colors">
                   {t('about')}
                 </Link>
               </li>
@@ -138,17 +130,14 @@ const Footer: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-pearl/50">
             <p>© 2025 DEESSE PEARLS. {t('allRightsReserved')}</p>
             <div className="flex gap-4">
-              <Link to="/legal" className="hover:text-gold transition-colors">
+              <Link to="/legal" onClick={() => window.scrollTo(0, 0)} className="hover:text-gold transition-colors">
                 {t('legalNotice')}
               </Link>
-              <Link to="/privacy" className="hover:text-gold transition-colors">
+              <Link to="/privacy" onClick={() => window.scrollTo(0, 0)} className="hover:text-gold transition-colors">
                 {t('privacyPolicy')}
               </Link>
-              <Link to="/terms" className="hover:text-gold transition-colors">
+              <Link to="/terms" onClick={() => window.scrollTo(0, 0)} className="hover:text-gold transition-colors">
                 {t('termsOfSale')}
-              </Link>
-              <Link to="/admin/login" className="hover:text-pearl/70 transition-colors opacity-50">
-                Admin
               </Link>
             </div>
           </div>

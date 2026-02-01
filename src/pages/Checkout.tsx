@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, CreditCard, Package, MapPin, Loader2, RefreshCw, Edit2 } from 'lucide-react';
 import { resolveImagePath } from '@/lib/utils';
 import ShippingAddressModal from '@/components/ShippingAddressModal';
-import { sendOrderConfirmationEmail } from '@/services/emailService';
+import { sendOrderConfirmationEmail, sendOrderNotificationToSeller } from '@/services/emailService';
 import { getCountryName, Language } from '@/data/shippingTranslations';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb';
@@ -398,18 +398,25 @@ const Checkout: React.FC = () => {
           .map(item => `• ${item.name} (x${item.quantity}) - ${formatPrice(item.price * item.quantity)}`)
           .join('\n');
 
+        const orderEmailData = {
+          order_number: orderNumber,
+          order_items: orderItemsText,
+          subtotal: formatPrice(subtotal),
+          shipping: formatPrice(shippingCost),
+          total: formatPrice(total),
+          customer_email: customerEmail,
+          customer_name: customerName,
+          shipping_address: formattedAddress,
+        };
+
         try {
-          await sendOrderConfirmationEmail({
-            order_number: orderNumber,
-            order_items: orderItemsText,
-            subtotal: formatPrice(subtotal),
-            shipping: formatPrice(shippingCost),
-            total: formatPrice(total),
-            customer_email: customerEmail,
-            customer_name: customerName,
-            shipping_address: formattedAddress,
-          });
-          console.log('[Checkout] Confirmation email sent');
+          // Send confirmation email to customer
+          await sendOrderConfirmationEmail(orderEmailData);
+          console.log('[Checkout] Confirmation email sent to customer');
+
+          // Send notification to seller/admin
+          await sendOrderNotificationToSeller(orderEmailData);
+          console.log('[Checkout] Notification email sent to seller');
         } catch (emailErr) {
           // L'email échoue silencieusement — la commande est déjà sauvée
           console.error('[Checkout] Email send failed (order is saved):', emailErr);

@@ -2,7 +2,9 @@ import emailjs from '@emailjs/browser';
 
 const SERVICE_ID = 'service_7pd565s';
 const TEMPLATE_ID = 'template_d6i9rrd';
+const ADMIN_TEMPLATE_ID = 'template_7du5fsj';
 const PUBLIC_KEY = 'XE4-1-JE4UAnYtFf4';
+const SELLER_EMAIL = 'contact@deessepearls.com';
 
 // Traductions multilingues pour les emails
 const emailTranslations: Record<string, any> = {
@@ -208,4 +210,29 @@ export const formatOrderItemsForEmail = (
   return items
     .map(item => `• ${item.productName} (x${item.quantity}) - ${formatPrice(item.totalPrice)}`)
     .join('\n');
+};
+
+// Send notification to seller/admin when order is placed
+export const sendOrderNotificationToSeller = async (orderData: OrderEmailData): Promise<boolean> => {
+  console.log('=== ENVOI NOTIFICATION VENDEUR ===');
+
+  try {
+    const response = await emailjs.send(
+      SERVICE_ID,
+      ADMIN_TEMPLATE_ID,
+      {
+        to_email: SELLER_EMAIL,
+        subject: `Nouvelle commande #${orderData.order_number}`,
+        customer_name: orderData.customer_name || 'Client',
+        customer_email: orderData.customer_email,
+        message: `Nouvelle commande reçue!\n\nCommande: #${orderData.order_number}\nClient: ${orderData.customer_name}\nEmail: ${orderData.customer_email}\n\nArticles:\n${orderData.order_items}\n\nSous-total: ${orderData.subtotal}\nLivraison: ${orderData.shipping}\nTotal: ${orderData.total}\n\nAdresse de livraison:\n${orderData.shipping_address}`,
+      },
+      PUBLIC_KEY
+    );
+    console.log('Notification vendeur envoyée!', response);
+    return true;
+  } catch (error) {
+    console.error('Erreur envoi notification vendeur:', error);
+    return false;
+  }
 };

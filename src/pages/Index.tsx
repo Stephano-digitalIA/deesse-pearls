@@ -63,7 +63,7 @@ const Index: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="font-tangerine italic text-5xl md:text-7xl lg:text-9xl text-gold mb-8 leading-tight drop-shadow-lg"
+            className="font-tangerine italic font-bold text-5xl md:text-7xl lg:text-9xl text-gold mb-8 leading-tight drop-shadow-lg"
           >
             {t("heroTitle")}
           </motion.h1>
@@ -71,7 +71,7 @@ const Index: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className="text-pearl/90 text-lg md:text-xl max-w-2xl mx-auto mb-12 drop-shadow-md"
+            className="text-pearl/90 text-lg md:text-xl font-semibold max-w-2xl mx-auto mb-12 drop-shadow-md"
           >
             {t("heroSubtitle")}
           </motion.p>

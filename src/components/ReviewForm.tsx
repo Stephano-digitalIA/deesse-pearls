@@ -8,7 +8,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { z } from 'zod';
+import emailjs from '@emailjs/browser';
+
+const SELLER_EMAIL = 'contact@deessepearls.com';
+const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_7pd565s';
+const EMAILJS_TEMPLATE_ID = 'template_7du5fsj';
+const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'XE4-1-JE4UAnYtFf4';
 
 interface ReviewFormProps {
   productId: string;
@@ -102,22 +109,42 @@ const reviewSchema = z.object({
 const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted }) => {
   const { language } = useLocale();
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Pre-fill user info if logged in
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [hasPrefilledName, setHasPrefilledName] = useState(false);
+  const [hasPrefilledEmail, setHasPrefilledEmail] = useState(false);
+
+  // Pre-fill name from profile or user metadata
   useEffect(() => {
-    if (user) {
-      if (user.email && !email) {
-        setEmail(user.email);
-      }
+    if (hasPrefilledName) return;
+
+    const newName = profile?.firstName || user?.user_metadata?.first_name || '';
+    console.log('[ReviewForm] Checking name prefill:', { newName, profileFirstName: profile?.firstName, userMetaFirstName: user?.user_metadata?.first_name });
+
+    if (newName) {
+      setName(newName);
+      setHasPrefilledName(true);
+      console.log('[ReviewForm] Name pre-filled:', newName);
     }
-  }, [user]);
+  }, [profile?.firstName, user?.user_metadata?.first_name, hasPrefilledName]);
+
+  // Pre-fill email from user
+  useEffect(() => {
+    if (hasPrefilledEmail) return;
+
+    if (user?.email) {
+      setEmail(user.email);
+      setHasPrefilledEmail(true);
+      console.log('[ReviewForm] Email pre-filled:', user.email);
+    }
+  }, [user?.email, hasPrefilledEmail]);
 
   const t = (key: string) => reviewTranslations[key]?.[language] || reviewTranslations[key]?.['fr'] || key;
 
@@ -167,6 +194,25 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
         });
 
       if (error) throw error;
+
+      // Send email notification to seller
+      try {
+        await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          {
+            to_email: SELLER_EMAIL,
+            subject: `Nouvel avis client - ${rating} étoiles`,
+            customer_name: name.trim(),
+            customer_email: email.trim(),
+            message: `Nouvel avis reçu:\n\nNom: ${name.trim()}\nEmail: ${email.trim()}\nNote: ${rating}/5 étoiles\n\nCommentaire:\n${comment.trim()}\n\nProduit ID: ${productId}`,
+          },
+          EMAILJS_PUBLIC_KEY
+        );
+        console.log('[Review] Email notification sent to seller');
+      } catch (emailError) {
+        console.error('[Review] Failed to send email to seller:', emailError);
+      }
 
       toast.success(t('review.success'));
       setName('');
