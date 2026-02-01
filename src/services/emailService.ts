@@ -4,7 +4,7 @@ const SERVICE_ID = 'service_7pd565s';
 const TEMPLATE_ID = 'template_d6i9rrd';
 const ADMIN_TEMPLATE_ID = 'template_7du5fsj';
 const PUBLIC_KEY = 'XE4-1-JE4UAnYtFf4';
-const SELLER_EMAIL = 'contact@deessepearls.com';
+const SELLER_EMAIL = 'contact@tahititechdigital.com';
 
 // Traductions multilingues pour les emails
 const emailTranslations: Record<string, any> = {

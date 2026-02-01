@@ -12,7 +12,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { z } from 'zod';
 import emailjs from '@emailjs/browser';
 
-const SELLER_EMAIL = 'contact@deessepearls.com';
+const SELLER_EMAIL = 'contact@tahititechdigital.com';
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_7pd565s';
 const EMAILJS_TEMPLATE_ID = 'template_7du5fsj';
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'XE4-1-JE4UAnYtFf4';
