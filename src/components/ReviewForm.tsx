@@ -190,7 +190,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
           author_email: email.trim(),
           rating,
           comment: comment.trim(),
-          approved: false,
+          is_approved: false,
         });
 
       if (error) throw error;

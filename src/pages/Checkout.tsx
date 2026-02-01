@@ -380,7 +380,6 @@ const Checkout: React.FC = () => {
         quantity: item.quantity,
         unit_price: item.price,
         total_price: item.price * item.quantity,
-        variant: item.variant || item.size || item.quality || null,
       }));
 
       const { error: itemsError } = await supabase
@@ -408,17 +407,22 @@ const Checkout: React.FC = () => {
           shipping_address: formattedAddress,
         };
 
+        // Send confirmation email to customer (independent try-catch)
         try {
-          // Send confirmation email to customer
+          console.log('[Checkout] Sending confirmation email to customer...');
           await sendOrderConfirmationEmail(orderEmailData);
           console.log('[Checkout] Confirmation email sent to customer');
-
-          // Send notification to seller/admin
-          await sendOrderNotificationToSeller(orderEmailData);
-          console.log('[Checkout] Notification email sent to seller');
         } catch (emailErr) {
-          // L'email échoue silencieusement — la commande est déjà sauvée
-          console.error('[Checkout] Email send failed (order is saved):', emailErr);
+          console.error('[Checkout] Customer email failed:', emailErr);
+        }
+
+        // Send notification to seller/admin (independent try-catch)
+        try {
+          console.log('[Checkout] Sending notification to seller...');
+          const sellerNotified = await sendOrderNotificationToSeller(orderEmailData);
+          console.log('[Checkout] Seller notification result:', sellerNotified);
+        } catch (sellerErr) {
+          console.error('[Checkout] Seller notification failed:', sellerErr);
         }
       }
 

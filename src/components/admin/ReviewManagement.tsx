@@ -47,9 +47,9 @@ const ReviewManagement: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (filter === 'pending') {
-        query = query.eq('approved', false);
+        query = query.eq('is_approved', false);
       } else if (filter === 'approved') {
-        query = query.eq('approved', true);
+        query = query.eq('is_approved', true);
       }
 
       const { data: allReviews, error } = await query;
@@ -73,7 +73,7 @@ const ReviewManagement: React.FC = () => {
     mutationFn: async (reviewId: string) => {
       const { error } = await supabase
         .from('reviews')
-        .update({ approved: true })
+        .update({ is_approved: true })
         .eq('id', reviewId);
       if (error) throw error;
     },
@@ -90,7 +90,7 @@ const ReviewManagement: React.FC = () => {
     mutationFn: async (reviewId: string) => {
       const { error } = await supabase
         .from('reviews')
-        .update({ approved: false })
+        .update({ is_approved: false })
         .eq('id', reviewId);
       if (error) throw error;
     },

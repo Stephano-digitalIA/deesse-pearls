@@ -213,26 +213,55 @@ export const formatOrderItemsForEmail = (
 };
 
 // Send notification to seller/admin when order is placed
+// Uses the same template as customer confirmation for reliability
 export const sendOrderNotificationToSeller = async (orderData: OrderEmailData): Promise<boolean> => {
   console.log('=== ENVOI NOTIFICATION VENDEUR ===');
+  console.log('[Seller Email] Destinataire:', SELLER_EMAIL);
+  console.log('[Seller Email] Commande:', orderData.order_number);
+
+  // Build seller-specific content
+  const sellerOrderItems = `CLIENT: ${orderData.customer_name}\nEMAIL: ${orderData.customer_email}\n\n--- ARTICLES ---\n${orderData.order_items}`;
+
+  const templateParams = {
+    to_email: SELLER_EMAIL,
+    order_number: orderData.order_number,
+    customer_name: 'Admin DeessePearls',
+    order_items: sellerOrderItems,
+    subtotal: orderData.subtotal,
+    shipping: orderData.shipping,
+    total: orderData.total,
+    shipping_address: orderData.shipping_address,
+    // Subject et titre pour le vendeur
+    email_subject: `NOUVELLE COMMANDE #${orderData.order_number}`,
+    email_title: `Nouvelle commande reçue!`,
+    // Labels
+    greeting: 'Notification',
+    order_confirmed_text: `Une nouvelle commande a été passée par ${orderData.customer_name} (${orderData.customer_email}).`,
+    summary_label: 'Détails de la commande',
+    subtotal_label: 'Sous-total',
+    shipping_label: 'Livraison',
+    total_label: 'Total',
+    shipping_address_label: 'Adresse de livraison',
+    thanks_text: 'Veuillez traiter cette commande rapidement.',
+    team_text: 'Système de notification automatique',
+  };
+
+  console.log('[Seller Email] Using TEMPLATE_ID:', TEMPLATE_ID);
+  console.log('[Seller Email] Params:', JSON.stringify(templateParams, null, 2));
 
   try {
+    // Use the same template as customer confirmation (TEMPLATE_ID) which works
     const response = await emailjs.send(
       SERVICE_ID,
-      ADMIN_TEMPLATE_ID,
-      {
-        to_email: SELLER_EMAIL,
-        subject: `Nouvelle commande #${orderData.order_number}`,
-        customer_name: orderData.customer_name || 'Client',
-        customer_email: orderData.customer_email,
-        message: `Nouvelle commande reçue!\n\nCommande: #${orderData.order_number}\nClient: ${orderData.customer_name}\nEmail: ${orderData.customer_email}\n\nArticles:\n${orderData.order_items}\n\nSous-total: ${orderData.subtotal}\nLivraison: ${orderData.shipping}\nTotal: ${orderData.total}\n\nAdresse de livraison:\n${orderData.shipping_address}`,
-      },
+      TEMPLATE_ID,  // Same template as customer - more reliable
+      templateParams,
       PUBLIC_KEY
     );
-    console.log('Notification vendeur envoyée!', response);
+    console.log('[Seller Email] SUCCESS - Response:', JSON.stringify(response));
     return true;
-  } catch (error) {
-    console.error('Erreur envoi notification vendeur:', error);
+  } catch (error: any) {
+    console.error('[Seller Email] ERREUR:', error);
+    console.error('[Seller Email] Error message:', error?.message || error?.text || 'Unknown error');
     return false;
   }
 };

@@ -16,9 +16,9 @@ export const useReviews = (productId: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('reviews')
-        .select('id, product_id, author_name, rating, comment, created_at')
+        .select('id, product_id, author_name, rating, comment, created_at, is_approved')
         .eq('product_id', productId)
-        .eq('approved', true)
+        .eq('is_approved', true)
         .order('created_at', { ascending: false });
 
       if (error) {
