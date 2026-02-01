@@ -92,9 +92,8 @@ const PayPalButtons: React.FC<{
         }, 15000);
 
         const script = document.createElement('script');
-        // disable-funding=card force l'utilisation du popup PayPal qui gère mieux les cartes
-        // L'utilisateur pourra toujours payer par carte via le popup PayPal
-        script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&intent=capture&components=buttons&disable-funding=card`;
+        // enable-funding=card ajoute un bouton dédié pour les paiements par carte
+        script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&intent=capture&components=buttons&enable-funding=card`;
         script.async = true;
         script.onload = () => {
           clearTimeout(timeout);
