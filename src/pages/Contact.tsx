@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { aboutContactTranslations } from '@/data/aboutContactTranslations';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 const Contact: React.FC = () => {
   const { t, language } = useLocale();
   const { user } = useAuth();
+  const { profile, isLoading: isProfileLoading } = useUserProfile();
   const pageT = aboutContactTranslations[language] || aboutContactTranslations.fr;
 
   const [formData, setFormData] = useState({
@@ -26,43 +28,53 @@ const Contact: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Pre-fill form with user profile data
+  // Track which fields have been prefilled to avoid overwriting user input
+  const prefilledRef = useRef({ firstName: false, lastName: false, email: false, phone: false });
+
+  // Pre-fill all fields when profile or user data becomes available
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!user) return;
+    console.log('[Contact] Prefill effect - profile:', profile, 'user:', user?.email, 'isProfileLoading:', isProfileLoading);
 
-      // First, use user metadata for instant display
-      const metadata = user.user_metadata || {};
-      const metaFirstName = metadata.first_name || metadata.given_name || metadata.name?.split(' ')[0] || '';
-      const metaLastName = metadata.last_name || metadata.family_name || metadata.name?.split(' ').slice(1).join(' ') || '';
-
-      setFormData(prev => ({
-        ...prev,
-        firstName: prev.firstName || metaFirstName,
-        lastName: prev.lastName || metaLastName,
-        email: prev.email || user.email || '',
-      }));
-
-      // Then, load full profile from Supabase
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, email, phone')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (profile) {
-        setFormData(prev => ({
-          ...prev,
-          firstName: profile.first_name || prev.firstName,
-          lastName: profile.last_name || prev.lastName,
-          email: profile.email || prev.email,
-          phone: profile.phone || prev.phone,
-        }));
+    // Pre-fill firstName
+    if (!prefilledRef.current.firstName) {
+      const firstName = profile?.firstName || user?.user_metadata?.first_name || '';
+      if (firstName) {
+        console.log('[Contact] Pre-filling firstName:', firstName);
+        setFormData(prev => ({ ...prev, firstName }));
+        prefilledRef.current.firstName = true;
       }
-    };
+    }
 
-    loadUserProfile();
-  }, [user]);
+    // Pre-fill lastName
+    if (!prefilledRef.current.lastName) {
+      const lastName = profile?.lastName || user?.user_metadata?.last_name || '';
+      if (lastName) {
+        console.log('[Contact] Pre-filling lastName:', lastName);
+        setFormData(prev => ({ ...prev, lastName }));
+        prefilledRef.current.lastName = true;
+      }
+    }
+
+    // Pre-fill email
+    if (!prefilledRef.current.email) {
+      const email = user?.email || '';
+      if (email) {
+        console.log('[Contact] Pre-filling email:', email);
+        setFormData(prev => ({ ...prev, email }));
+        prefilledRef.current.email = true;
+      }
+    }
+
+    // Pre-fill phone
+    if (!prefilledRef.current.phone) {
+      const phone = profile?.phone || '';
+      if (phone) {
+        console.log('[Contact] Pre-filling phone:', phone);
+        setFormData(prev => ({ ...prev, phone }));
+        prefilledRef.current.phone = true;
+      }
+    }
+  }, [profile, user, isProfileLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,20 +185,6 @@ const Contact: React.FC = () => {
                 </a>
               ))}
 
-              <div className="pt-6">
-                <h3 className="font-display text-xl mb-4">{t('followUs')}</h3>
-                <div className="flex gap-4">
-                  {['Facebook', 'Instagram', 'Pinterest'].map((social) => (
-                    <a
-                      key={social}
-                      href="#"
-                      className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center hover:bg-gold hover:text-deep-black hover:border-gold transition-colors"
-                    >
-                      {social[0]}
-                    </a>
-                  ))}
-                </div>
-              </div>
             </motion.div>
 
             {/* Contact Form */}

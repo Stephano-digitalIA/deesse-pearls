@@ -55,7 +55,7 @@ const translations: Record<Language, Record<string, string>> = {
     thousandsOfClients: 'Des Milliers de Clients Satisfaits',
     dreamJewelry: 'Nous Créons le Bijou de Vos Rêves',
     designer25Years: 'Créatrice, Designer depuis 25 ans',
-    languageTooltip: 'Avant de sélectionner votre langue, désactivez votre extension de traducteur s\'il y en a une.',
+    languageTooltip: 'L\'extension Chrome de traduction située dans la barre de navigation peut entraîner des incohérences ; dans ce cas, désactivez-la pour ce site.',
     filterBy: 'Filtrer par',
     size: 'Taille',
     quality: 'Qualité',
