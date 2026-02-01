@@ -71,7 +71,7 @@ const Index: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className="font-tsukimi font-medium text-pearl/90 text-xl md:text-2xl max-w-2xl mx-auto mt-[45px] mb-12 drop-shadow-md"
+            className="font-tsukimi font-medium text-pearl/90 text-xl md:text-2xl max-w-2xl mx-auto mt-[45px] mb-12 relative top-[200px] drop-shadow-md"
           >
             {t("heroSubtitle")}
           </motion.p>
