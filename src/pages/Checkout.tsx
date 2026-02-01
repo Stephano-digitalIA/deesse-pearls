@@ -175,8 +175,8 @@ const PayPalButtons: React.FC<{
               // Passer les détails au callback — la commande sera sauvée
               // dans Supabase et l'email envoyé seulement après succès DB.
               console.log('[PayPal] Calling onSuccessRef...');
-              onSuccessRef.current(details);
-              console.log('[PayPal] onSuccessRef called');
+              await onSuccessRef.current(details);
+              console.log('[PayPal] onSuccessRef completed');
             } catch (err: any) {
               console.error('[PayPal] Capture error:', err?.message || err);
               onErrorRef.current(err);
