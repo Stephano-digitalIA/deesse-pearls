@@ -91,26 +91,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     };
 
-    // Helper to nuke stale tokens from all storage
-    const nukeTokens = () => {
-      try { localStorage.clear(); } catch {}
-      try { sessionStorage.clear(); } catch {}
-      try { indexedDB.deleteDatabase('supabase'); } catch {}
+    // Helper to clear Supabase auth tokens (gentler approach - don't clear IndexedDB)
+    const clearSupabaseTokens = () => {
+      try {
+        // Only clear Supabase-specific items, not everything
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('supabase') || key.includes('sb-'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      } catch {}
     };
 
     // Catch auth errors globally (registered FIRST, before any Supabase call)
     const handleAuthError = (event: PromiseRejectionEvent) => {
       const error = event.reason;
       const msg = error?.message || '';
+      const errorName = error?.name || '';
+
+      // Ignore AbortError - these are expected during OAuth redirects
+      if (errorName === 'AbortError' || msg.includes('aborted')) {
+        console.log('[Auth] AbortError ignored (expected during OAuth):', msg);
+        return;
+      }
+
       if (
-        error?.name === 'AuthApiError' ||
+        errorName === 'AuthApiError' ||
         msg.includes('Refresh Token') ||
         msg.includes('refresh_token') ||
         msg.includes('Invalid Refresh Token')
       ) {
         console.warn('[Auth] Invalid token detected, cleaning up:', msg);
         event.preventDefault();
-        nukeTokens();
+        clearSupabaseTokens();
         supabase.auth.signOut().catch(() => {});
         clearAuthState();
       }
@@ -130,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error) {
           console.warn('[Auth] getSession error, cleaning up:', error.message);
-          nukeTokens();
+          clearSupabaseTokens();
           clearAuthState();
           return;
         }
@@ -145,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMounted) setIsLoading(false);
       } catch (e: any) {
         console.warn('[Auth] Init error, cleaning up:', e?.message);
-        nukeTokens();
+        clearSupabaseTokens();
         clearAuthState();
       }
     };
@@ -281,19 +297,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // CONNEXION GOOGLE (OAuth)
   // ============================================
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+    console.log('[Auth] Google OAuth - redirectTo:', redirectUrl);
+    console.log('[Auth] Google OAuth - origin:', window.location.origin);
 
-    if (error) {
-      toast.error(error.message);
-      return { error: new Error(error.message) };
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      console.log('[Auth] Google OAuth response - data:', data, 'error:', error);
+
+      if (error) {
+        console.error('[Auth] Google OAuth error:', error.message);
+        toast.error(error.message);
+        return { error: new Error(error.message) };
+      }
+
+      // If we get here without redirect, something is wrong
+      console.log('[Auth] Google OAuth initiated successfully, should redirect...');
+      return { error: null };
+    } catch (err: any) {
+      console.error('[Auth] Google OAuth exception:', err);
+      toast.error(err?.message || 'Erreur de connexion Google');
+      return { error: err };
     }
-
-    return { error: null };
   };
 
   const signUpWithGoogle = async () => {

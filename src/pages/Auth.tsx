@@ -185,41 +185,63 @@ const Auth: React.FC = () => {
 
   // Google Sign In - for existing users only
   const handleGoogleSignIn = async () => {
-    const result = await signInWithGoogle();
+    console.log('[Auth Page] handleGoogleSignIn called');
+    try {
+      const result = await signInWithGoogle();
+      console.log('[Auth Page] signInWithGoogle result:', result);
 
-    if (result.error) {
-      if (result.needsRegistration) {
-        // User not registered - switch to signup tab
-        setActiveTab('signup');
-        toast({
-          title: t('accountNotFound') || 'Compte non trouvé',
-          description: t('pleaseSignUp') || 'Veuillez créer un compte avec Google.',
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: t('error'),
-          description: `${result.error.message} (Google OAuth)`,
-          variant: 'destructive',
-        });
+      if (result.error) {
+        if (result.needsRegistration) {
+          // User not registered - switch to signup tab
+          setActiveTab('signup');
+          toast({
+            title: t('accountNotFound') || 'Compte non trouvé',
+            description: t('pleaseSignUp') || 'Veuillez créer un compte avec Google.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: t('error'),
+            description: `${result.error.message} (Google OAuth)`,
+            variant: 'destructive',
+          });
+        }
       }
+    } catch (err: any) {
+      console.error('[Auth Page] handleGoogleSignIn exception:', err);
+      toast({
+        title: t('error'),
+        description: err?.message || 'Erreur de connexion Google',
+        variant: 'destructive',
+      });
     }
   };
 
   // Google Sign Up - for new users
   const handleGoogleSignUp = async () => {
-    const { error } = await signUpWithGoogle();
+    console.log('[Auth Page] handleGoogleSignUp called');
+    try {
+      const { error } = await signUpWithGoogle();
+      console.log('[Auth Page] signUpWithGoogle result - error:', error);
 
-    if (error) {
+      if (error) {
+        toast({
+          title: t('error'),
+          description: `${error.message} (Google OAuth)`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: t('signupSuccess') || 'Inscription réussie',
+          description: t('accountCreated') || 'Votre compte a été créé avec succès.',
+        });
+      }
+    } catch (err: any) {
+      console.error('[Auth Page] handleGoogleSignUp exception:', err);
       toast({
         title: t('error'),
-        description: `${error.message} (Google OAuth)`,
+        description: err?.message || 'Erreur inscription Google',
         variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: t('signupSuccess') || 'Inscription réussie',
-        description: t('accountCreated') || 'Votre compte a été créé avec succès.',
       });
     }
   };
