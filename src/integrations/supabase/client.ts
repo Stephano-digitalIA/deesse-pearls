@@ -13,5 +13,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
   supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseAnonKey || '',
+  {
+    auth: {
+      // Disable lock to prevent AbortError during initialization
+      lock: 'no-op',
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+    global: {
+      headers: {
+        'x-client-info': 'deesse-pearls',
+      },
+    },
+  }
 );

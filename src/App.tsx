@@ -37,8 +37,20 @@ import PaymentCancelled from "./pages/PaymentCancelled";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1, // Only retry once
-      retryDelay: 1000, // 1 second delay
+      // Custom retry logic: retry more for AbortError (transient)
+      retry: (failureCount, error: any) => {
+        // Don't retry on 4xx errors (client errors)
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // Retry up to 3 times for AbortError (often transient during init)
+        if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+          return failureCount < 3;
+        }
+        // Default: retry once for other errors
+        return failureCount < 1;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * (attemptIndex + 1), 3000),
       staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false, // Don't refetch on window focus
     },
