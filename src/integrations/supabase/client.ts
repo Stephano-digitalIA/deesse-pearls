@@ -16,11 +16,14 @@ export const supabase = createClient(
   supabaseAnonKey || '',
   {
     auth: {
-      // Disable lock to prevent AbortError during initialization
-      lock: 'no-op',
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      // Custom lock function to prevent AbortError
+      lock: async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
+        // Execute function directly without locking mechanism
+        return await fn();
+      },
     },
     global: {
       headers: {
