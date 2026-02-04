@@ -13,7 +13,6 @@ import { toast } from 'sonner';
 import { ArrowLeft, CreditCard, Package, MapPin, Loader2, RefreshCw, Edit2 } from 'lucide-react';
 import { resolveImagePath } from '@/lib/utils';
 import ShippingAddressModal from '@/components/ShippingAddressModal';
-import { sendOrderConfirmationEmail, sendOrderNotificationToSeller } from '@/services/emailService';
 import { getCountryName, Language } from '@/data/shippingTranslations';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb';
@@ -390,39 +389,49 @@ const Checkout: React.FC = () => {
         console.error('[Checkout] Order items save error:', itemsError);
       }
 
-      // 3. Commande créée avec succès → envoyer l'email de confirmation
+      // 3. Commande créée avec succès → envoyer l'email de confirmation via Supabase Edge Function
       if (customerEmail) {
-        const orderItemsText = items
-          .map(item => `• ${item.name} (x${item.quantity}) - ${formatPrice(item.price * item.quantity)}`)
-          .join('\n');
-
-        const orderEmailData = {
-          order_number: orderNumber,
-          order_items: orderItemsText,
-          subtotal: formatPrice(subtotal),
-          shipping: formatPrice(shippingCost),
-          total: formatPrice(total),
-          customer_email: customerEmail,
-          customer_name: customerName,
-          shipping_address: formattedAddress,
-        };
-
-        // Send confirmation email to customer (independent try-catch)
         try {
-          console.log('[Checkout] Sending confirmation email to customer...');
-          await sendOrderConfirmationEmail(orderEmailData);
-          console.log('[Checkout] Confirmation email sent to customer');
+          console.log('[Checkout] Sending order confirmation via Supabase Edge Function...');
+
+          const orderDate = new Date().toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+
+          const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
+            body: {
+              customerEmail,
+              customerName,
+              orderNumber,
+              orderDate,
+              items: items.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: Math.round(item.price * 100), // Convert to cents for Resend
+                image: item.image,
+              })),
+              subtotal: Math.round(subtotal * 100),
+              shipping: Math.round(shippingCost * 100),
+              total: Math.round(total * 100),
+              shippingAddress: shippingAddress ? {
+                line1: shippingAddress.addressLine1,
+                line2: shippingAddress.addressLine2,
+                city: shippingAddress.city,
+                postal_code: shippingAddress.postalCode,
+                country: getCountryName(shippingAddress.country, language as Language),
+              } : undefined,
+            },
+          });
+
+          if (emailError) {
+            console.error('[Checkout] Email notification error:', emailError);
+          } else {
+            console.log('[Checkout] Order confirmation emails sent successfully');
+          }
         } catch (emailErr) {
-          console.error('[Checkout] Customer email failed:', emailErr);
-        }
-
-        // Send notification to seller/admin (independent try-catch)
-        try {
-          console.log('[Checkout] Sending notification to seller...');
-          const sellerNotified = await sendOrderNotificationToSeller(orderEmailData);
-          console.log('[Checkout] Seller notification result:', sellerNotified);
-        } catch (sellerErr) {
-          console.error('[Checkout] Seller notification failed:', sellerErr);
+          console.error('[Checkout] Failed to send email notifications:', emailErr);
         }
       }
 

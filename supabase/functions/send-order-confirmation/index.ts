@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -189,6 +190,74 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log("Email sent successfully:", emailResponse);
+
+    // Send notification to admin/seller
+    if (ADMIN_EMAIL) {
+      const adminEmailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Georgia, serif; background: #f5f5f0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #d4af37; padding: 30px; text-align: center; }
+            .header h1 { margin: 0; font-size: 24px; font-weight: normal; letter-spacing: 2px; }
+            .content { padding: 30px; }
+            .info { background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 15px 0; }
+            .info p { margin: 8px 0; color: #666; }
+            .info strong { color: #333; }
+            .items { background: #fff8e7; border-left: 4px solid #d4af37; padding: 15px; margin: 20px 0; }
+            .footer { text-align: center; padding: 20px; background: #f5f5f0; color: #888; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✨ NOUVELLE COMMANDE ✨</h1>
+            </div>
+            <div class="content">
+              <h2 style="color: #333; margin-top: 0;">Commande ${orderNumber}</h2>
+
+              <div class="info">
+                <p><strong>Client:</strong> ${customerName}</p>
+                <p><strong>Email:</strong> ${customerEmail}</p>
+                <p><strong>Date:</strong> ${orderDate}</p>
+              </div>
+
+              <div class="info">
+                <p><strong>Sous-total:</strong> ${formatPrice(subtotal)}</p>
+                <p><strong>Livraison:</strong> ${shipping === 0 ? 'Gratuite' : formatPrice(shipping)}</p>
+                <p><strong style="color: #d4af37; font-size: 18px;">Total:</strong> <strong style="color: #d4af37; font-size: 18px;">${formatPrice(total)}</strong></p>
+              </div>
+
+              <h3 style="color: #333;">Articles commandés</h3>
+              <div class="items">
+                ${items.map(item => `<p>• ${item.name} (x${item.quantity}) - ${formatPrice(item.price * item.quantity)}</p>`).join('')}
+              </div>
+
+              ${addressHtml}
+            </div>
+            <div class="footer">
+              <p>DeessePearls - Système de notification automatique</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      try {
+        const adminEmailResponse = await resend.emails.send({
+          from: "DeessePearls <onboarding@resend.dev>",
+          to: [ADMIN_EMAIL],
+          subject: `Nouvelle commande ${orderNumber} - ${customerName}`,
+          html: adminEmailHtml,
+        });
+        console.log("Admin notification sent:", adminEmailResponse);
+      } catch (adminError: any) {
+        console.error("Failed to send admin notification:", adminError);
+      }
+    }
 
     return new Response(JSON.stringify({ success: true, emailResponse }), {
       status: 200,

@@ -10,12 +10,6 @@ import { useLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { z } from 'zod';
-import emailjs from '@emailjs/browser';
-
-const SELLER_EMAIL = 'contact@tahititechdigital.com';
-const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_7pd565s';
-const EMAILJS_TEMPLATE_ID = 'template_7du5fsj';
-const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'XE4-1-JE4UAnYtFf4';
 
 interface ReviewFormProps {
   productId: string;
@@ -195,23 +189,36 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
 
       if (error) throw error;
 
-      // Send email notification to seller
+      // Send email notification using Supabase Edge Function
       try {
-        await emailjs.send(
-          EMAILJS_SERVICE_ID,
-          EMAILJS_TEMPLATE_ID,
-          {
-            to_email: SELLER_EMAIL,
-            subject: `Nouvel avis client - ${rating} étoiles`,
-            customer_name: name.trim(),
-            customer_email: email.trim(),
-            message: `Nouvel avis reçu:\n\nNom: ${name.trim()}\nEmail: ${email.trim()}\nNote: ${rating}/5 étoiles\n\nCommentaire:\n${comment.trim()}\n\nProduit ID: ${productId}`,
-          },
-          EMAILJS_PUBLIC_KEY
-        );
-        console.log('[Review] Email notification sent to seller');
+        // Fetch product details to get name and slug
+        const { data: product } = await supabase
+          .from('products')
+          .select('name, slug')
+          .eq('id', productId)
+          .single();
+
+        if (product) {
+          const { error: notifyError } = await supabase.functions.invoke('notify-review', {
+            body: {
+              productName: product.name,
+              productSlug: product.slug,
+              authorName: name.trim(),
+              authorEmail: email.trim(),
+              rating,
+              comment: comment.trim(),
+              language,
+            },
+          });
+
+          if (notifyError) {
+            console.error('[Review] Failed to send notification:', notifyError);
+          } else {
+            console.log('[Review] Email notifications sent successfully');
+          }
+        }
       } catch (emailError) {
-        console.error('[Review] Failed to send email to seller:', emailError);
+        console.error('[Review] Failed to send email notifications:', emailError);
       }
 
       toast.success(t('review.success'));
