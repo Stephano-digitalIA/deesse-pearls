@@ -212,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 0;">
                 ${t.trackingInfo}<br><br>
                 ${t.contactUs}
-                <a href="mailto:contact@tahititechdigital.com" style="color: #d4af37;">contact@tahititechdigital.com</a>
+                <a href="mailto:stahiti.sb@gmail.com" style="color: #d4af37;">stahiti.sb@gmail.com</a>
               </p>
             </div>
           </div>
@@ -373,7 +373,7 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="footer">
               <p><strong>DEESSE PEARLS</strong> - La Perle Noire de Tahiti</p>
               <p>© 2026 DEESSEPEARLS - <a href="https://deessepearls.com" style="color: #d4af37; text-decoration: none;">deessepearls.com</a></p>
-              <p style="margin-top: 8px;">Contact : <a href="mailto:contact@tahititechdigital.com" style="color: #d4af37;">contact@tahititechdigital.com</a></p>
+              <p style="margin-top: 8px;">Contact : <a href="mailto:stahiti.sb@gmail.com" style="color: #d4af37;">stahiti.sb@gmail.com</a></p>
             </div>
           </div>
         </body>

@@ -51,6 +51,12 @@ const CartDrawer: React.FC = () => {
     navigate('/auth');
   };
 
+  const handleContinueShopping = () => {
+    setIsCartOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/shop');
+  };
+
   return (
     <>
       <AnimatePresence>
@@ -94,7 +100,7 @@ const CartDrawer: React.FC = () => {
                     <ShoppingBag className="w-16 h-16 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-4">{t('emptyCart')}</p>
                     <Button
-                      onClick={() => setIsCartOpen(false)}
+                      onClick={handleContinueShopping}
                       variant="outline"
                       className="border-gold text-gold hover:bg-gold hover:text-deep-black"
                     >

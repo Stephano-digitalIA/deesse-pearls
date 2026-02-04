@@ -304,7 +304,7 @@ Pour configurer les notifications d'avis, ajoutez ces variables dans **Settings 
 
 | Variable | Valeur |
 |----------|--------|
-| `ADMIN_EMAIL` | contact@tahititechdigital.com |
+| `ADMIN_EMAIL` | stahiti.sb@gmail.com |
 | `RESEND_API_KEY` | Votre clé API Resend (obtenir sur [resend.com](https://resend.com)) |
 
 #### Étapes de configuration
@@ -314,7 +314,7 @@ Pour configurer les notifications d'avis, ajoutez ces variables dans **Settings 
 3. Dans Supabase, allez dans **Settings** → **Edge Functions**
 4. Cliquez sur **"Add secret"**
 5. Ajoutez `RESEND_API_KEY` avec votre clé
-6. Ajoutez `ADMIN_EMAIL` avec `contact@tahititechdigital.com`
+6. Ajoutez `ADMIN_EMAIL` avec `stahiti.sb@gmail.com`
 7. Cliquez sur **"Save"**
 
 Les notifications seront envoyées automatiquement dès qu'un avis est soumis.
