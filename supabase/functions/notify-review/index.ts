@@ -28,10 +28,10 @@ const translations = {
     yourRating: "Votre note",
     yourComment: "Votre commentaire",
     moderation: "Votre avis sera visible sur notre site après modération par notre équipe.",
-    questions: "Si vous avez des questions, n'hésitez pas à nous contacter.",
+    questions: "Si vous avez des questions, contactez-nous à contact@tahititechdigital.com",
     regards: "Cordialement,",
-    team: "L'équipe Perles Éternelles",
-    footer: "Perles Éternelles - L'élégance des perles de culture",
+    team: "L'équipe DEESSE PEARLS",
+    footer: "La Perle Noire de Tahiti",
   },
   en: {
     subject: "Thank you for your review!",
@@ -41,10 +41,10 @@ const translations = {
     yourRating: "Your rating",
     yourComment: "Your comment",
     moderation: "Your review will be visible on our website after moderation by our team.",
-    questions: "If you have any questions, feel free to contact us.",
+    questions: "If you have any questions, contact us at contact@tahititechdigital.com",
     regards: "Best regards,",
-    team: "The Perles Éternelles Team",
-    footer: "Perles Éternelles - The elegance of cultured pearls",
+    team: "The DEESSE PEARLS Team",
+    footer: "The Black Pearl of Tahiti",
   },
 };
 
@@ -113,7 +113,8 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="color: #666;">Cet avis est en attente de modération. Connectez-vous au tableau de bord admin pour l'approuver ou le rejeter.</p>
             </div>
             <div class="footer">
-              <p>Perles Éternelles - Système de notification automatique</p>
+              <p><strong>DEESSE PEARLS</strong> - La Perle Noire de Tahiti</p>
+              <p style="margin-top: 8px;">© 2026 DEESSEPEARLS - <a href="https://deessepearls.com" style="color: #d4af37; text-decoration: none;">deessepearls.com</a></p>
             </div>
           </div>
         </body>
@@ -127,9 +128,9 @@ const handler = async (req: Request): Promise<Response> => {
           Authorization: `Bearer ${RESEND_API_KEY}`,
         },
         body: JSON.stringify({
-          from: "Perles Éternelles <onboarding@resend.dev>",
+          from: "DEESSE PEARLS <onboarding@resend.dev>",
           to: [ADMIN_EMAIL],
-          subject: `Nouvel avis client - ${productName}`,
+          subject: `⭐ Nouvel avis client - ${productName}`,
           html: adminEmailHtml,
         }),
       });
@@ -176,7 +177,7 @@ const handler = async (req: Request): Promise<Response> => {
       <body>
         <div class="container">
           <div class="header">
-            <h1>PERLES ÉTERNELLES</h1>
+            <h1>DEESSE PEARLS</h1>
             <p>✨ ${t.footer} ✨</p>
           </div>
           <div class="content">
@@ -208,7 +209,8 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
           </div>
           <div class="footer">
-            <p>PERLES ÉTERNELLES</p>
+            <p>© 2026 DEESSEPEARLS - La Perle Noire de Tahiti</p>
+            <p style="margin-top: 8px;"><a href="https://deessepearls.com" style="color: #d4af37; text-decoration: none;">deessepearls.com</a></p>
           </div>
         </div>
       </body>
@@ -222,7 +224,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Perles Éternelles <onboarding@resend.dev>",
+        from: "DEESSE PEARLS <onboarding@resend.dev>",
         to: [authorEmail],
         subject: t.subject,
         html: customerEmailHtml,

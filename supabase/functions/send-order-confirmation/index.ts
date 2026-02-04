@@ -102,8 +102,9 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Header -->
           <div style="background-color: #1a1a1a; padding: 32px; text-align: center;">
             <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: normal; letter-spacing: 2px;">
-              PERLA D'ORO
+              DEESSE PEARLS
             </h1>
+            <p style="color: #999; margin: 8px 0 0 0; font-size: 14px;">La Perle Noire de Tahiti</p>
           </div>
 
           <!-- Content -->
@@ -164,8 +165,8 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
               <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 0;">
                 Vous recevrez un email de confirmation dès que votre commande sera expédiée.<br><br>
-                Pour toute question, n'hésitez pas à nous contacter à 
-                <a href="mailto:contact@perladoro.fr" style="color: #d4af37;">contact@perladoro.fr</a>
+                Pour toute question, n'hésitez pas à nous contacter à
+                <a href="mailto:contact@tahititechdigital.com" style="color: #d4af37;">contact@tahititechdigital.com</a>
               </p>
             </div>
           </div>
@@ -173,8 +174,8 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Footer -->
           <div style="background-color: #1a1a1a; padding: 24px; text-align: center;">
             <p style="color: #999; font-size: 12px; margin: 0;">
-              © 2024 Perla d'Oro - Bijoux en perles de luxe<br>
-              <a href="https://perladoro.fr" style="color: #d4af37; text-decoration: none;">perladoro.fr</a>
+              © 2026 DEESSEPEARLS - La Perle Noire de Tahiti<br>
+              <a href="https://deessepearls.com" style="color: #d4af37; text-decoration: none;">deessepearls.com</a>
             </p>
           </div>
         </div>
@@ -183,9 +184,9 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "Perla d'Oro <onboarding@resend.dev>",
+      from: "DEESSE PEARLS <onboarding@resend.dev>",
       to: [customerEmail],
-      subject: `Confirmation de commande ${orderNumber} - Perla d'Oro`,
+      subject: `Confirmation de commande ${orderNumber} - DEESSE PEARLS`,
       html: emailHtml,
     });
 
@@ -199,47 +200,132 @@ const handler = async (req: Request): Promise<Response> => {
         <head>
           <meta charset="utf-8">
           <style>
-            body { font-family: Georgia, serif; background: #f5f5f0; padding: 20px; }
-            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            body { font-family: Georgia, serif; background: #f5f5f0; padding: 20px; margin: 0; }
+            .container { max-width: 650px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
             .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #d4af37; padding: 30px; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; font-weight: normal; letter-spacing: 2px; }
+            .header h1 { margin: 0 0 8px 0; font-size: 26px; font-weight: normal; letter-spacing: 2px; }
+            .header p { margin: 0; color: #ccc; font-size: 14px; }
             .content { padding: 30px; }
-            .info { background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 15px 0; }
-            .info p { margin: 8px 0; color: #666; }
-            .info strong { color: #333; }
-            .items { background: #fff8e7; border-left: 4px solid #d4af37; padding: 15px; margin: 20px 0; }
-            .footer { text-align: center; padding: 20px; background: #f5f5f0; color: #888; font-size: 12px; }
+            .alert { background: #fff3cd; border-left: 4px solid #d4af37; padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+            .alert p { margin: 0; color: #856404; font-weight: 500; }
+            .section { margin: 25px 0; }
+            .section h3 { color: #1a1a1a; margin: 0 0 12px 0; font-size: 16px; border-bottom: 2px solid #d4af37; padding-bottom: 8px; }
+            .info-grid { display: grid; grid-template-columns: 140px 1fr; gap: 10px; }
+            .info-grid p { margin: 0; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+            .info-grid strong { color: #666; font-weight: 600; }
+            .info-grid span { color: #333; }
+            .items { background: #fff8e7; border-left: 4px solid #d4af37; padding: 15px; margin: 15px 0; border-radius: 4px; }
+            .items table { width: 100%; border-collapse: collapse; }
+            .items th { text-align: left; padding: 8px; background: #f5f5f0; font-weight: 600; color: #333; }
+            .items td { padding: 8px; border-bottom: 1px solid #f0f0f0; color: #666; }
+            .total-box { background: #1a1a1a; color: white; padding: 20px; border-radius: 6px; margin: 20px 0; }
+            .total-box p { margin: 8px 0; display: flex; justify-content: space-between; }
+            .total-box .grand-total { font-size: 20px; color: #d4af37; font-weight: bold; border-top: 2px solid #d4af37; padding-top: 12px; margin-top: 12px; }
+            .action-box { background: #e7f5ff; border: 2px solid #2196F3; padding: 20px; border-radius: 6px; margin: 20px 0; }
+            .action-box h4 { margin: 0 0 12px 0; color: #1976D2; }
+            .action-box ol { margin: 8px 0; padding-left: 20px; }
+            .action-box li { margin: 6px 0; color: #333; }
+            .footer { text-align: center; padding: 20px; background: #f5f5f0; color: #888; font-size: 12px; border-top: 3px solid #d4af37; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>✨ NOUVELLE COMMANDE ✨</h1>
+              <h1>🎉 NOUVELLE COMMANDE REÇUE</h1>
+              <p>Commande ${orderNumber}</p>
             </div>
             <div class="content">
-              <h2 style="color: #333; margin-top: 0;">Commande ${orderNumber}</h2>
 
-              <div class="info">
-                <p><strong>Client:</strong> ${customerName}</p>
-                <p><strong>Email:</strong> ${customerEmail}</p>
-                <p><strong>Date:</strong> ${orderDate}</p>
+              <div class="alert">
+                <p>⚡ Action requise : Préparer et expédier cette commande</p>
               </div>
 
-              <div class="info">
-                <p><strong>Sous-total:</strong> ${formatPrice(subtotal)}</p>
-                <p><strong>Livraison:</strong> ${shipping === 0 ? 'Gratuite' : formatPrice(shipping)}</p>
-                <p><strong style="color: #d4af37; font-size: 18px;">Total:</strong> <strong style="color: #d4af37; font-size: 18px;">${formatPrice(total)}</strong></p>
+              <!-- Informations Client -->
+              <div class="section">
+                <h3>📋 Informations Client</h3>
+                <div class="info-grid">
+                  <p><strong>Nom :</strong></p><p><span>${customerName}</span></p>
+                  <p><strong>Email :</strong></p><p><span><a href="mailto:${customerEmail}" style="color: #d4af37; text-decoration: none;">${customerEmail}</a></span></p>
+                  <p><strong>Date commande :</strong></p><p><span>${orderDate}</span></p>
+                  <p><strong>N° commande :</strong></p><p><span style="font-weight: 600; color: #d4af37;">${orderNumber}</span></p>
+                </div>
               </div>
 
-              <h3 style="color: #333;">Articles commandés</h3>
-              <div class="items">
-                ${items.map(item => `<p>• ${item.name} (x${item.quantity}) - ${formatPrice(item.price * item.quantity)}</p>`).join('')}
+              <!-- Adresse de Livraison -->
+              ${shippingAddress ? `
+                <div class="section">
+                  <h3>📍 Adresse de Livraison</h3>
+                  <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border-left: 4px solid #2196F3;">
+                    <p style="margin: 0; color: #333; line-height: 1.8;">
+                      <strong>${customerName}</strong><br>
+                      ${shippingAddress.line1 || ''}<br>
+                      ${shippingAddress.line2 ? shippingAddress.line2 + '<br>' : ''}
+                      ${shippingAddress.postal_code || ''} ${shippingAddress.city || ''}<br>
+                      ${shippingAddress.country || ''}
+                    </p>
+                  </div>
+                </div>
+              ` : ''}
+
+              <!-- Articles Commandés -->
+              <div class="section">
+                <h3>🛍️ Articles à Préparer</h3>
+                <div class="items">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Article</th>
+                        <th style="text-align: center;">Quantité</th>
+                        <th style="text-align: right;">Prix unitaire</th>
+                        <th style="text-align: right;">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${items.map(item => `
+                        <tr>
+                          <td><strong>${item.name}</strong></td>
+                          <td style="text-align: center;">${item.quantity}</td>
+                          <td style="text-align: right;">${formatPrice(item.price)}</td>
+                          <td style="text-align: right;"><strong>${formatPrice(item.price * item.quantity)}</strong></td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              ${addressHtml}
+              <!-- Total de la Commande -->
+              <div class="total-box">
+                <p><span>Sous-total :</span><span>${formatPrice(subtotal)}</span></p>
+                <p><span>Frais de livraison :</span><span>${shipping === 0 ? 'GRATUIT' : formatPrice(shipping)}</span></p>
+                <p class="grand-total"><span>TOTAL PAYÉ :</span><span>${formatPrice(total)}</span></p>
+              </div>
+
+              <!-- Actions à Effectuer -->
+              <div class="action-box">
+                <h4>✅ Prochaines Étapes</h4>
+                <ol>
+                  <li>Vérifier le paiement dans votre compte PayPal</li>
+                  <li>Préparer les articles commandés</li>
+                  <li>Emballer soigneusement avec certificat d'authenticité</li>
+                  <li>Expédier sous 48h ouvrées</li>
+                  <li>Envoyer le numéro de suivi au client par email</li>
+                </ol>
+              </div>
+
+              <!-- Note Importante -->
+              <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107; margin-top: 20px;">
+                <p style="margin: 0; color: #856404;">
+                  <strong>💡 Note :</strong> Le client a déjà reçu un email de confirmation.
+                  Assurez-vous de traiter cette commande dans les meilleurs délais.
+                </p>
+              </div>
+
             </div>
             <div class="footer">
-              <p>DeessePearls - Système de notification automatique</p>
+              <p><strong>DEESSE PEARLS</strong> - La Perle Noire de Tahiti</p>
+              <p>© 2026 DEESSEPEARLS - <a href="https://deessepearls.com" style="color: #d4af37; text-decoration: none;">deessepearls.com</a></p>
+              <p style="margin-top: 8px;">Contact : <a href="mailto:contact@tahititechdigital.com" style="color: #d4af37;">contact@tahititechdigital.com</a></p>
             </div>
           </div>
         </body>
@@ -248,9 +334,9 @@ const handler = async (req: Request): Promise<Response> => {
 
       try {
         const adminEmailResponse = await resend.emails.send({
-          from: "DeessePearls <onboarding@resend.dev>",
+          from: "DEESSE PEARLS <onboarding@resend.dev>",
           to: [ADMIN_EMAIL],
-          subject: `Nouvelle commande ${orderNumber} - ${customerName}`,
+          subject: `🎉 Nouvelle commande ${orderNumber} - ${customerName}`,
           html: adminEmailHtml,
         });
         console.log("Admin notification sent:", adminEmailResponse);

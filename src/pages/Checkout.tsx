@@ -464,6 +464,8 @@ const Checkout: React.FC = () => {
   const handleAddressUpdated = async () => {
     setShowAddressModal(false);
     await refreshProfile();
+    // Scroll to top to display checkout page header
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ============================================
