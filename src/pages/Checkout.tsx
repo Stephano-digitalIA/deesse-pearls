@@ -371,7 +371,20 @@ const Checkout: React.FC = () => {
       console.log('[Checkout] Order saved successfully:', savedOrder.id);
 
       // 2. Sauvegarder les items de la commande
-      const orderItems = items.map((item) => ({
+      // Grouper les items par product_id pour éviter les duplications
+      const groupedItems = items.reduce((acc, item) => {
+        const existing = acc.find(i => i.id === item.id);
+        if (existing) {
+          // Si le produit existe déjà, ajouter la quantité
+          existing.quantity += item.quantity;
+        } else {
+          // Sinon, ajouter le produit
+          acc.push({ ...item });
+        }
+        return acc;
+      }, [] as typeof items);
+
+      const orderItems = groupedItems.map((item) => ({
         order_id: savedOrder.id,
         product_id: item.id,
         product_name: item.name,
