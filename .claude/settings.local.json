@@ -8,7 +8,9 @@
       "Bash(git commit:*)",
       "Bash(where:*)",
       "Bash(npm install:*)",
-      "Bash(npx supabase@latest login)"
+      "Bash(npx supabase@latest login)",
+      "Bash(git push:*)",
+      "Bash(npx supabase:*)"
     ]
   }
 }

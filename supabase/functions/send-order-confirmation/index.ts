@@ -25,6 +25,7 @@ interface OrderConfirmationRequest {
   subtotal: number;
   shipping: number;
   total: number;
+  language?: string;
   shippingAddress?: {
     line1?: string;
     line2?: string;
@@ -33,6 +34,47 @@ interface OrderConfirmationRequest {
     country?: string;
   };
 }
+
+const translations = {
+  fr: {
+    subject: "Confirmation de commande",
+    title: "Merci pour votre commande !",
+    greeting: "Bonjour",
+    intro: "Nous avons bien reçu votre commande et nous vous en remercions. Voici le récapitulatif de votre achat.",
+    orderNumber: "Numéro de commande",
+    date: "Date",
+    article: "Article",
+    quantity: "Qté",
+    price: "Prix",
+    subtotal: "Sous-total",
+    shipping: "Livraison",
+    free: "Gratuite",
+    total: "Total",
+    shippingAddress: "Adresse de livraison",
+    trackingInfo: "Vous recevrez un email de confirmation dès que votre commande sera expédiée.",
+    contactUs: "Pour toute question, n'hésitez pas à nous contacter à",
+    footer: "La Perle Noire de Tahiti",
+  },
+  en: {
+    subject: "Order Confirmation",
+    title: "Thank you for your order!",
+    greeting: "Hello",
+    intro: "We have received your order and thank you for your purchase. Here is a summary of your order.",
+    orderNumber: "Order Number",
+    date: "Date",
+    article: "Item",
+    quantity: "Qty",
+    price: "Price",
+    subtotal: "Subtotal",
+    shipping: "Shipping",
+    free: "Free",
+    total: "Total",
+    shippingAddress: "Shipping Address",
+    trackingInfo: "You will receive a confirmation email once your order has been shipped.",
+    contactUs: "If you have any questions, please contact us at",
+    footer: "The Black Pearl of Tahiti",
+  },
+};
 
 const handler = async (req: Request): Promise<Response> => {
   console.log("send-order-confirmation function called");
@@ -51,14 +93,19 @@ const handler = async (req: Request): Promise<Response> => {
       subtotal,
       shipping,
       total,
+      language = 'fr',
       shippingAddress,
     }: OrderConfirmationRequest = await req.json();
 
     console.log("Sending order confirmation to:", customerEmail);
     console.log("Order number:", orderNumber);
+    console.log("Language:", language);
+
+    const t = translations[language as keyof typeof translations] || translations.fr;
 
     const formatPrice = (price: number) => {
-      return new Intl.NumberFormat('fr-FR', {
+      const locale = language === 'en' ? 'en-US' : 'fr-FR';
+      return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: 'EUR'
       }).format(price / 100);
@@ -80,7 +127,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const addressHtml = shippingAddress ? `
       <div style="margin-top: 24px; padding: 16px; background-color: #f9f9f9; border-radius: 8px;">
-        <h3 style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 16px;">Adresse de livraison</h3>
+        <h3 style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 16px;">${t.shippingAddress}</h3>
         <p style="margin: 0; color: #666; line-height: 1.6;">
           ${shippingAddress.line1 || ''}<br>
           ${shippingAddress.line2 ? shippingAddress.line2 + '<br>' : ''}
@@ -104,26 +151,25 @@ const handler = async (req: Request): Promise<Response> => {
             <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: normal; letter-spacing: 2px;">
               DEESSE PEARLS
             </h1>
-            <p style="color: #999; margin: 8px 0 0 0; font-size: 14px;">La Perle Noire de Tahiti</p>
+            <p style="color: #999; margin: 8px 0 0 0; font-size: 14px;">${t.footer}</p>
           </div>
 
           <!-- Content -->
           <div style="padding: 32px;">
             <h2 style="color: #1a1a1a; font-size: 24px; font-weight: normal; margin: 0 0 24px 0;">
-              Merci pour votre commande !
+              ${t.title}
             </h2>
-            
+
             <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-              Bonjour ${customerName},<br><br>
-              Nous avons bien reçu votre commande et nous vous en remercions. 
-              Voici le récapitulatif de votre achat.
+              ${t.greeting} ${customerName},<br><br>
+              ${t.intro}
             </p>
 
             <!-- Order Info -->
             <div style="background-color: #f9f9f9; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
               <p style="margin: 0; color: #666;">
-                <strong style="color: #1a1a1a;">Numéro de commande :</strong> ${orderNumber}<br>
-                <strong style="color: #1a1a1a;">Date :</strong> ${orderDate}
+                <strong style="color: #1a1a1a;">${t.orderNumber} :</strong> ${orderNumber}<br>
+                <strong style="color: #1a1a1a;">${t.date} :</strong> ${orderDate}
               </p>
             </div>
 
@@ -131,9 +177,9 @@ const handler = async (req: Request): Promise<Response> => {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
               <thead>
                 <tr style="background-color: #1a1a1a;">
-                  <th style="padding: 12px; text-align: left; color: #d4af37; font-weight: normal;">Article</th>
-                  <th style="padding: 12px; text-align: center; color: #d4af37; font-weight: normal;">Qté</th>
-                  <th style="padding: 12px; text-align: right; color: #d4af37; font-weight: normal;">Prix</th>
+                  <th style="padding: 12px; text-align: left; color: #d4af37; font-weight: normal;">${t.article}</th>
+                  <th style="padding: 12px; text-align: center; color: #d4af37; font-weight: normal;">${t.quantity}</th>
+                  <th style="padding: 12px; text-align: right; color: #d4af37; font-weight: normal;">${t.price}</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,15 +191,15 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="border-top: 2px solid #1a1a1a; padding-top: 16px;">
               <table style="width: 100%;">
                 <tr>
-                  <td style="padding: 8px 0; color: #666;">Sous-total</td>
+                  <td style="padding: 8px 0; color: #666;">${t.subtotal}</td>
                   <td style="padding: 8px 0; text-align: right; color: #666;">${formatPrice(subtotal)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #666;">Livraison</td>
-                  <td style="padding: 8px 0; text-align: right; color: #666;">${shipping === 0 ? 'Gratuite' : formatPrice(shipping)}</td>
+                  <td style="padding: 8px 0; color: #666;">${t.shipping}</td>
+                  <td style="padding: 8px 0; text-align: right; color: #666;">${shipping === 0 ? t.free : formatPrice(shipping)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 12px 0; color: #1a1a1a; font-size: 18px; font-weight: bold;">Total</td>
+                  <td style="padding: 12px 0; color: #1a1a1a; font-size: 18px; font-weight: bold;">${t.total}</td>
                   <td style="padding: 12px 0; text-align: right; color: #d4af37; font-size: 18px; font-weight: bold;">${formatPrice(total)}</td>
                 </tr>
               </table>
@@ -164,8 +210,8 @@ const handler = async (req: Request): Promise<Response> => {
             <!-- Footer Message -->
             <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
               <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 0;">
-                Vous recevrez un email de confirmation dès que votre commande sera expédiée.<br><br>
-                Pour toute question, n'hésitez pas à nous contacter à
+                ${t.trackingInfo}<br><br>
+                ${t.contactUs}
                 <a href="mailto:contact@tahititechdigital.com" style="color: #d4af37;">contact@tahititechdigital.com</a>
               </p>
             </div>
@@ -174,7 +220,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Footer -->
           <div style="background-color: #1a1a1a; padding: 24px; text-align: center;">
             <p style="color: #999; font-size: 12px; margin: 0;">
-              © 2026 DEESSEPEARLS - La Perle Noire de Tahiti<br>
+              © 2026 DEESSEPEARLS - ${t.footer}<br>
               <a href="https://deessepearls.com" style="color: #d4af37; text-decoration: none;">deessepearls.com</a>
             </p>
           </div>
@@ -186,7 +232,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "DEESSE PEARLS <onboarding@resend.dev>",
       to: [customerEmail],
-      subject: `Confirmation de commande ${orderNumber} - DEESSE PEARLS`,
+      subject: `${t.subject} ${orderNumber} - DEESSE PEARLS`,
       html: emailHtml,
     });
 

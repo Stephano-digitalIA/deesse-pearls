@@ -405,6 +405,7 @@ const Checkout: React.FC = () => {
               customerName,
               orderNumber,
               orderDate,
+              language,
               items: items.map(item => ({
                 name: item.name,
                 quantity: item.quantity,
