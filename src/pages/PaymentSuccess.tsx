@@ -49,6 +49,11 @@ const PaymentSuccess: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   // Clear cart only once on mount (not on clearCart identity change)
   const hasCleared = useRef(false);
   useEffect(() => {

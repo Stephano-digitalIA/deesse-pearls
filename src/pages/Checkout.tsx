@@ -438,6 +438,10 @@ const Checkout: React.FC = () => {
       // 4. Succès complet → vider le panier et rediriger
       console.log('[Checkout] Clearing cart and redirecting...');
       await clearCart();
+
+      // Scroll to top before navigation
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       // Small delay to ensure state is fully updated before navigation
       const redirectUrl = `/payment-success?order_id=${savedOrder.id}&order_number=${orderNumber}`;
       console.log('[Checkout] Navigating to:', redirectUrl);
