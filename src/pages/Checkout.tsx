@@ -389,17 +389,16 @@ const Checkout: React.FC = () => {
         console.error('[Checkout] Order items save error:', itemsError);
       }
 
-      // 3. Commande créée avec succès → envoyer l'email de confirmation via Supabase Edge Function
-      if (customerEmail) {
+      // 3. Envoyer l'email de confirmation (sans attendre la réponse)
+      const emailPromise = customerEmail ? (async () => {
+        const orderDate = new Date().toLocaleDateString('fr-FR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+
         try {
-          console.log('[Checkout] Sending order confirmation via Supabase Edge Function...');
-
-          const orderDate = new Date().toLocaleDateString('fr-FR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          });
-
+          console.log('[Checkout] Sending order confirmation emails...');
           const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
             body: {
               customerEmail,
@@ -409,7 +408,7 @@ const Checkout: React.FC = () => {
               items: items.map(item => ({
                 name: item.name,
                 quantity: item.quantity,
-                price: Math.round(item.price * 100), // Convert to cents for Resend
+                price: Math.round(item.price * 100),
                 image: item.image,
               })),
               subtotal: Math.round(subtotal * 100),
@@ -433,19 +432,26 @@ const Checkout: React.FC = () => {
         } catch (emailErr) {
           console.error('[Checkout] Failed to send email notifications:', emailErr);
         }
-      }
+      })() : Promise.resolve();
 
-      // 4. Succès complet → vider le panier et rediriger
+      // 4. Vider le panier et rediriger rapidement
       console.log('[Checkout] Clearing cart and redirecting...');
       await clearCart();
 
       // Scroll to top before navigation
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
 
-      // Navigate immediately to payment success page
+      // Navigate to payment success page (small delay to ensure email request is sent)
       const redirectUrl = `/payment-success?order_id=${savedOrder.id}&order_number=${orderNumber}`;
       console.log('[Checkout] Navigating to:', redirectUrl);
       toast.success(t('paymentSuccessToast'));
+
+      // Wait 300ms to ensure email request has been initiated before navigation
+      await Promise.race([
+        emailPromise,
+        new Promise(resolve => setTimeout(resolve, 300))
+      ]);
+
       navigate(redirectUrl);
     } catch (error) {
       console.error('[Checkout] Order creation error:', error);
