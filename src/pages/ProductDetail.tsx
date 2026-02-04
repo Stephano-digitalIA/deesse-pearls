@@ -52,6 +52,11 @@ const ProductDetail: React.FC = () => {
   const [selectedDiameter, setSelectedDiameter] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
 
+  // Scroll to top when product page loads or slug changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [slug]);
+
   const handleReviewSubmitted = () => {
     queryClient.invalidateQueries({ queryKey: ["reviews", product?.id] });
   };

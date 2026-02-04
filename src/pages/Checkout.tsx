@@ -442,13 +442,11 @@ const Checkout: React.FC = () => {
       // Scroll to top before navigation
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Small delay to ensure state is fully updated before navigation
+      // Navigate immediately to payment success page
       const redirectUrl = `/payment-success?order_id=${savedOrder.id}&order_number=${orderNumber}`;
       console.log('[Checkout] Navigating to:', redirectUrl);
-      setTimeout(() => {
-        navigate(redirectUrl);
-      }, 100);
       toast.success(t('paymentSuccessToast'));
+      navigate(redirectUrl);
     } catch (error) {
       console.error('[Checkout] Order creation error:', error);
       toast.error(t('orderCreationError'));
