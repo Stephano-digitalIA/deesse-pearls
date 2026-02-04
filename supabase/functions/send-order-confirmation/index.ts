@@ -239,7 +239,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Email sent successfully:", emailResponse);
 
     // Send notification to admin/seller
+    console.log("[send-order-confirmation] ADMIN_EMAIL value:", ADMIN_EMAIL ? "configured" : "NOT configured");
     if (ADMIN_EMAIL) {
+      console.log("[send-order-confirmation] Preparing admin email for:", ADMIN_EMAIL);
       const adminEmailHtml = `
         <!DOCTYPE html>
         <html>
@@ -379,16 +381,24 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       try {
+        console.log("[send-order-confirmation] Sending admin email to:", ADMIN_EMAIL);
         const adminEmailResponse = await resend.emails.send({
           from: "DEESSE PEARLS <onboarding@resend.dev>",
           to: [ADMIN_EMAIL],
           subject: `🎉 Nouvelle commande ${orderNumber} - ${customerName}`,
           html: adminEmailHtml,
         });
-        console.log("Admin notification sent:", adminEmailResponse);
+        console.log("[send-order-confirmation] ✅ Admin notification sent successfully:", adminEmailResponse);
       } catch (adminError: any) {
-        console.error("Failed to send admin notification:", adminError);
+        console.error("[send-order-confirmation] ❌ Failed to send admin notification:", adminError);
+        console.error("[send-order-confirmation] Admin error details:", {
+          message: adminError.message,
+          code: adminError.code,
+          statusCode: adminError.statusCode,
+        });
       }
+    } else {
+      console.warn("[send-order-confirmation] ⚠️ ADMIN_EMAIL not configured, skipping admin notification");
     }
 
     return new Response(JSON.stringify({ success: true, emailResponse }), {
