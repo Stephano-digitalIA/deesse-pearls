@@ -7,7 +7,7 @@ export const COMPLETE_COUNTRIES = {
   PF: { fr: 'Polynésie française', en: 'French Polynesia' },
   NC: { fr: 'Nouvelle-Calédonie', en: 'New Caledonia' },
   WF: { fr: 'Wallis-et-Futuna', en: 'Wallis and Futuna' },
-  RE: { fr: 'La Réunion', en: 'Réunion' },
+  RE: { fr: 'La Réunion (Ile)', en: 'Réunion' },
   GP: { fr: 'Guadeloupe', en: 'Guadeloupe' },
   MQ: { fr: 'Martinique', en: 'Martinique' },
   BE: { fr: 'Belgique', en: 'Belgium' },
