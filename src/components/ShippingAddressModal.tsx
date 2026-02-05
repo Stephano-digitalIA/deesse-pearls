@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Loader2, User, Mail, Phone, Home, Building, MapPinned } from 'lucide-react';
+import { X, MapPin, Loader2, User, Mail, Phone, Home, Building, MapPinned, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useUserProfile, ShippingAddress } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { shippingTranslations, getCountriesWithPriority, Language, normalizeCountryToCode, getCountryName, PRIORITY_COUNTRY_CODES } from '@/data/shippingTranslations';
 
 interface ShippingAddressModalProps {
@@ -28,6 +30,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
   const { language } = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [openCountrySelect, setOpenCountrySelect] = useState(false);
 
   // Get translations for current language
   const ts = shippingTranslations[language as Language] || shippingTranslations.fr;
@@ -349,27 +352,54 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
                 {/* Pays */}
                 <div className="space-y-2">
                   <Label htmlFor="country">{ts.country} *</Label>
-                  <Select
-                    value={formData.country}
-                    onValueChange={(value) => handleChange('country', value)}
-                  >
-                    <SelectTrigger className={errors.country ? 'border-destructive' : ''}>
-                      <SelectValue placeholder={ts.selectCountry}>
-                        {formData.country ? getCountryName(formData.country, language as Language) : ts.selectCountry}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((c, index) => (
-                        <SelectItem
-                          key={c.code}
-                          value={c.code}
-                          className={c.isPriority && index === PRIORITY_COUNTRY_CODES.length - 1 ? 'border-b border-border mb-1' : ''}
-                        >
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openCountrySelect}
+                        className={cn(
+                          "w-full justify-between",
+                          errors.country && "border-destructive",
+                          !formData.country && "text-muted-foreground"
+                        )}
+                      >
+                        {formData.country
+                          ? getCountryName(formData.country, language as Language)
+                          : ts.selectCountry}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder={ts.selectCountry} />
+                        <CommandList>
+                          <CommandEmpty>Aucun pays trouvé.</CommandEmpty>
+                          <CommandGroup>
+                            {countries.map((c, index) => (
+                              <CommandItem
+                                key={c.code}
+                                value={`${c.code}|${c.name}`}
+                                onSelect={() => {
+                                  handleChange('country', c.code);
+                                  setOpenCountrySelect(false);
+                                }}
+                                className={c.isPriority && index === PRIORITY_COUNTRY_CODES.length - 1 ? 'border-b border-border mb-1' : ''}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.country === c.code ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {c.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {errors.country && (
                     <p className="text-xs text-destructive">{errors.country}</p>
                   )}
