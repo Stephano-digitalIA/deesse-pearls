@@ -11,6 +11,20 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Custom storage using sessionStorage instead of localStorage
+// This ensures users are logged out when they close the browser/tab
+const sessionOnlyStorage = {
+  getItem: (key: string) => {
+    return sessionStorage.getItem(key);
+  },
+  setItem: (key: string, value: string) => {
+    sessionStorage.setItem(key, value);
+  },
+  removeItem: (key: string) => {
+    sessionStorage.removeItem(key);
+  },
+};
+
 export const supabase = createClient(
   supabaseUrl || '',
   supabaseAnonKey || '',
@@ -19,6 +33,7 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      storage: sessionOnlyStorage,
       // Custom lock function to prevent AbortError
       lock: async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
         // Execute function directly without locking mechanism

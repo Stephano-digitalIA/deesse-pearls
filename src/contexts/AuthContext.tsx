@@ -91,18 +91,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     };
 
-    // Helper to clear Supabase auth tokens (gentler approach - don't clear IndexedDB)
+    // Helper to clear Supabase auth tokens from sessionStorage
     const clearSupabaseTokens = () => {
       try {
-        // Only clear Supabase-specific items, not everything
+        // Clear Supabase-specific items from sessionStorage
         const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
           if (key && (key.includes('supabase') || key.includes('sb-'))) {
             keysToRemove.push(key);
           }
         }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
+        keysToRemove.forEach(key => sessionStorage.removeItem(key));
       } catch {}
     };
 
