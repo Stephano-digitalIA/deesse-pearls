@@ -3,14 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Mail, ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const Auth: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -24,6 +32,7 @@ const Auth: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
 
   const { signIn, signUp, resetPassword, signInWithGoogle, signUpWithGoogle, user, session, isLoading } = useAuth();
   const { t } = useLocale();
@@ -136,11 +145,23 @@ const Auth: React.FC = () => {
         });
       }
     } else {
-      toast({
-        title: t('signupSuccess'),
-        description: t('accountCreated'),
-      });
-      navigate('/account');
+      // Notify admin of new signup (fire and forget, don't block user experience)
+      if (authResult.user) {
+        supabase.functions.invoke('notify-new-signup', {
+          body: {
+            firstName,
+            lastName,
+            email,
+            userId: authResult.user.id,
+          },
+        }).catch((error) => {
+          console.error('[Auth] Failed to notify admin:', error);
+          // Don't show error to user, this is a background task
+        });
+      }
+
+      // Show confirmation dialog instead of immediate navigation
+      setShowConfirmationDialog(true);
     }
   };
 
@@ -594,6 +615,62 @@ const Auth: React.FC = () => {
           <a href="/privacy" className="text-gold hover:underline">{t('privacyPolicy')}</a>.
         </p>
       </motion.div>
+
+      {/* Email Confirmation Dialog */}
+      <AlertDialog open={showConfirmationDialog} onOpenChange={(open) => {
+        setShowConfirmationDialog(open);
+        if (!open) navigate('/account');
+      }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center">
+                <Mail className="w-8 h-8 text-gold" />
+              </div>
+            </div>
+            <AlertDialogTitle className="text-center text-2xl">
+              {t('signupSuccess')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 text-center">
+              <p className="text-base">
+                {t('confirmationEmailSent')}
+              </p>
+
+              <div className="bg-gold/5 rounded-lg p-4 space-y-3 text-left">
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground mb-1">{t('checkYourEmail')}</p>
+                    <p className="text-muted-foreground">{t('checkYourEmailDesc')}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground mb-1">{t('securityNote')}</p>
+                    <p className="text-muted-foreground">{t('securityNoteDesc')}</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {t('emailSentBy')} <span className="font-semibold text-gold">DEESSE PEARLS</span> {t('viaSupabase')}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <Button
+            onClick={() => {
+              setShowConfirmationDialog(false);
+              navigate('/account');
+            }}
+            className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold mt-4"
+          >
+            {t('understood')}
+          </Button>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
