@@ -125,43 +125,61 @@ const Auth: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    const authResult = await signUp(email, password, firstName, lastName);
-    setIsSubmitting(false);
 
-    if (authResult.error) {
-      if (authResult.alreadyExists) {
-        // User already exists - redirect to login tab
-        setActiveTab('login');
-        toast({
-          title: t('emailAlreadyUsed') || 'Email déjà utilisé',
-          description: t('accountExistsLogin') || 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
-          variant: "destructive",
-        });
-      } else {
+    try {
+      // Call initiate-signup Edge Function instead of creating account directly
+      const { data, error } = await supabase.functions.invoke('initiate-signup', {
+        body: {
+          email,
+          password,
+          firstName,
+          lastName,
+        },
+      });
+
+      setIsSubmitting(false);
+
+      if (error) {
+        console.error('[Auth] Initiate signup error:', error);
         toast({
           title: t('signupError'),
-          description: authResult.error.message,
+          description: error.message || 'Erreur lors de l\'inscription',
           variant: "destructive",
         });
-      }
-    } else {
-      // Notify admin of new signup (fire and forget, don't block user experience)
-      if (authResult.user) {
-        supabase.functions.invoke('notify-new-signup', {
-          body: {
-            firstName,
-            lastName,
-            email,
-            userId: authResult.user.id,
-          },
-        }).catch((error) => {
-          console.error('[Auth] Failed to notify admin:', error);
-          // Don't show error to user, this is a background task
-        });
+        return;
       }
 
-      // Show confirmation dialog instead of immediate navigation
+      if (data?.error) {
+        // Check if user already exists
+        if (data.error.includes('already exists') || data.error.includes('déjà')) {
+          setActiveTab('login');
+          toast({
+            title: t('emailAlreadyUsed') || 'Email déjà utilisé',
+            description: t('accountExistsLogin') || 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: t('signupError'),
+            description: data.error,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      // Success - show confirmation dialog
+      console.log('[Auth] Signup initiated successfully');
       setShowConfirmationDialog(true);
+
+    } catch (error: any) {
+      setIsSubmitting(false);
+      console.error('[Auth] Exception during signup:', error);
+      toast({
+        title: t('signupError'),
+        description: error.message || 'Erreur lors de l\'inscription',
+        variant: "destructive",
+      });
     }
   };
 
@@ -617,10 +635,7 @@ const Auth: React.FC = () => {
       </motion.div>
 
       {/* Email Confirmation Dialog */}
-      <AlertDialog open={showConfirmationDialog} onOpenChange={(open) => {
-        setShowConfirmationDialog(open);
-        if (!open) navigate('/account');
-      }}>
+      <AlertDialog open={showConfirmationDialog} onOpenChange={setShowConfirmationDialog}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center justify-center mb-4">
@@ -629,11 +644,11 @@ const Auth: React.FC = () => {
               </div>
             </div>
             <AlertDialogTitle className="text-center text-2xl">
-              {t('signupSuccess')}
+              {t('confirmationEmailSent')}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4 text-center">
               <p className="text-base">
-                {t('confirmationEmailSent')}
+                Un email de confirmation vient de vous être envoyé à <strong>{email}</strong>.
               </p>
 
               <div className="bg-gold/5 rounded-lg p-4 space-y-3 text-left">
@@ -661,10 +676,7 @@ const Auth: React.FC = () => {
           </AlertDialogHeader>
 
           <Button
-            onClick={() => {
-              setShowConfirmationDialog(false);
-              navigate('/account');
-            }}
+            onClick={() => setShowConfirmationDialog(false)}
             className="w-full bg-gold hover:bg-gold-dark text-deep-black font-semibold mt-4"
           >
             {t('understood')}
