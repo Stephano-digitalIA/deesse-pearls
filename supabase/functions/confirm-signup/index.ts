@@ -174,7 +174,7 @@ const handler = async (req: Request): Promise<Response> => {
         `;
 
         await resend.emails.send({
-          from: 'DEESSE PEARLS <onboarding@resend.dev>',
+          from: 'DEESSE PEARLS <noreply@deessepearls.com>',
           to: ADMIN_EMAIL,
           subject: `✅ Inscription confirmée: ${pendingSignup.first_name} ${pendingSignup.last_name}`,
           html: adminEmailHtml,

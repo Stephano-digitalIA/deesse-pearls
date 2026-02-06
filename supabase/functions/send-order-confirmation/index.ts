@@ -363,7 +363,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "DEESSE PEARLS <onboarding@resend.dev>",
+      from: "DEESSE PEARLS <noreply@deessepearls.com>",
       to: [customerEmail],
       subject: `${t.subject} ${orderNumber} - DEESSE PEARLS`,
       html: emailHtml,
@@ -516,7 +516,7 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log("[send-order-confirmation] Sending admin email to:", ADMIN_EMAIL);
         const adminEmailResponse = await resend.emails.send({
-          from: "DEESSE PEARLS <onboarding@resend.dev>",
+          from: "DEESSE PEARLS <noreply@deessepearls.com>",
           to: [ADMIN_EMAIL],
           subject: `🎉 Nouvelle commande ${orderNumber} - ${customerName}`,
           html: adminEmailHtml,

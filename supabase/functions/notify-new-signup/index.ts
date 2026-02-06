@@ -121,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to admin
     const adminResult = await resend.emails.send({
-      from: 'DEESSE PEARLS <onboarding@resend.dev>',
+      from: 'DEESSE PEARLS <noreply@deessepearls.com>',
       to: ADMIN_EMAIL,
       subject: `🎉 Nouvelle inscription: ${firstName} ${lastName}`,
       html: adminEmailHtml,

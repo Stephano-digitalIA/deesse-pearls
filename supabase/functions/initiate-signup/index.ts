@@ -229,7 +229,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     await resend.emails.send({
-      from: 'DEESSE PEARLS <onboarding@resend.dev>',
+      from: 'DEESSE PEARLS <noreply@deessepearls.com>',
       to: email,
       subject: '✨ Confirmez votre inscription chez DEESSE PEARLS',
       html: emailHtml,

@@ -156,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email to admin
     try {
       const adminResult = await resend.emails.send({
-        from: 'DEESSE PEARLS <onboarding@resend.dev>',
+        from: 'DEESSE PEARLS <noreply@deessepearls.com>',
         to: ADMIN_EMAIL,
         subject: `📧 Nouveau message: ${subject}`,
         html: adminEmailHtml,
@@ -171,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send confirmation email to customer
     try {
       const customerResult = await resend.emails.send({
-        from: 'DEESSE PEARLS <onboarding@resend.dev>',
+        from: 'DEESSE PEARLS <noreply@deessepearls.com>',
         to: email,
         subject: 'Message reçu - DEESSE PEARLS',
         html: customerEmailHtml,
