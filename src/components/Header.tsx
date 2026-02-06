@@ -217,13 +217,13 @@ const Header: React.FC = () => {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
-                          className="absolute top-full left-0 z-[60] bg-card border border-border shadow-elegant rounded-md py-2 min-w-[200px] pointer-events-auto"
+                          className="absolute top-full left-0 z-[60] bg-gold/15 border border-gold/30 shadow-elegant rounded-md py-2 min-w-[200px] pointer-events-auto backdrop-blur-sm"
                         >
                           {shopCategories.map((cat) => (
                             <Link
                               key={cat.key}
                               to={cat.path}
-                              className="block px-4 py-2 text-sm hover:bg-muted hover:text-gold transition-colors"
+                              className="block px-4 py-2 text-sm hover:bg-gold/30 hover:text-gold transition-colors"
                             >
                               {t(cat.key)}
                             </Link>
