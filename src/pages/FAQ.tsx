@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 import { useLocale } from '@/contexts/LocaleContext';
 import { faqTranslations } from '@/data/faqTranslations';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Accordion,
@@ -14,7 +14,13 @@ import {
 
 const FAQ: React.FC = () => {
   const { t, language } = useLocale();
+  const navigate = useNavigate();
   const faqT = faqTranslations[language] || faqTranslations.fr;
+
+  const handleContactClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/contact');
+  };
 
   const faqCategories = [
     {
@@ -141,11 +147,12 @@ const FAQ: React.FC = () => {
             <p className="text-muted-foreground mb-6">
               {faqT.faqNotFoundDesc}
             </p>
-            <Link to="/contact">
-              <Button className="bg-gold hover:bg-gold-light text-deep-black">
-                {t('contactUs')}
-              </Button>
-            </Link>
+            <Button
+              onClick={handleContactClick}
+              className="bg-gold hover:bg-gold-light text-deep-black"
+            >
+              {t('contactUs')}
+            </Button>
           </motion.div>
         </div>
       </section>
