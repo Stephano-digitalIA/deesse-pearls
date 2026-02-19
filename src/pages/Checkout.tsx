@@ -400,10 +400,14 @@ const Checkout: React.FC = () => {
 
       if (itemsError) {
         console.error('[Checkout] Order items save error:', itemsError);
+        toast.error(t('orderCreationError'));
+        setIsProcessing(false);
+        throw itemsError; // Arrêter le processus si les items ne peuvent pas être sauvegardés
       }
 
-      // 3. Envoyer l'email de confirmation (sans attendre la réponse)
-      const emailPromise = customerEmail ? (async () => {
+      // 3. Envoyer l'email de confirmation en arrière-plan (sans bloquer la navigation)
+      if (customerEmail) {
+        (async () => {
         const orderDate = new Date().toLocaleDateString('fr-FR', {
           year: 'numeric',
           month: 'long',
@@ -446,7 +450,8 @@ const Checkout: React.FC = () => {
         } catch (emailErr) {
           console.error('[Checkout] Failed to send email notifications:', emailErr);
         }
-      })() : Promise.resolve();
+        })(); // Exécuter immédiatement sans attendre
+      }
 
       // 4. Vider le panier et rediriger rapidement
       console.log('[Checkout] Clearing cart and redirecting...');
@@ -455,18 +460,12 @@ const Checkout: React.FC = () => {
       // Scroll to top before navigation
       window.scrollTo({ top: 0, behavior: 'instant' });
 
-      // Navigate to payment success page (small delay to ensure email request is sent)
+      // Navigate to payment success page immediately (email sent in background)
       const redirectUrl = `/payment-success?order_id=${savedOrder.id}&order_number=${orderNumber}`;
       console.log('[Checkout] Navigating to:', redirectUrl);
-      toast.success(t('paymentSuccessToast'));
 
-      // Wait 300ms to ensure email request has been initiated before navigation
-      await Promise.race([
-        emailPromise,
-        new Promise(resolve => setTimeout(resolve, 300))
-      ]);
-
-      navigate(redirectUrl);
+      // Navigation immédiate sans délai pour éviter le flash de page
+      navigate(redirectUrl, { replace: true });
     } catch (error) {
       console.error('[Checkout] Order creation error:', error);
       toast.error(t('orderCreationError'));

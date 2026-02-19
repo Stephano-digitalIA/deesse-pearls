@@ -275,8 +275,11 @@ export const COUNTRY_CODES = ALL_COUNTRY_CODES;
 export const PRIORITY_COUNTRY_CODES = [
   'PF', // Polynésie française
   'FR', // France
+  'RE', // La Réunion
   'NC', // Nouvelle-Calédonie
   'WF', // Wallis-et-Futuna
+  'GP', // Guadeloupe
+  'MQ', // Martinique
   'BE', // Belgique
   'CH', // Suisse
   'CA', // Canada
