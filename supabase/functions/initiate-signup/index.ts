@@ -40,19 +40,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Create Supabase admin client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    console.log('[initiate-signup] Admin client created');
 
-    // Check if email already exists in auth.users
-    const { data: existingUser } = await supabase.auth.admin.listUsers();
-    const emailExists = existingUser?.users?.some(u => u.email === email);
-
-    if (emailExists) {
-      return new Response(
-        JSON.stringify({
-          error: 'Email already registered',
-          alreadyExists: true
-        }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Check if email already exists in auth.users (via getUserByEmail)
+    console.log('[initiate-signup] Checking if email exists in auth...');
+    try {
+      const { data: existingAuthUser } = await supabase.auth.admin.getUserByEmail(email);
+      if (existingAuthUser?.user) {
+        console.log('[initiate-signup] Email already exists in auth.users');
+        return new Response(
+          JSON.stringify({ error: 'Email already registered', alreadyExists: true }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (authCheckErr) {
+      // If we can't check, continue anyway (let DB unique constraint handle duplicates)
+      console.warn('[initiate-signup] Could not check auth.users, continuing:', authCheckErr);
     }
 
     // Hash password using bcrypt (Deno doesn't have built-in bcrypt, use a simple hash for now)
@@ -72,11 +75,13 @@ const handler = async (req: Request): Promise<Response> => {
     const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     // Check if pending signup already exists
-    const { data: existingPending } = await supabase
+    console.log('[initiate-signup] Checking pending_signups table...');
+    const { data: existingPending, error: pendingCheckError } = await supabase
       .from('pending_signups')
       .select('id')
       .eq('email', email)
       .single();
+    console.log('[initiate-signup] Pending check result:', { existingPending, pendingCheckError });
 
     if (existingPending) {
       // Update existing pending signup
@@ -228,14 +233,24 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    await resend.emails.send({
-      from: 'DEESSE PEARLS <noreply@deessepearls.com>',
+    const emailResult = await resend.emails.send({
+      from: 'DEESSE PEARLS <onboarding@resend.dev>',
       to: email,
       subject: '✨ Confirmez votre inscription chez DEESSE PEARLS',
       html: emailHtml,
     });
 
-    console.log('[initiate-signup] Confirmation email sent successfully');
+    console.log('[initiate-signup] Resend result:', JSON.stringify(emailResult));
+
+    if (emailResult.error) {
+      console.error('[initiate-signup] Resend error:', emailResult.error);
+      return new Response(
+        JSON.stringify({ error: `Email sending failed: ${emailResult.error.message || JSON.stringify(emailResult.error)}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[initiate-signup] Confirmation email sent successfully, id:', emailResult.data?.id);
 
     return new Response(
       JSON.stringify({

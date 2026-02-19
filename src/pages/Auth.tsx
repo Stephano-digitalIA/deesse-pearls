@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from '@/contexts/LocaleContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -125,62 +124,30 @@ const Auth: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    const authResult = await signUp(email, password, firstName, lastName);
+    setIsSubmitting(false);
 
-    try {
-      // Call initiate-signup Edge Function instead of creating account directly
-      const { data, error } = await supabase.functions.invoke('initiate-signup', {
-        body: {
-          email,
-          password,
-          firstName,
-          lastName,
-        },
-      });
-
-      setIsSubmitting(false);
-
-      if (error) {
-        console.error('[Auth] Initiate signup error:', error);
+    if (authResult.error) {
+      if (authResult.alreadyExists) {
+        setActiveTab('login');
         toast({
-          title: t('signupError'),
-          description: error.message || 'Erreur lors de l\'inscription',
+          title: t('emailAlreadyUsed') || 'Email déjà utilisé',
+          description: t('accountExistsLogin') || 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
           variant: "destructive",
         });
-        return;
+      } else {
+        toast({
+          title: t('signupError'),
+          description: authResult.error.message,
+          variant: "destructive",
+        });
       }
-
-      if (data?.error) {
-        // Check if user already exists
-        if (data.error.includes('already exists') || data.error.includes('déjà')) {
-          setActiveTab('login');
-          toast({
-            title: t('emailAlreadyUsed') || 'Email déjà utilisé',
-            description: t('accountExistsLogin') || 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: t('signupError'),
-            description: data.error,
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-
-      // Success - show confirmation dialog
-      console.log('[Auth] Signup initiated successfully');
-      setShowConfirmationDialog(true);
-
-    } catch (error: any) {
-      setIsSubmitting(false);
-      console.error('[Auth] Exception during signup:', error);
-      toast({
-        title: t('signupError'),
-        description: error.message || 'Erreur lors de l\'inscription',
-        variant: "destructive",
-      });
+      return;
     }
+
+    // Success - Supabase Auth sends the confirmation email automatically
+    console.log('[Auth] Signup initiated successfully');
+    setShowConfirmationDialog(true);
   };
 
   const resetForm = () => {
