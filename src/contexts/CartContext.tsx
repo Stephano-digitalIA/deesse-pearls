@@ -38,7 +38,9 @@ const CART_STORAGE_KEY = 'deesse-pearls-cart';
 // ============================================
 const loadCartFromStorage = (): CartItem[] => {
   try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    // Remove any legacy localStorage cart data
+    localStorage.removeItem(CART_STORAGE_KEY);
+    const stored = sessionStorage.getItem(CART_STORAGE_KEY);
     if (stored) {
       return JSON.parse(stored);
     }
@@ -51,9 +53,9 @@ const loadCartFromStorage = (): CartItem[] => {
 const saveCartToStorage = (items: CartItem[]): void => {
   try {
     if (items.length > 0) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     } else {
-      localStorage.removeItem(CART_STORAGE_KEY);
+      sessionStorage.removeItem(CART_STORAGE_KEY);
     }
   } catch (error) {
     console.error('[Cart] Error saving to storage:', error);
@@ -208,7 +210,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Save merged cart to Supabase and clear localStorage
             if (localCart.length > 0) {
               await saveCartToSupabase(userId, mergedCart);
-              localStorage.removeItem(CART_STORAGE_KEY);
+              sessionStorage.removeItem(CART_STORAGE_KEY);
             }
           } else {
             // Guest: load from localStorage
@@ -269,7 +271,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (localCart.length > 0 || mergedCart.length !== supabaseCart.length) {
             await saveCartToSupabase(userId, mergedCart);
           }
-          localStorage.removeItem(CART_STORAGE_KEY);
+          sessionStorage.removeItem(CART_STORAGE_KEY);
         } catch (e) {
           console.error('[Cart] Error loading cart on login:', e);
         } finally {
@@ -386,7 +388,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (userId) {
         await clearCartInSupabase(userId);
       }
-      localStorage.removeItem(CART_STORAGE_KEY);
+      sessionStorage.removeItem(CART_STORAGE_KEY);
     } catch (e) {
       console.error('[Cart] Error clearing cart:', e);
     }
