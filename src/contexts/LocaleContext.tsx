@@ -2271,11 +2271,13 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const formatPrice = (price: number): string => {
-    // Pas de conversion de devise - les prix sont identiques en EUR et USD
+    // Taux de change : 1 USD = 0.85 EUR → 1 EUR = 1/0.85 USD
+    const EUR_TO_USD = 1 / 0.85;
+    const convertedPrice = currency === 'USD' ? price * EUR_TO_USD : price;
     return new Intl.NumberFormat(language === 'en' ? 'en-US' : language, {
       style: 'currency',
       currency: currency,
-    }).format(price);
+    }).format(convertedPrice);
   };
 
   return (
