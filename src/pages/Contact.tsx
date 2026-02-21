@@ -88,6 +88,7 @@ const Contact: React.FC = () => {
         .from('contact_messages')
         .insert({
           user_id: user?.id || null,
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
