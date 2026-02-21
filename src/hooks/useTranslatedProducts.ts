@@ -253,7 +253,8 @@ export const useTranslatedProducts = () => {
         throw e;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 };
 
@@ -276,6 +277,7 @@ export const useTranslatedProductsByCategory = (category: string) => {
     },
     enabled: !!category,
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 };
 
@@ -327,6 +329,7 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
       });
     },
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 };
 
@@ -359,6 +362,7 @@ export const useTranslatedNewArrivals = () => {
       });
     },
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 };
 
@@ -391,5 +395,6 @@ export const useTranslatedBestSellers = () => {
       });
     },
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 };
