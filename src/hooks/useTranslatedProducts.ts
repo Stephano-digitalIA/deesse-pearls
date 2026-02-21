@@ -286,18 +286,22 @@ export const useTranslatedProductBySlug = (slug: string) => {
   return useQuery({
     queryKey: ['translated-products', 'slug', slug, language],
     queryFn: async (): Promise<Product | null> => {
-      const [product, translationsMap] = await Promise.all([
-        fetchProductBySlugFromSupabase(slug),
-        fetchTranslationsForLanguage(language),
-      ]);
+      console.log('[slug] START fetchProductBySlug:', slug);
+      const product = await fetchProductBySlugFromSupabase(slug);
+      console.log('[slug] END product:', product);
 
       if (!product) return null;
+
+      console.log('[trans] START fetchTranslations');
+      const translationsMap = await fetchTranslationsForLanguage(language);
+      console.log('[trans] END translations count:', translationsMap.size);
 
       const translation = translationsMap.get(Number(product.id));
       return applyTranslation(product, translation);
     },
     enabled: !!slug,
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 };
 
