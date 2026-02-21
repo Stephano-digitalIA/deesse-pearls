@@ -340,6 +340,8 @@ const Checkout: React.FC = () => {
       console.log('[Checkout] Order data:', { orderNumber, customerEmail, customerName, total });
       console.log('[Checkout] Starting Supabase insert...');
 
+      const paypalCaptureId = details.purchase_units?.[0]?.payments?.captures?.[0]?.id || null;
+
       const { data: savedOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -350,12 +352,21 @@ const Checkout: React.FC = () => {
           customer_phone: shippingAddress?.phone || null,
           shipping_address: formattedAddress,
           status: 'paid',
+          payment_status: details.status === 'COMPLETED' ? 'completed' : 'pending',
           subtotal,
           shipping_cost: shippingCost,
           total,
           currency: 'EUR',
           paypal_order_id: details.id,
+          paypal_capture_id: paypalCaptureId,
           paypal_status: details.status,
+          items: JSON.stringify(items.map(item => ({
+            product_id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+          }))),
         })
         .select()
         .single();
