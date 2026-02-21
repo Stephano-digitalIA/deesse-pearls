@@ -121,10 +121,9 @@ const fetchTranslationsForLanguage = async (language: string): Promise<Map<numbe
   console.log('[Translations] Fetching for language:', language);
 
   try {
-    const { data, error } = await supabase
-      .from('product_translations')
-      .select('*')
-      .eq('lang', language);
+    const { data, error } = await withTimeout(
+      supabase.from('product_translations').select('*').eq('lang', language)
+    );
 
     console.log('[Translations] Result:', { count: data?.length, error: error?.message });
 
@@ -145,16 +144,22 @@ const fetchTranslationsForLanguage = async (language: string): Promise<Map<numbe
   }
 };
 
+// Timeout wrapper for Supabase queries
+const withTimeout = <T>(promise: Promise<T>, ms = 10000): Promise<T> => {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
+  );
+  return Promise.race([promise, timeout]);
+};
+
 // Fetch all products from Supabase
 const fetchProductsFromSupabase = async (): Promise<Product[]> => {
   console.log('[Products] Fetching all products...');
 
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .order('name');
+    const { data, error } = await withTimeout(
+      supabase.from('products').select('*').eq('is_active', true).order('name')
+    );
 
     console.log('[Products] Result:', { count: data?.length, error: error?.message });
 
@@ -186,12 +191,9 @@ const fetchProductsByCategoryFromSupabase = async (category: string): Promise<Pr
 
   const categoriesToMatch = categoryVariants[category] || [category];
 
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .in('category', categoriesToMatch)
-    .order('name');
+  const { data, error } = await withTimeout(
+    supabase.from('products').select('*').eq('is_active', true).in('category', categoriesToMatch).order('name')
+  );
 
   if (error) {
     console.error('Error fetching products by category from Supabase:', error);
@@ -203,12 +205,9 @@ const fetchProductsByCategoryFromSupabase = async (category: string): Promise<Pr
 
 // Fetch single product by slug from Supabase
 const fetchProductBySlugFromSupabase = async (slug: string): Promise<Product | null> => {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  const { data, error } = await withTimeout(
+    supabase.from('products').select('*').eq('slug', slug).eq('is_active', true).single()
+  );
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -308,12 +307,9 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
     queryKey: ['translated-products', 'featured', limit, language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, translationsMap] = await Promise.all([
-        supabase
-          .from('products')
-          .select('*')
-          .eq('is_active', true)
-          .or('badge.eq.new,badge.eq.bestseller')
-          .limit(limit),
+        withTimeout(
+          supabase.from('products').select('*').eq('is_active', true).or('badge.eq.new,badge.eq.bestseller').limit(limit)
+        ),
         fetchTranslationsForLanguage(language),
       ]);
 
@@ -341,12 +337,9 @@ export const useTranslatedNewArrivals = () => {
     queryKey: ['translated-products', 'new', language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, translationsMap] = await Promise.all([
-        supabase
-          .from('products')
-          .select('*')
-          .eq('is_active', true)
-          .eq('badge', 'new')
-          .order('created_at', { ascending: false }),
+        withTimeout(
+          supabase.from('products').select('*').eq('is_active', true).eq('badge', 'new').order('created_at', { ascending: false })
+        ),
         fetchTranslationsForLanguage(language),
       ]);
 
@@ -374,12 +367,9 @@ export const useTranslatedBestSellers = () => {
     queryKey: ['translated-products', 'bestseller', language],
     queryFn: async (): Promise<Product[]> => {
       const [productsResult, translationsMap] = await Promise.all([
-        supabase
-          .from('products')
-          .select('*')
-          .eq('is_active', true)
-          .eq('badge', 'bestseller')
-          .order('rating', { ascending: false }),
+        withTimeout(
+          supabase.from('products').select('*').eq('is_active', true).eq('badge', 'bestseller').order('rating', { ascending: false })
+        ),
         fetchTranslationsForLanguage(language),
       ]);
 
