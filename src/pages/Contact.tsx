@@ -81,9 +81,7 @@ const Contact: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      console.log('1. Saving to DB...');
-
-      // Save to Supabase
+      // 1. Sauvegarder en DB
       const { error: dbError } = await supabase
         .from('contact_messages')
         .insert({
@@ -97,12 +95,15 @@ const Contact: React.FC = () => {
           message: formData.message,
         });
 
-      console.log('2. DB result:', dbError ? dbError : 'OK');
+      if (dbError) {
+        console.error('[Contact] DB insert error:', dbError);
+        toast.error(pageT.messageError || 'Une erreur est survenue');
+        setIsSubmitting(false);
+        return;
+      }
 
-      console.log('3. Calling Edge Function...');
-
-      // Send email notification via Edge Function
-      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-contact-email', {
+      // 2. Envoyer l'email en arrière-plan (fire-and-forget)
+      supabase.functions.invoke('send-contact-email', {
         body: {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -111,24 +112,18 @@ const Contact: React.FC = () => {
           subject: formData.subject,
           message: formData.message,
         },
+      }).then(({ error }) => {
+        if (error) console.error('[Contact] Email error:', error);
       });
 
-      console.log('4. Edge Function result:', { emailData, emailError });
-
-      if (emailError) {
-        console.error('Email Error:', emailError);
-        toast.error(pageT.messageError || 'Une erreur est survenue');
-      } else {
-        toast.success(pageT.messageSent);
-        setFormData(prev => ({ ...prev, subject: '', message: '' }));
-      }
+      toast.success(pageT.messageSent);
+      setFormData(prev => ({ ...prev, subject: '', message: '' }));
     } catch (error) {
-      console.error('5. Catch Error:', error);
+      console.error('[Contact] Error:', error);
       toast.error(pageT.messageError || 'Une erreur est survenue');
     }
 
     setIsSubmitting(false);
-    console.log('6. Done');
   };
 
   const contactInfo = [
