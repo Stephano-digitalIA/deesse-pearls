@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL");
+const ADMIN_EMAIL_2 = Deno.env.get("ADMIN_EMAIL_2");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -220,7 +221,7 @@ const handler = async (req: Request): Promise<Response> => {
         },
         body: JSON.stringify({
           from: "DEESSE PEARLS <onboarding@resend.dev>",
-          to: [ADMIN_EMAIL],
+          to: [ADMIN_EMAIL, ...(ADMIN_EMAIL_2 ? [ADMIN_EMAIL_2] : [])].filter(Boolean) as string[],
           subject: `⭐ Nouvel avis client - ${productName}`,
           html: adminEmailHtml,
         }),

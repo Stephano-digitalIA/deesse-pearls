@@ -3,6 +3,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL");
+const ADMIN_EMAIL_2 = Deno.env.get("ADMIN_EMAIL_2");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -517,7 +518,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("[send-order-confirmation] Sending admin email to:", ADMIN_EMAIL);
         const adminEmailResponse = await resend.emails.send({
           from: "DEESSE PEARLS <noreply@deessepearls.com>",
-          to: [ADMIN_EMAIL],
+          to: [ADMIN_EMAIL, ...(ADMIN_EMAIL_2 ? [ADMIN_EMAIL_2] : [])].filter(Boolean) as string[],
           subject: `🎉 Nouvelle commande ${orderNumber} - ${customerName}`,
           html: adminEmailHtml,
         });

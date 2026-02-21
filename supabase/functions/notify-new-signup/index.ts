@@ -3,6 +3,7 @@ import { Resend } from 'npm:resend@2.0.0';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'stahiti.sb@gmail.com';
+const ADMIN_EMAIL_2 = Deno.env.get('ADMIN_EMAIL_2');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email to admin
     const adminResult = await resend.emails.send({
       from: 'DEESSE PEARLS <noreply@deessepearls.com>',
-      to: ADMIN_EMAIL,
+      to: [ADMIN_EMAIL, ...(ADMIN_EMAIL_2 ? [ADMIN_EMAIL_2] : [])].filter(Boolean) as string[],
       subject: `🎉 Nouvelle inscription: ${firstName} ${lastName}`,
       html: adminEmailHtml,
     });
