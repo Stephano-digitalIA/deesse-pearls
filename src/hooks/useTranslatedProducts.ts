@@ -145,7 +145,7 @@ const fetchTranslationsForLanguage = async (language: string): Promise<Map<numbe
 };
 
 // Timeout wrapper for Supabase queries
-const withTimeout = <T>(promise: Promise<T>, ms = 10000): Promise<T> => {
+const withTimeout = <T>(promise: Promise<T>, ms = 30000): Promise<T> => {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
   );
@@ -253,7 +253,8 @@ export const useTranslatedProducts = () => {
       }
     },
     staleTime: 1000 * 60 * 5,
-    retry: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 };
 
@@ -276,7 +277,8 @@ export const useTranslatedProductsByCategory = (category: string) => {
     },
     enabled: !!category,
     staleTime: 1000 * 60 * 5,
-    retry: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 };
 
@@ -295,7 +297,8 @@ export const useTranslatedProductBySlug = (slug: string) => {
     },
     enabled: !!slug,
     staleTime: 1000 * 60 * 5,
-    retry: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 };
 
@@ -325,7 +328,8 @@ export const useTranslatedFeaturedProducts = (limit = 4) => {
       });
     },
     staleTime: 1000 * 60 * 5,
-    retry: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 };
 
@@ -355,7 +359,8 @@ export const useTranslatedNewArrivals = () => {
       });
     },
     staleTime: 1000 * 60 * 5,
-    retry: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 };
 
@@ -385,6 +390,7 @@ export const useTranslatedBestSellers = () => {
       });
     },
     staleTime: 1000 * 60 * 5,
-    retry: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 };

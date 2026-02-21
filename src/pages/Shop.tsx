@@ -169,8 +169,9 @@ const Shop: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-gold" />
+        <p className="text-muted-foreground text-sm">Chargement des produits...</p>
       </div>
     );
   }
