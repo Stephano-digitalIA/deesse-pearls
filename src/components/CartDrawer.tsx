@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Minus, ShoppingBag, LogIn } from 'lucide-react';
+import { X, Plus, Minus, ShoppingCart, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/contexts/CartContext';
 import { useLocale } from '@/contexts/LocaleContext';
@@ -82,7 +82,7 @@ const CartDrawer: React.FC = () => {
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
                 <h2 className="font-display text-xl flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-gold" />
+                  <ShoppingCart className="w-5 h-5 text-gold" />
                   {t('cart')}
                 </h2>
                 <button
@@ -97,7 +97,7 @@ const CartDrawer: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-4">
                 {items.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
-                    <ShoppingBag className="w-16 h-16 text-muted-foreground mb-4" />
+                    <ShoppingCart className="w-16 h-16 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-4">{t('emptyCart')}</p>
                     <Button
                       onClick={handleContinueShopping}
