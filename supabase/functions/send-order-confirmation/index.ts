@@ -5,6 +5,8 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL");
 const ADMIN_EMAIL_2 = Deno.env.get("ADMIN_EMAIL_2");
 
+const SENDER_FROM = "DEESSE PEARLS <contact@deessepearls.com>";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -346,7 +348,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 0;">
                 ${t.trackingInfo}<br><br>
                 ${t.contactUs}
-                <a href="mailto:stahiti.sb@gmail.com" style="color: #d4af37;">stahiti.sb@gmail.com</a>
+                <a href="mailto:contact@deessepearls.com" style="color: #d4af37;">contact@deessepearls.com</a>
               </p>
             </div>
           </div>
@@ -364,7 +366,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "DEESSE PEARLS <noreply@deessepearls.com>",
+      from: SENDER_FROM,
       to: [customerEmail],
       subject: `${t.subject} ${orderNumber} - DEESSE PEARLS`,
       html: emailHtml,
@@ -507,7 +509,7 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="footer">
               <p><strong>DEESSE PEARLS</strong> - La Perle Noire de Tahiti</p>
               <p>© 2026 DEESSEPEARLS - <a href="https://deessepearls.com" style="color: #d4af37; text-decoration: none;">deessepearls.com</a></p>
-              <p style="margin-top: 8px;">Contact : <a href="mailto:stahiti.sb@gmail.com" style="color: #d4af37;">stahiti.sb@gmail.com</a></p>
+              <p style="margin-top: 8px;">Contact : <a href="mailto:contact@deessepearls.com" style="color: #d4af37;">contact@deessepearls.com</a></p>
             </div>
           </div>
         </body>
@@ -517,7 +519,7 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log("[send-order-confirmation] Sending admin email to:", ADMIN_EMAIL);
         const adminEmailResponse = await resend.emails.send({
-          from: "DEESSE PEARLS <noreply@deessepearls.com>",
+          from: SENDER_FROM,
           to: [ADMIN_EMAIL, ...(ADMIN_EMAIL_2 ? [ADMIN_EMAIL_2] : [])].filter(Boolean) as string[],
           subject: `🎉 Nouvelle commande ${orderNumber} - ${customerName}`,
           html: adminEmailHtml,

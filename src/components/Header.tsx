@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingBag, Menu, X, ChevronDown, Globe, Heart, User, LogOut } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X, ChevronDown, Globe, Heart, User, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale, languages, currencies, languageNames, Language, Currency } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
@@ -373,7 +373,7 @@ const Header: React.FC = () => {
               onClick={() => setIsCartOpen(true)}
               className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors relative touch-manipulation"
             >
-              <ShoppingBag className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5" />
               {totalItems > 0 && (
                 <span className="absolute top-0 right-0 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}

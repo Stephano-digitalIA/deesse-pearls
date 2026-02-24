@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, ShoppingBag, ArrowRight, Package, MapPin, Receipt, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,8 +46,18 @@ const PaymentSuccess: React.FC = () => {
   const orderNumber = searchParams.get('order_number');
   const { clearCart } = useCart();
   const { t, formatPrice, language } = useLocale();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Redirect to home if user is not authenticated
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/', { replace: true });
+      }
+    });
+  }, [navigate]);
 
   // Scroll to top on mount
   useEffect(() => {

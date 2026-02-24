@@ -1,8 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { Resend } from 'npm:resend@2.0.0';
+import { Resend } from 'https://esm.sh/resend@2.0.0';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'stahiti.sb@gmail.com';
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'contact@deessepearls.com';
 const ADMIN_EMAIL_2 = Deno.env.get('ADMIN_EMAIL_2');
 
 const corsHeaders = {
@@ -134,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
 
               <p style="color: #666; font-size: 14px; line-height: 1.6;">
-                Pour toute question, contactez-nous à <a href="mailto:stahiti.sb@gmail.com" style="color: #d4af37;">stahiti.sb@gmail.com</a>
+                Pour toute question, contactez-nous à <a href="mailto:contact@deessepearls.com" style="color: #d4af37;">contact@deessepearls.com</a>
               </p>
             </div>
 
@@ -157,7 +157,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email to admin
     try {
       const adminResult = await resend.emails.send({
-        from: 'DEESSE PEARLS <noreply@deessepearls.com>',
+        from: 'DEESSE PEARLS <contact@deessepearls.com>',
         to: [ADMIN_EMAIL, ...(ADMIN_EMAIL_2 ? [ADMIN_EMAIL_2] : [])].filter(Boolean) as string[],
         subject: `📧 Nouveau message: ${subject}`,
         html: adminEmailHtml,
@@ -172,7 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send confirmation email to customer
     try {
       const customerResult = await resend.emails.send({
-        from: 'DEESSE PEARLS <noreply@deessepearls.com>',
+        from: 'DEESSE PEARLS <contact@deessepearls.com>',
         to: email,
         subject: 'Message reçu - DEESSE PEARLS',
         html: customerEmailHtml,
