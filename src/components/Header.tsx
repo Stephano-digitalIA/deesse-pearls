@@ -87,7 +87,7 @@ const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
       {/* Top bar - hidden on mobile for cleaner look */}
-      <div className="hidden sm:block bg-deep-black text-pearl py-1.5">
+      <div className="hidden sm:block bg-deep-black text-white py-1.5">
         <div className="container mx-auto px-4 flex justify-between items-center text-sm">
           <span className="font-display italic text-xs md:text-sm text-[#d4af37]">{t('designer25Years')}</span>
           <div className="flex items-center gap-3 md:gap-4">
