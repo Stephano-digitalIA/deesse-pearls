@@ -310,9 +310,36 @@ const Checkout: React.FC = () => {
 
     setIsProcessing(true);
 
+    // Safety timeout : débloquer l'UI après 45s si le process est coincé
+    const safetyTimer = setTimeout(() => {
+      console.error('[Checkout] Safety timeout after 45s — unblocking UI');
+      setIsProcessing(false);
+      toast.error(`Délai dépassé. Votre paiement PayPal (réf: ${details.id}) a bien été effectué. Contactez-nous à contact@deessepearls.com`);
+    }, 45000);
+
+    // Helper timeout pour les inserts Supabase
+    const withDbTimeout = <T,>(promise: Promise<T>, ms = 30000): Promise<T> =>
+      Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`DB timeout after ${ms}ms`)), ms)
+        ),
+      ]);
+
     try {
+      // Rafraîchir la session — critique sur mobile après retour de PayPal
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (!session || sessionError) {
+        clearTimeout(safetyTimer);
+        console.error('[Checkout] Session expired after PayPal return');
+        toast.error(`Paiement effectué (réf PayPal: ${details.id}) mais session expirée. Contactez-nous à contact@deessepearls.com`);
+        setIsProcessing(false);
+        return;
+      }
+
       // Vérifier que l'utilisateur est authentifié
       if (!user?.id) {
+        clearTimeout(safetyTimer);
         console.error('[Checkout] No user logged in - cannot save order');
         toast.error('Vous devez être connecté pour finaliser la commande');
         setIsProcessing(false);
@@ -342,34 +369,36 @@ const Checkout: React.FC = () => {
 
       const paypalCaptureId = details.purchase_units?.[0]?.payments?.captures?.[0]?.id || null;
 
-      const { data: savedOrder, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          user_id: user.id,
-          customer_email: customerEmail,
-          customer_name: customerName,
-          customer_phone: shippingAddress?.phone || null,
-          shipping_address: formattedAddress,
-          status: 'paid',
-          payment_status: details.status === 'COMPLETED' ? 'completed' : 'pending',
-          subtotal,
-          shipping_cost: shippingCost,
-          total,
-          currency: 'EUR',
-          paypal_order_id: details.id,
-          paypal_capture_id: paypalCaptureId,
-          paypal_status: details.status,
-          items: JSON.stringify(items.map(item => ({
-            product_id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image,
-          }))),
-        })
-        .select()
-        .single();
+      const { data: savedOrder, error: orderError } = await withDbTimeout(
+        supabase
+          .from('orders')
+          .insert({
+            order_number: orderNumber,
+            user_id: user.id,
+            customer_email: customerEmail,
+            customer_name: customerName,
+            customer_phone: shippingAddress?.phone || null,
+            shipping_address: formattedAddress,
+            status: 'paid',
+            payment_status: details.status === 'COMPLETED' ? 'completed' : 'pending',
+            subtotal,
+            shipping_cost: shippingCost,
+            total,
+            currency: 'EUR',
+            paypal_order_id: details.id,
+            paypal_capture_id: paypalCaptureId,
+            paypal_status: details.status,
+            items: JSON.stringify(items.map(item => ({
+              product_id: item.id,
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+              image: item.image,
+            }))),
+          })
+          .select()
+          .single()
+      );
 
       console.log('[Checkout] Insert completed - data:', savedOrder, 'error:', orderError);
 
@@ -405,9 +434,9 @@ const Checkout: React.FC = () => {
         total_price: item.price * item.quantity,
       }));
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+      const { error: itemsError } = await withDbTimeout(
+        supabase.from('order_items').insert(orderItems)
+      );
 
       if (itemsError) {
         console.error('[Checkout] Order items save error:', itemsError);
@@ -481,6 +510,8 @@ const Checkout: React.FC = () => {
       console.error('[Checkout] Order creation error:', error);
       toast.error(t('orderCreationError'));
       setIsProcessing(false);
+    } finally {
+      clearTimeout(safetyTimer);
     }
   };
 
