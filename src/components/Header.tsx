@@ -89,7 +89,7 @@ const Header: React.FC = () => {
       {/* Top bar - hidden on mobile for cleaner look */}
       <div className="hidden sm:block bg-deep-black text-pearl py-1.5">
         <div className="container mx-auto px-4 flex justify-between items-center text-sm">
-          <span className="font-display italic text-xs md:text-sm text-gold">{t('designer25Years')}</span>
+          <span className="font-display italic text-xs md:text-sm text-[#d4af37]">{t('designer25Years')}</span>
           <div className="flex items-center gap-3 md:gap-4">
             {/* Language Selector */}
             <TooltipProvider>
