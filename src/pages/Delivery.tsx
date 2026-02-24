@@ -31,7 +31,7 @@ const Delivery: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-pearl/70 max-w-2xl mx-auto"
+            className="text-white/70 max-w-2xl mx-auto"
           >
             {t.pageSubtitle}
           </motion.p>
