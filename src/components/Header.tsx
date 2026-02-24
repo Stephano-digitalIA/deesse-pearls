@@ -386,7 +386,7 @@ const Header: React.FC = () => {
               onClick={() => setIsCartOpen(true)}
               className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors relative touch-manipulation"
             >
-              <ShoppingBag className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5" />
               {totalItems > 0 && (
                 <span className="absolute top-0 right-0 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}
