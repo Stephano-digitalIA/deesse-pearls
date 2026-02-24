@@ -141,7 +141,7 @@ const Contact: React.FC = () => {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-display text-4xl md:text-5xl text-pearl mb-4"
+            className="font-display text-4xl md:text-5xl text-white mb-4"
           >
             {t('contact')}
           </motion.h1>

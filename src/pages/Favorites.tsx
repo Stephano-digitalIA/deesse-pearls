@@ -51,7 +51,7 @@ const Favorites: React.FC = () => {
             className="flex items-center justify-center gap-3 mb-4"
           >
             <Heart className="w-8 h-8 text-gold fill-gold" />
-            <h1 className="font-display text-4xl md:text-5xl text-pearl">
+            <h1 className="font-display text-4xl md:text-5xl text-white">
               {t('myFavorites')}
             </h1>
           </motion.div>

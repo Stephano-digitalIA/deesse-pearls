@@ -84,7 +84,7 @@ const FAQ: React.FC = () => {
             className="flex items-center justify-center gap-3 mb-4"
           >
             <HelpCircle className="w-8 h-8 text-gold" />
-            <h1 className="font-display text-4xl md:text-5xl text-pearl">
+            <h1 className="font-display text-4xl md:text-5xl text-white">
               {t('faq')}
             </h1>
           </motion.div>
