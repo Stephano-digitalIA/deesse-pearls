@@ -129,6 +129,17 @@ const Footer: React.FC = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-white/50">
             <p>© 2025 DEESSE PEARLS. {t('allRightsReserved')}</p>
+            <p>
+              Développé par{' '}
+              <a
+                href="https://tahititechdigital.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gold transition-colors"
+              >
+                tahititechdigital.com
+              </a>
+            </p>
             <div className="flex gap-4">
               <Link to="/legal" onClick={() => window.scrollTo(0, 0)} className="hover:text-gold transition-colors">
                 {t('legalNotice')}
