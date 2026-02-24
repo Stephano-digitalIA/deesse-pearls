@@ -147,7 +147,7 @@ const Index: React.FC = () => {
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
         variants={fadeInUp}
-        className="py-20 bg-deep-black text-pearl relative overflow-hidden"
+        className="py-20 bg-deep-black text-white relative overflow-hidden"
       >
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 right-0 w-96 h-96 bg-gold/30 rounded-full blur-3xl" />
@@ -156,7 +156,7 @@ const Index: React.FC = () => {
           <motion.h2 variants={fadeInUp} className="font-display text-3xl md:text-5xl mb-6">
             {t("dreamJewelry")}
           </motion.h2>
-          <motion.p variants={fadeInUp} className="text-pearl/70 max-w-2xl mx-auto mb-8">
+          <motion.p variants={fadeInUp} className="text-white/70 max-w-2xl mx-auto mb-8">
             {t("customCreationAvailable")}
           </motion.p>
           <motion.div variants={scaleIn}>

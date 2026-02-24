@@ -180,7 +180,7 @@ const Delivery: React.FC = () => {
       </section>
 
       {/* Contact CTA */}
-      <section className="py-16 bg-deep-black text-pearl">
+      <section className="py-16 bg-deep-black text-white">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial="hidden"
@@ -190,7 +190,7 @@ const Delivery: React.FC = () => {
           >
             <MessageCircle className="w-12 h-12 text-gold mx-auto mb-4" />
             <h2 className="font-display text-3xl mb-4">{t.questionsTitle}</h2>
-            <p className="text-pearl/70 mb-8 max-w-xl mx-auto">{t.questionsDesc}</p>
+            <p className="text-white/70 mb-8 max-w-xl mx-auto">{t.questionsDesc}</p>
             <Link to="/contact">
               <Button size="lg" className="bg-gold hover:bg-gold-light text-deep-black">
                 {t.contactUs}

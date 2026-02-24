@@ -132,10 +132,10 @@ const Commitments: React.FC = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-deep-black text-pearl">
+      <section className="py-20 bg-deep-black text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-display text-3xl md:text-4xl mb-6">{t('thousandsOfClients')}</h2>
-          <p className="text-pearl/70 mb-8 max-w-xl mx-auto">
+          <p className="text-white/70 mb-8 max-w-xl mx-auto">
             {t('joinCommunity')}
           </p>
           <Link to="/shop">
