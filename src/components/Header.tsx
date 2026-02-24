@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, X, ChevronDown, Globe, Heart, User, LogOut } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X, ChevronDown, Globe, Heart, User, LogOut, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale, languages, currencies, languageNames, Language, Currency } from '@/contexts/LocaleContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import SearchBar from '@/components/SearchBar';
@@ -33,6 +34,7 @@ const Header: React.FC = () => {
   const { totalItems, setIsCartOpen } = useCart();
   const { favorites } = useFavorites();
   const { user, signOut, isAdmin } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -299,7 +301,18 @@ const Header: React.FC = () => {
                 <SearchBar onClose={() => setIsSearchOpen(false)} />
               </PopoverContent>
             </Popover>
-            
+
+            {/* Theme toggle */}
+            <button
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors touch-manipulation"
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === 'dark'
+                ? <Sun className="w-5 h-5" />
+                : <Moon className="w-5 h-5" />}
+            </button>
+
             {/* User account dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -373,7 +386,7 @@ const Header: React.FC = () => {
               onClick={() => setIsCartOpen(true)}
               className="p-2 hover:text-gold hover:bg-muted/50 rounded-md transition-colors relative touch-manipulation"
             >
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingBag className="w-5 h-5" />
               {totalItems > 0 && (
                 <span className="absolute top-0 right-0 w-4 h-4 bg-gold text-deep-black text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}
