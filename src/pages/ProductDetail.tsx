@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Heart, ShoppingBag, ChevronLeft, ChevronRight, Truck, Shield, Award, Loader2 } from "lucide-react";
+import { Star, Heart, ShoppingBag, Truck, Shield, Award, Loader2 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
@@ -171,8 +171,30 @@ const ProductDetail: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Image Gallery */}
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="relative aspect-square rounded-lg overflow-hidden bg-secondary">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
+            {/* Thumbnails — colonne gauche */}
+            {product.images.length > 1 && (
+              <div className="flex flex-col gap-2 w-[72px] shrink-0">
+                {product.images.map((img, index) => (
+                  <button
+                    key={index}
+                    onMouseEnter={() => setSelectedImage(index)}
+                    className={`w-[72px] h-[72px] rounded-md overflow-hidden border-2 transition-colors shrink-0 ${
+                      selectedImage === index ? "border-gold" : "border-border hover:border-gold/50"
+                    }`}
+                  >
+                    <img
+                      src={resolveImagePath(img)}
+                      alt={`${productName} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Image principale */}
+            <div className="relative flex-1 aspect-square rounded-lg overflow-hidden bg-secondary">
               <img
                 src={resolveImagePath(product.images[selectedImage])}
                 alt={productName}
@@ -185,42 +207,7 @@ const ProductDetail: React.FC = () => {
                   {product.badge === "new" ? ts("product.new") : ts("product.bestSeller")}
                 </Badge>
               )}
-              {product.images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setSelectedImage((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background p-2 rounded-full transition-colors"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setSelectedImage((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background p-2 rounded-full transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </>
-              )}
             </div>
-            {product.images.length > 1 && (
-              <div className="flex gap-2">
-                {product.images.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`w-20 h-20 rounded-md overflow-hidden border-2 transition-colors ${
-                      selectedImage === index ? "border-gold" : "border-transparent"
-                    }`}
-                  >
-                    <img
-                      src={resolveImagePath(img)}
-                      alt={`${productName} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
           </motion.div>
 
           {/* Product Info */}
