@@ -314,7 +314,7 @@ const Account: React.FC = () => {
           <h1 className="font-display text-2xl md:text-3xl font-semibold mb-1 text-foreground">
             {t('welcome')} <span className="text-gold">{welcomeName}</span> 👋
           </h1>
-          <p className="text-muted-foreground dark:text-white/60 text-sm">{user.email}</p>
+          <p className="text-foreground/70 text-sm">{user.email}</p>
         </motion.div>
 
         {/* Header with logout */}
