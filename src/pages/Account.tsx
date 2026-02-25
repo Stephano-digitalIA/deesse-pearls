@@ -311,10 +311,10 @@ const Account: React.FC = () => {
           transition={{ delay: 0.1 }}
           className="mb-8 p-6 rounded-xl bg-gradient-to-r from-gold/10 via-gold/5 to-transparent dark:from-gold/20 dark:via-gold/10 border border-gold/20 dark:border-gold/35"
         >
-          <h1 className="font-display text-2xl md:text-3xl font-semibold mb-1 text-foreground">
+          <h1 className="font-display text-2xl md:text-3xl font-semibold mb-1 text-gray-800 dark:text-white">
             {t('welcome')} <span className="text-gold">{welcomeName}</span> 👋
           </h1>
-          <p className="text-foreground/70 text-sm">{user.email}</p>
+          <p className="text-gray-600 dark:text-white/70 text-sm">{user.email}</p>
         </motion.div>
 
         {/* Header with logout */}
