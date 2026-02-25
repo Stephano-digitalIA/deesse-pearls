@@ -333,7 +333,7 @@ const Account: React.FC = () => {
           <Button
             variant="outline"
             onClick={handleSignOut}
-            className="border-destructive text-destructive hover:bg-destructive hover:text-white"
+            className="border-red-400/60 text-red-400 hover:bg-red-500/15 hover:border-red-400 hover:text-red-300 transition-colors"
           >
             <LogOut className="w-4 h-4 mr-2" />
             {t('logout')}
@@ -342,11 +342,11 @@ const Account: React.FC = () => {
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black data-[state=inactive]:text-foreground data-[state=inactive]:hover:text-gold">
               <User className="w-4 h-4 mr-2" />
               {t('profile')}
             </TabsTrigger>
-            <TabsTrigger value="orders" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black">
+            <TabsTrigger value="orders" className="data-[state=active]:bg-gold data-[state=active]:text-deep-black data-[state=inactive]:text-foreground data-[state=inactive]:hover:text-gold">
               <Package className="w-4 h-4 mr-2" />
               {t('orders')}
             </TabsTrigger>
