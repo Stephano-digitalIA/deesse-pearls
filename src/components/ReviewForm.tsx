@@ -146,6 +146,17 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
     e.preventDefault();
     setErrors({});
 
+    // Popup reminder if no star selected
+    if (rating === 0) {
+      toast.warning(
+        language === 'fr'
+          ? '⭐ Veuillez sélectionner une note avant d\'envoyer votre avis.'
+          : '⭐ Please select a star rating before submitting your review.',
+        { duration: 4000 }
+      );
+      return;
+    }
+
     const formData = {
       author_name: name,
       author_email: email,
