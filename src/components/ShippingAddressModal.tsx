@@ -148,6 +148,9 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
     if (!formData.postalCode.trim()) {
       newErrors.postalCode = ts.fieldRequired;
     }
+    if (!formData.phone.trim()) {
+      newErrors.phone = ts.fieldRequired;
+    }
     if (!formData.country) {
       newErrors.country = ts.fieldRequired;
     }
@@ -275,14 +278,18 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="flex items-center gap-1">
                     <Phone className="w-3 h-3" />
-                    {ts.phone}
+                    {ts.phone} *
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
+                    className={errors.phone ? 'border-destructive' : ''}
                   />
+                  {errors.phone && (
+                    <p className="text-xs text-destructive">{errors.phone}</p>
+                  )}
                 </div>
 
                 {/* Adresse */}
