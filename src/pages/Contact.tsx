@@ -200,7 +200,7 @@ const Contact: React.FC = () => {
                         value={formData.firstName}
                         onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                         required
-                        className="mt-2"
+                        className="mt-2 dark:bg-black/60"
                       />
                     </div>
                     <div>
@@ -210,7 +210,7 @@ const Contact: React.FC = () => {
                         value={formData.lastName}
                         onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                         required
-                        className="mt-2"
+                        className="mt-2 dark:bg-black/60"
                       />
                     </div>
                   </div>
@@ -223,7 +223,7 @@ const Contact: React.FC = () => {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         required
-                        className="mt-2"
+                        className="mt-2 dark:bg-black/60"
                       />
                     </div>
                     <div>
@@ -233,7 +233,7 @@ const Contact: React.FC = () => {
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="mt-2"
+                        className="mt-2 dark:bg-black/60"
                       />
                     </div>
                   </div>
