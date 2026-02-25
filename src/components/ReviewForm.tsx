@@ -189,17 +189,15 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
 
       if (error) throw error;
 
-      // Send email notification using Supabase Edge Function
-      try {
-        // Fetch product details to get name and slug
-        const { data: product } = await supabase
-          .from('products')
-          .select('name, slug')
-          .eq('id', productId)
-          .single();
-
-        if (product) {
-          const { error: notifyError } = await supabase.functions.invoke('notify-review', {
+      // Send email notification fire-and-forget (no await — cold start must not block the form)
+      supabase
+        .from('products')
+        .select('name, slug')
+        .eq('id', productId)
+        .single()
+        .then(({ data: product }) => {
+          if (!product) return;
+          supabase.functions.invoke('notify-review', {
             body: {
               productName: product.name,
               productSlug: product.slug,
@@ -209,17 +207,12 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onReviewSubmitted })
               comment: comment.trim(),
               language,
             },
-          });
-
-          if (notifyError) {
-            console.error('[Review] Failed to send notification:', notifyError);
-          } else {
-            console.log('[Review] Email notifications sent successfully');
-          }
-        }
-      } catch (emailError) {
-        console.error('[Review] Failed to send email notifications:', emailError);
-      }
+          }).then(({ error: notifyError }) => {
+            if (notifyError) console.error('[Review] notify-review error:', notifyError);
+            else console.log('[Review] notify-review sent');
+          }).catch((err) => console.error('[Review] notify-review exception:', err));
+        })
+        .catch((err) => console.error('[Review] product fetch error:', err));
 
       toast.success(t('review.success'));
       setName('');
