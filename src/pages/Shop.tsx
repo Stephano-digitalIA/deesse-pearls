@@ -44,7 +44,7 @@ const Shop: React.FC = () => {
   const ts = (key: string) => shopProductTranslations[key]?.[language] || shopProductTranslations[key]?.['fr'] || key;
   
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 15000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 25000]);
   const [sortBy, setSortBy] = useState<string>('default');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -102,10 +102,10 @@ const Shop: React.FC = () => {
   }, [selectedCategory, priceRange, sortBy, products]);
 
   const clearFilters = () => {
-    setPriceRange([0, 15000]);
+    setPriceRange([0, 25000]);
   };
 
-  const hasActiveFilters = priceRange[0] > 0 || priceRange[1] < 15000;
+  const hasActiveFilters = priceRange[0] > 0 || priceRange[1] < 25000;
 
   const categories: { key: Category; label: string; route: string }[] = [
     { key: 'all', label: t('shop'), route: '/shop' },
@@ -146,7 +146,7 @@ const Shop: React.FC = () => {
             value={priceRange}
             onValueChange={(value) => setPriceRange(value as [number, number])}
             min={0}
-            max={15000}
+            max={25000}
             step={100}
             className="w-full"
           />
