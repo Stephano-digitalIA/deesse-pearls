@@ -309,7 +309,7 @@ const Account: React.FC = () => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="mb-8 p-6 rounded-xl bg-gradient-to-r from-gold/10 via-gold/5 to-transparent dark:from-gold/20 dark:via-gold/10 border border-gold/20 dark:border-gold/35"
+          className="mb-8 p-6 rounded-xl bg-gradient-to-r from-gold/10 via-gold/5 to-transparent dark:from-black/60 dark:via-black/40 dark:to-black/20 border border-gold/20 dark:border-gold/40"
         >
           <h1 className="font-display text-2xl md:text-3xl font-semibold mb-1 text-gray-800 dark:text-white">
             {t('welcome')} <span className="text-gold">{welcomeName}</span> 👋
