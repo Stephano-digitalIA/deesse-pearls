@@ -8,7 +8,6 @@ import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import {
   Sheet,
   SheetContent,
@@ -141,15 +140,56 @@ const Shop: React.FC = () => {
           {t('price')}
           <ChevronDown className="w-4 h-4" />
         </CollapsibleTrigger>
-        <CollapsibleContent className="pt-4 space-y-4 overflow-visible">
-          <div className="px-3 py-2">
-            <Slider
-              value={priceRange}
-              onValueChange={(value) => setPriceRange(value as [number, number])}
+        <CollapsibleContent className="pt-4 space-y-4">
+          {/* Dual native range slider — fiable sur tous les navigateurs/devices */}
+          <div className="relative h-6 flex items-center">
+            {/* Track */}
+            <div className="absolute w-full h-2 bg-muted rounded-full pointer-events-none">
+              <div
+                className="absolute h-full bg-gold rounded-full"
+                style={{
+                  left: `${(priceRange[0] / 25000) * 100}%`,
+                  right: `${100 - (priceRange[1] / 25000) * 100}%`,
+                }}
+              />
+            </div>
+            {/* Input min */}
+            <input
+              type="range"
               min={0}
               max={25000}
               step={100}
-              className="w-full"
+              value={priceRange[0]}
+              onChange={(e) => {
+                const v = Math.min(Number(e.target.value), priceRange[1] - 100);
+                setPriceRange([v, priceRange[1]]);
+              }}
+              className="absolute w-full h-6 opacity-0 cursor-pointer"
+              style={{ zIndex: priceRange[0] > 24900 ? 5 : 3 }}
+            />
+            {/* Input max */}
+            <input
+              type="range"
+              min={0}
+              max={25000}
+              step={100}
+              value={priceRange[1]}
+              onChange={(e) => {
+                const v = Math.max(Number(e.target.value), priceRange[0] + 100);
+                setPriceRange([priceRange[0], v]);
+              }}
+              className="absolute w-full h-6 opacity-0 cursor-pointer"
+              style={{ zIndex: 4 }}
+            />
+            {/* Thumb min */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 border-gold bg-background shadow-lg pointer-events-none"
+              style={{ left: `${(priceRange[0] / 25000) * 100}%`, zIndex: 6 }}
+            />
+            {/* Thumb max */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 border-gold bg-background shadow-lg pointer-events-none"
+              style={{ left: `${(priceRange[1] / 25000) * 100}%`, zIndex: 6 }}
             />
           </div>
           <div className="flex justify-between text-sm text-muted-foreground">
