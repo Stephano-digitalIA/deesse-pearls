@@ -141,15 +141,17 @@ const Shop: React.FC = () => {
           {t('price')}
           <ChevronDown className="w-4 h-4" />
         </CollapsibleTrigger>
-        <CollapsibleContent className="pt-4 space-y-4">
-          <Slider
-            value={priceRange}
-            onValueChange={(value) => setPriceRange(value as [number, number])}
-            min={0}
-            max={25000}
-            step={100}
-            className="w-full"
-          />
+        <CollapsibleContent className="pt-4 space-y-4 overflow-visible">
+          <div className="px-3 py-2">
+            <Slider
+              value={priceRange}
+              onValueChange={(value) => setPriceRange(value as [number, number])}
+              min={0}
+              max={25000}
+              step={100}
+              className="w-full"
+            />
+          </div>
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>{formatPrice(priceRange[0])}</span>
             <span>{formatPrice(priceRange[1])}</span>
