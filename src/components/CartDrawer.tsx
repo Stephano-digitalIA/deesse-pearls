@@ -147,7 +147,7 @@ const CartDrawer: React.FC = () => {
                             </button>
                             <button
                               onClick={() => removeItem(item.id)}
-                              className="ml-auto text-xs text-destructive hover:underline"
+                              className="ml-auto text-xs text-gold hover:underline"
                             >
                               {t('remove')}
                             </button>
