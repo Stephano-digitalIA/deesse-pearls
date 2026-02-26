@@ -269,7 +269,7 @@ const Auth: React.FC = () => {
       >
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl md:text-4xl font-semibold mb-2">
-            <span className="text-gold">DEESSE</span> PEARLS
+            <span className="text-gold">DEESSE</span> <span className="text-foreground">PEARLS</span>
           </h1>
           <p className="text-muted-foreground">
             {activeTab === 'login' ? t('loginToAccount') : t('createAccount')}
