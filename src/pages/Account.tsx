@@ -12,7 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, MapPin, Package, LogOut, Save } from 'lucide-react';
-import { getCountriesWithPriority, normalizeCountryToCode, getCountryName, Language, PRIORITY_COUNTRY_CODES, shippingTranslations } from '@/data/shippingTranslations';
+import { normalizeCountryToCode, getCountriesWithPriority, getCountryName, Language, PRIORITY_COUNTRY_CODES, shippingTranslations } from '@/data/shippingTranslations';
+import AddressFields, { AddressValues } from '@/components/AddressFields';
+import { FieldId } from '@/data/addressFormats';
 import OrderCard from '@/components/OrderCard';
 
 interface OrderForDisplay {
@@ -60,6 +62,7 @@ const Account: React.FC = () => {
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [country, setCountry] = useState('FR'); // Use country code
+  const [state, setState] = useState('');
 
   useEffect(() => {
     // Avoid bouncing back to /auth while OAuth session is still being persisted.
@@ -114,6 +117,7 @@ const Account: React.FC = () => {
         setCity(data.city || '');
         setPostalCode(data.postal_code || '');
         setCountry(normalizeCountryToCode(data.country || 'FR'));
+        setState(data.state || '');
       } else {
         console.log('[Account] No profile found, using user metadata');
         setFirstName(user.user_metadata?.first_name || '');
@@ -213,6 +217,7 @@ const Account: React.FC = () => {
           city: city,
           postal_code: postalCode,
           country: country,
+          state: state || null,
         })
         .eq('user_id', user.id)
         .abortSignal(controller.signal);
@@ -281,6 +286,26 @@ const Account: React.FC = () => {
       ko: 'ko-KR',
     };
     return locales[language] || 'fr-FR';
+  };
+
+  // Address values object for AddressFields component
+  const addressValues: AddressValues = {
+    addressLine1,
+    addressLine2,
+    city,
+    postalCode,
+    country,
+    state,
+  };
+
+  const handleAddressChange = (field: FieldId, value: string) => {
+    switch (field) {
+      case 'addressLine1': setAddressLine1(value); break;
+      case 'addressLine2': setAddressLine2(value); break;
+      case 'city':         setCity(value);          break;
+      case 'postalCode':   setPostalCode(value);    break;
+      case 'state':        setState(value);          break;
+    }
   };
 
   // Show name immediately from user_metadata (available before profile loads)
@@ -400,47 +425,13 @@ const Account: React.FC = () => {
                     {t('shippingAddressDesc')}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="addressLine1">{t('address')}</Label>
-                    <Input
-                      id="addressLine1"
-                      value={addressLine1}
-                      onChange={(e) => setAddressLine1(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="addressLine2">{t('addressComplement')}</Label>
-                    <Input
-                      id="addressLine2"
-                      value={addressLine2}
-                      onChange={(e) => setAddressLine2(e.target.value)}
-                    />
-                  </div>
+                <CardContent className="space-y-4">
+                  {/* Country selector */}
                   <div className="space-y-2">
-                    <Label htmlFor="city">{t('city')}</Label>
-                    <Input
-                      id="city"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="postalCode">{t('postalCode')}</Label>
-                    <Input
-                      id="postalCode"
-                      value={postalCode}
-                      onChange={(e) => setPostalCode(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="country">{t('country')}</Label>
-                    <Select
-                      value={country}
-                      onValueChange={setCountry}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={shippingTranslations[language as Language]?.selectCountry || 'Select a country'}>
+                    <Select value={country} onValueChange={setCountry}>
+                      <SelectTrigger id="country">
+                        <SelectValue>
                           {country ? getCountryName(country, language as Language) : (shippingTranslations[language as Language]?.selectCountry || 'Select a country')}
                         </SelectValue>
                       </SelectTrigger>
@@ -457,6 +448,11 @@ const Account: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  {/* Dynamic address fields based on selected country */}
+                  <AddressFields
+                    values={addressValues}
+                    onChange={handleAddressChange}
+                  />
                 </CardContent>
               </Card>
 

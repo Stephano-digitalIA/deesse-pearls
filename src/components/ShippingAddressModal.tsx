@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Loader2, User, Mail, Phone, Home, Building, MapPinned, Check, ChevronsUpDown } from 'lucide-react';
+import { X, MapPin, Loader2, User, Mail, Phone, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,8 @@ import { useLocale } from '@/contexts/LocaleContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { shippingTranslations, getCountriesWithPriority, Language, normalizeCountryToCode, getCountryName, PRIORITY_COUNTRY_CODES } from '@/data/shippingTranslations';
+import AddressFields, { validateAddressFields, AddressValues } from '@/components/AddressFields';
+import { FieldId } from '@/data/addressFormats';
 
 interface ShippingAddressModalProps {
   isOpen: boolean;
@@ -48,6 +50,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
     city: '',
     postalCode: '',
     country: 'FR', // Use country code
+    state: '',
   });
 
   // Charger le profil directement depuis Supabase quand le modal s'ouvre
@@ -66,7 +69,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('first_name, last_name, phone, address_line1, address_line2, city, postal_code, country')
+          .select('first_name, last_name, phone, address_line1, address_line2, city, postal_code, country, state')
           .eq('user_id', userId)
           .maybeSingle();
 
@@ -88,6 +91,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
           city: data?.city || '',
           postalCode: data?.postal_code || '',
           country: countryCode,
+          state: data?.state || '',
         };
 
         console.log('[ShippingModal] Setting formData:', newFormData);
@@ -105,6 +109,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
           city: '',
           postalCode: '',
           country: 'FR',
+          state: '',
         });
       }
     };
@@ -125,35 +130,35 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
     }
   };
 
+  const handleAddressChange = (field: FieldId, value: string) => {
+    handleChange(field as keyof ShippingAddress, value);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = ts.fieldRequired;
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = ts.fieldRequired;
-    }
+    if (!formData.firstName.trim()) newErrors.firstName = ts.fieldRequired;
+    if (!formData.lastName.trim())  newErrors.lastName  = ts.fieldRequired;
     if (!formData.email.trim()) {
       newErrors.email = ts.fieldRequired;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = ts.invalidEmail;
     }
-    if (!formData.addressLine1.trim()) {
-      newErrors.addressLine1 = ts.fieldRequired;
-    }
-    if (!formData.city.trim()) {
-      newErrors.city = ts.fieldRequired;
-    }
-    if (!formData.postalCode.trim()) {
-      newErrors.postalCode = ts.fieldRequired;
-    }
-    if (!formData.phone.trim()) {
-      newErrors.phone = ts.fieldRequired;
-    }
-    if (!formData.country) {
-      newErrors.country = ts.fieldRequired;
-    }
+    if (!formData.phone.trim()) newErrors.phone = ts.fieldRequired;
+    if (!formData.country)      newErrors.country = ts.fieldRequired;
+
+    // Address fields validated using country-specific format
+    const addressLang = (language as Language) ?? 'fr';
+    const addressValues: AddressValues = {
+      addressLine1: formData.addressLine1,
+      addressLine2: formData.addressLine2 || '',
+      city: formData.city,
+      postalCode: formData.postalCode,
+      country: formData.country,
+      state: formData.state || '',
+    };
+    const addressErrors = validateAddressFields(addressValues, addressLang);
+    Object.assign(newErrors, addressErrors);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -292,71 +297,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
                   )}
                 </div>
 
-                {/* Adresse */}
-                <div className="space-y-2">
-                  <Label htmlFor="addressLine1" className="flex items-center gap-1">
-                    <Home className="w-3 h-3" />
-                    {ts.address} *
-                  </Label>
-                  <Input
-                    id="addressLine1"
-                    value={formData.addressLine1}
-                    onChange={(e) => handleChange('addressLine1', e.target.value)}
-                    className={errors.addressLine1 ? 'border-destructive' : ''}
-                  />
-                  {errors.addressLine1 && (
-                    <p className="text-xs text-destructive">{errors.addressLine1}</p>
-                  )}
-                </div>
-
-                {/* Complément d'adresse */}
-                <div className="space-y-2">
-                  <Label htmlFor="addressLine2" className="flex items-center gap-1">
-                    <Building className="w-3 h-3" />
-                    {ts.addressOptional}
-                  </Label>
-                  <Input
-                    id="addressLine2"
-                    value={formData.addressLine2}
-                    onChange={(e) => handleChange('addressLine2', e.target.value)}
-                  />
-                </div>
-
-                {/* Ville & Code postal */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="postalCode" className="flex items-center gap-1">
-                      <MapPinned className="w-3 h-3" />
-                      {ts.postalCode} *
-                    </Label>
-                    <Input
-                      id="postalCode"
-                      value={formData.postalCode}
-                      onChange={(e) => handleChange('postalCode', e.target.value)}
-                      className={errors.postalCode ? 'border-destructive' : ''}
-                    />
-                    {errors.postalCode && (
-                      <p className="text-xs text-destructive">{errors.postalCode}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city" className="flex items-center gap-1">
-                      <Building className="w-3 h-3" />
-                      {ts.city} *
-                    </Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => handleChange('city', e.target.value)}
-                      className={errors.city ? 'border-destructive' : ''}
-                    />
-                    {errors.city && (
-                      <p className="text-xs text-destructive">{errors.city}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pays */}
+                {/* Pays — must be above address fields so format adapts */}
                 <div className="space-y-2">
                   <Label htmlFor="country">{ts.country} *</Label>
                   <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
@@ -411,6 +352,20 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
                     <p className="text-xs text-destructive">{errors.country}</p>
                   )}
                 </div>
+
+                {/* Dynamic address fields — format and labels adapt to selected country */}
+                <AddressFields
+                  values={{
+                    addressLine1: formData.addressLine1,
+                    addressLine2: formData.addressLine2 || '',
+                    city: formData.city,
+                    postalCode: formData.postalCode,
+                    country: formData.country,
+                    state: formData.state || '',
+                  }}
+                  onChange={handleAddressChange}
+                  errors={errors as Partial<Record<FieldId, string>>}
+                />
               </div>
             </form>
 

@@ -12,6 +12,7 @@ export interface ShippingAddress {
   city: string;
   postalCode: string;
   country: string;
+  state?: string;
 }
 
 export interface UserProfile extends ShippingAddress {
@@ -95,6 +96,7 @@ export function useUserProfile() {
           city: data.city || '',
           postalCode: data.postal_code || '',
           country: data.country || 'FR',
+          state: data.state || '',
         });
       } else {
         console.log('[useUserProfile] No profile found, using fallback');
@@ -132,6 +134,7 @@ export function useUserProfile() {
         city: newProfile.city,
         postal_code: newProfile.postalCode,
         country: newProfile.country,
+        state: newProfile.state || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
       .abortSignal(controller.signal);
