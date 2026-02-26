@@ -614,9 +614,7 @@ const Auth: React.FC = () => {
               {t('confirmationEmailSent')}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4 text-center">
-              <p className="text-base">
-                Un email de confirmation vient de vous être envoyé à <strong>{email}</strong>.
-              </p>
+              <p className="text-base font-semibold text-foreground">{email}</p>
 
               <div className="bg-gold/5 rounded-lg p-4 space-y-3 text-left">
                 <div className="flex items-start gap-3">
