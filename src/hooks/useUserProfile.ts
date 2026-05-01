@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ShippingAddress {
+  civility?: string; // M. / Mme / Mlle / Mx / Dr
   firstName: string;
   lastName: string;
   email: string;
@@ -44,6 +45,7 @@ export function useUserProfile() {
     const fallback = () => {
       setProfile({
         userId,
+        civility: '',
         firstName: userFirstName,
         lastName: userLastName,
         email: userEmail,
@@ -87,6 +89,7 @@ export function useUserProfile() {
       if (data) {
         setProfile({
           userId,
+          civility: (data as any).civility || '',
           firstName: data.first_name || userFirstName,
           lastName: data.last_name || userLastName,
           email: userEmail,
@@ -126,6 +129,7 @@ export function useUserProfile() {
       .from('profiles')
       .upsert({
         user_id: userId,
+        civility: newProfile.civility || null,
         first_name: newProfile.firstName,
         last_name: newProfile.lastName,
         phone: newProfile.phone,
@@ -136,7 +140,7 @@ export function useUserProfile() {
         country: newProfile.country,
         state: newProfile.state || null,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' })
+      } as any, { onConflict: 'user_id' })
       .abortSignal(controller.signal);
 
     clearTimeout(timeoutId);

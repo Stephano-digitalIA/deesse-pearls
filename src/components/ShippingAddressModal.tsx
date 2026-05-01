@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile, ShippingAddress } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
   const countries = useMemo(() => getCountriesWithPriority(language as Language), [language]);
 
   const [formData, setFormData] = useState<ShippingAddress>({
+    civility: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -69,7 +71,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('first_name, last_name, phone, address_line1, address_line2, city, postal_code, country, state')
+          .select('civility, first_name, last_name, phone, address_line1, address_line2, city, postal_code, country, state')
           .eq('user_id', userId)
           .maybeSingle();
 
@@ -82,6 +84,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
         const countryCode = normalizeCountryToCode(data?.country || 'FR');
 
         const newFormData = {
+          civility: (data as any)?.civility || '',
           firstName: data?.first_name || userFirstName,
           lastName: data?.last_name || userLastName,
           email: userEmail,
@@ -100,6 +103,7 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
         console.error('[ShippingModal] Error:', e);
         // Fallback to user metadata
         setFormData({
+          civility: '',
           firstName: userFirstName,
           lastName: userLastName,
           email: userEmail,
@@ -227,6 +231,29 @@ const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({
             {/* Form */}
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 md:p-6 overscroll-contain">
               <div className="space-y-4 pb-2">
+                {/* Civilité */}
+                <div className="space-y-2">
+                  <Label htmlFor="civility" className="flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    {ts.civility || 'Civilité'}
+                  </Label>
+                  <Select
+                    value={formData.civility || ''}
+                    onValueChange={(value) => handleChange('civility', value)}
+                  >
+                    <SelectTrigger id="civility">
+                      <SelectValue placeholder={ts.civilityPlaceholder || 'Sélectionnez'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M.">M.</SelectItem>
+                      <SelectItem value="Mme">Mme</SelectItem>
+                      <SelectItem value="Mlle">Mlle</SelectItem>
+                      <SelectItem value="Mx">Mx</SelectItem>
+                      <SelectItem value="Dr">Dr</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Nom & Prénom */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

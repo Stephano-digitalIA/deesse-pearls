@@ -354,13 +354,29 @@ const Checkout: React.FC = () => {
       const orderNumber = `DP-${year}${month}-${random}`;
 
       const customerEmail = user?.email || details.payer?.email_address || '';
-      const firstName = user?.user_metadata?.first_name || shippingAddress?.firstName || '';
-      const lastName = user?.user_metadata?.last_name || shippingAddress?.lastName || '';
-      const customerName = `${firstName} ${lastName}`.trim() || user?.email?.split('@')[0] || 'Client';
+      const firstName = shippingAddress?.firstName || user?.user_metadata?.first_name || '';
+      const lastName = shippingAddress?.lastName || user?.user_metadata?.last_name || '';
+      const civility = shippingAddress?.civility || '';
+      const customerName = [civility, firstName, lastName].filter(Boolean).join(' ').trim()
+        || user?.email?.split('@')[0]
+        || 'Client';
 
-      const formattedAddress = shippingAddress
-        ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${getCountryName(shippingAddress.country, language as Language)}`
-        : t('notSpecified');
+      // Adresse structurée (JSONB) — exploitable côté admin (civilité/nom/prénom/etc.)
+      const shippingAddressJson = shippingAddress
+        ? {
+            civility: shippingAddress.civility || null,
+            first_name: shippingAddress.firstName || null,
+            last_name: shippingAddress.lastName || null,
+            address: [shippingAddress.addressLine1, shippingAddress.addressLine2].filter(Boolean).join(', '),
+            city: shippingAddress.city || null,
+            postal_code: shippingAddress.postalCode || null,
+            country: getCountryName(shippingAddress.country, language as Language),
+            country_code: shippingAddress.country || null,
+            state: shippingAddress.state || null,
+            phone: shippingAddress.phone || null,
+            email: shippingAddress.email || customerEmail || null,
+          }
+        : null;
 
       // 1. Sauvegarder la commande dans Supabase
       console.log('[Checkout] Saving order with user_id:', user.id);
@@ -378,7 +394,7 @@ const Checkout: React.FC = () => {
             customer_email: customerEmail,
             customer_name: customerName,
             customer_phone: shippingAddress?.phone || null,
-            shipping_address: formattedAddress,
+            shipping_address: shippingAddressJson,
             status: 'paid',
             payment_status: details.status === 'COMPLETED' ? 'completed' : 'pending',
             subtotal,
@@ -688,7 +704,7 @@ const Checkout: React.FC = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">
-                    {shippingAddress.firstName} {shippingAddress.lastName}
+                    {[shippingAddress.civility, shippingAddress.firstName, shippingAddress.lastName].filter(Boolean).join(' ')}
                   </p>
                   <p>{shippingAddress.addressLine1}</p>
                   {shippingAddress.addressLine2 && <p>{shippingAddress.addressLine2}</p>}
@@ -739,7 +755,11 @@ const Checkout: React.FC = () => {
                         total,
                         formatPrice,
                         customerEmail: user?.email || shippingAddress?.email || '',
-                        customerName: `${user?.user_metadata?.first_name || shippingAddress?.firstName || ''} ${user?.user_metadata?.last_name || shippingAddress?.lastName || ''}`.trim() || 'Client',
+                        customerName: [
+                          shippingAddress?.civility,
+                          shippingAddress?.firstName || user?.user_metadata?.first_name,
+                          shippingAddress?.lastName || user?.user_metadata?.last_name,
+                        ].filter(Boolean).join(' ').trim() || 'Client',
                         shippingAddress: shippingAddress
                           ? `${shippingAddress.addressLine1}${shippingAddress.addressLine2 ? ', ' + shippingAddress.addressLine2 : ''}, ${shippingAddress.postalCode} ${shippingAddress.city}, ${getCountryName(shippingAddress.country, language as Language)}`
                           : t('notSpecified'),
